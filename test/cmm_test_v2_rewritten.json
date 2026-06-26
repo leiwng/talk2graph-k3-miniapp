@@ -1,0 +1,562 @@
+[
+  {
+    "id": "22586",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "15. 已知圆内接四边形 $\\mathrm{ABCD}$ 的边长分别是 $\\mathrm{AB}=2, \\mathrm{BC}=6, \\mathrm{CD}=\\mathrm{DA}=4$, 则四边形 $\\mathrm{ABCD}$ 的面积",
+    "full_question": "15. 已知圆内接四边形 $\\mathrm{ABCD}$ 的边长分别是 $\\mathrm{AB}=2, \\mathrm{BC}=6, \\mathrm{CD}=\\mathrm{DA}=4$, 则四边形 $\\mathrm{ABCD}$ 的面积等于 \\$ \\qquad \\$",
+    "rewritten": "画圆内接四边形 ABCD，AB=2，BC=6，CD=4，DA=4",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "1875",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "(本小题 8.0 分)\n\n对于数轴上的 $A, B, C$ 三点, 给出如下定义: 若其中一个点与其它两个点的距离恰好满足 2 倍的数量关系，",
+    "full_question": "(本小题 8.0 分)\n\n对于数轴上的 $A, B, C$ 三点, 给出如下定义: 若其中一个点与其它两个点的距离恰好满足 2 倍的数量关系，则称该点是其它两个点的 “倍分点”\n\n(1)若点 $A$ 表示数 -1 , 点 $C$ 表示的数 2 , 下列各数 $-\\frac{5}{2}, 0,1, \\frac{9}{2}$ 中, 其中是点 $A, C$ 的 “倍分点”的是 \\$ \\qquad \\$ $;$\n\n(2) 已知点 $M$ 表示 -20, 点 $N$ 表示 $16, P$ 为数轴上一个动点.\n\n(1)若点 $P$ 是点 $M, N$ 的 “倍分点”, 求此时点 $P$ 表示的数.\n\n(2",
+    "rewritten": "在数轴上画三点 A、B、C",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "19651",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "已知 $\\triangle A B C$ 中, $a=1, b=\\sqrt{3}, A=30^{\\circ}$, 则 $B$",
+    "full_question": "已知 $\\triangle A B C$ 中, $a=1, b=\\sqrt{3}, A=30^{\\circ}$, 则 $B$ 等于 $(\\quad)$",
+    "rewritten": "画三角形 ABC，其中 BC=1，AC=√3，∠A=30°",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "3598",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "在直角三角形 $A B C$ 中, 若 $2 A B=A C$,",
+    "full_question": "在直角三角形 $A B C$ 中, 若 $2 A B=A C$, 则 $\\cos C=$ \\$ \\qquad \\$",
+    "rewritten": "画直角三角形 ABC，AC=2·AB",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "478",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "如图, 已知 Rt $\\triangle A B C$ 的两条直角边 $A C 、 B C$ 的长分别为 3,4 , 以 $A C$ 为直径作圆与斜边 $A B$ 交于点 $D$,",
+    "full_question": "如图, 已知 Rt $\\triangle A B C$ 的两条直角边 $A C 、 B C$ 的长分别为 3,4 , 以 $A C$ 为直径作圆与斜边 $A B$ 交于点 $D$, 则 $A D=$ $\\qquad$ .",
+    "rewritten": "画直角三角形 ABC，C 为直角顶点，AC=3，BC=4；以 AC 为直径画圆，圆与斜边 AB 相交于点 D",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "21230",
+    "subject": "解析几何",
+    "difficulty": "困难",
+    "original_description": "抛物线 $y^{2}=2 x$ 的准线方程是 ( )",
+    "full_question": "抛物线 $y^{2}=2 x$ 的准线方程是 ( )",
+    "rewritten": "画抛物线 y²=2x 及其准线",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "2442",
+    "subject": "解析几何",
+    "difficulty": "困难",
+    "original_description": "已知 $\\odot O_{1}$ 与 $\\odot O_{2}$ 内切, 它们的半径分别为 2 和 3 ,",
+    "full_question": "已知 $\\odot O_{1}$ 与 $\\odot O_{2}$ 内切, 它们的半径分别为 2 和 3 , 则这两圆的圆心距 $d$ 满足 ( )",
+    "rewritten": "画两个内切的圆，圆 O1 半径为 2，圆 O2 半径为 3",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "17917",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "6. 在 $\\triangle A B C$ 中, $|\\overrightarrow{A B}|=|\\overrightarrow{B C}|=|\\overrightarrow{C A}|=1$,",
+    "full_question": "6. 在 $\\triangle A B C$ 中, $|\\overrightarrow{A B}|=|\\overrightarrow{B C}|=|\\overrightarrow{C A}|=1$, 则 $|\\overrightarrow{A B}-\\overrightarrow{A C}|$ 的值为",
+    "rewritten": "画等边三角形 ABC，边长为 1",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "20033",
+    "subject": "解析几何",
+    "difficulty": "困难",
+    "original_description": "已知椭圆的焦点是 $F_{1} 、 F_{2}, P$ 是椭圆上的一个动点, 如果延长 $F_{1} P$ 到 $Q$, 使得 $|P Q|=$ $\\left|P F_{2}\\right|$,",
+    "full_question": "已知椭圆的焦点是 $F_{1} 、 F_{2}, P$ 是椭圆上的一个动点, 如果延长 $F_{1} P$ 到 $Q$, 使得 $|P Q|=$ $\\left|P F_{2}\\right|$, 那么动点 $Q$ 的轨迹是",
+    "rewritten": "画椭圆，标出两焦点 F1、F2，在椭圆上取动点 P，延长 F1P 到 Q，使 PQ=PF2",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "3694",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "在 $\\triangle A B C$ 中, $\\angle A B C=90^{\\circ}, A B=1, B C=2$, 将边 $A C$ 绕点 $A$ 旋转 $90^{\\circ}$ 得到线段 $A D$,",
+    "full_question": "在 $\\triangle A B C$ 中, $\\angle A B C=90^{\\circ}, A B=1, B C=2$, 将边 $A C$ 绕点 $A$ 旋转 $90^{\\circ}$ 得到线段 $A D$, 则 $\\tan \\angle D C B$ 的值为 \\$ \\qquad \\$ .",
+    "rewritten": "画直角三角形 ABC，∠ABC=90°，AB=1，BC=2；将线段 AC 绕点 A 旋转 90° 得到线段 AD",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "18773",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "$\\triangle A B C$ 中, 若 $a^{4}+b^{4}+c^{4}=2 c^{2}\\left(a^{2}+b^{2}\\right)$,",
+    "full_question": "$\\triangle A B C$ 中, 若 $a^{4}+b^{4}+c^{4}=2 c^{2}\\left(a^{2}+b^{2}\\right)$, 则角 $C$ 的度数是 $(\\quad)$",
+    "rewritten": null,
+    "skip_reason": "条件为代数等式，未给出具体边长或角度，无法作出确定图形",
+    "rewrite_status": "skipped"
+  },
+  {
+    "id": "409",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "如图, $A B$ 是 $\\odot O$ 的直径, 弦 $C D \\perp A B$ 于点 $H, \\angle A=30^{\\circ}, C D=2 \\sqrt{3}$,",
+    "full_question": "如图, $A B$ 是 $\\odot O$ 的直径, 弦 $C D \\perp A B$ 于点 $H, \\angle A=30^{\\circ}, C D=2 \\sqrt{3}$, 则 $\\odot O$ 的半径是 $\\qquad$ .\n\n    \n\n    (第 17 题)",
+    "rewritten": "画圆 O，AB 为直径，弦 CD 垂直 AB 于点 H，∠A=30°，CD=2√3",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "19617",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "在 $\\triangle A B C$ 中, 若 $b=2, A=120^{\\circ}$, 三角形的面积 $S=\\sqrt{3}$,",
+    "full_question": "在 $\\triangle A B C$ 中, 若 $b=2, A=120^{\\circ}$, 三角形的面积 $S=\\sqrt{3}$, 则三角形外接圆的半径为 ( )",
+    "rewritten": "画三角形 ABC，b=2，角 A=120°，面积为 √3",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "22614",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "18. 如图, 在 $\\triangle A B C$ 中, $A B=A C$, 以 $A B$ 为直径的 $\\odot O$ 交 $B C$ 于点 $D$, 过点 $D$ 作 $\\odot O$ 的切线交 $A C$于 $\\mathrm{E}$.",
+    "full_question": "18. 如图, 在 $\\triangle A B C$ 中, $A B=A C$, 以 $A B$ 为直径的 $\\odot O$ 交 $B C$ 于点 $D$, 过点 $D$ 作 $\\odot O$ 的切线交 $A C$于 $\\mathrm{E}$.求证: $\\mathrm{DE} \\perp \\mathrm{AC}$.",
+    "rewritten": "画等腰三角形 ABC，AB=AC；以 AB 为直径画圆 O，圆 O 交 BC 于点 D；过点 D 作圆 O 的切线，切线交 AC 于点 E",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "220",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "(6 分) 已知二次函数 $y=-\\frac{1}{2} x^{2}+b x+c$ 的图象经过 $A(2,0), B(0,-6)$ 两点.\n（1）",
+    "full_question": "(6 分) 已知二次函数 $y=-\\frac{1}{2} x^{2}+b x+c$ 的图象经过 $A(2,0), B(0,-6)$ 两点.\n（1）求 $b 、 c$ 的值;\n(2) 求对称轴和顶点坐标.",
+    "rewritten": null,
+    "skip_reason": "二次函数图象，非几何作图题",
+    "rewrite_status": "skipped"
+  },
+  {
+    "id": "5222",
+    "subject": "解析几何",
+    "difficulty": "基础",
+    "original_description": "已知反比例函数${y}_{1}=frac{{k}}{{x}}(k$为常数,$kneq0)$与正比例函数$y_{2}=x$的图象有一个交点为$P(3,m)$.(1)",
+    "full_question": "已知反比例函数${y}_{1}=frac{{k}}{{x}}(k$为常数,$kneq0)$与正比例函数$y_{2}=x$的图象有一个交点为$P(3,m)$.(1)求$k$的值;(2)将点$P$向下平移6个单位,再向左平移5个单位后,得点$P^{prime}$,试判断点$P^{prime}$是否在函数$y_{1}$的图象上，并说明理由;(3)当$y_{1}>y_{2}$时,利用函数图象直接写出自变量$x$的取值范围.",
+    "rewritten": "画反比例函数 y=k/x 与正比例函数 y=x 的图象，并标出它们的交点 P(3, m)",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "23606",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "如图, 某市有一块长为 $(3 a+b)$ 米, 宽为 $(2 a+b)$ 米的长方形地块, 规划部门计划将阴影部分进行绿化, 中间将修建一座雕像,",
+    "full_question": "如图, 某市有一块长为 $(3 a+b)$ 米, 宽为 $(2 a+b)$ 米的长方形地块, 规划部门计划将阴影部分进行绿化, 中间将修建一座雕像, 则绿化的面积是多少平方米? 并求出当 $a=6, b=4$ 时的绿化面积.",
+    "rewritten": "画一个长为 (3a+b) 米、宽为 (2a+b) 米的长方形地块，中间有一块矩形区域用于修建雕像，其余阴影部分为绿化区域",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4435",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "如图, 在 $\\triangle A B C$ 中, 按以下步骤作图: (1)分别以点 $\\mathrm{B}$ 和 $\\mathrm{C}$ 为圆心,以大于 $\\frac{1}{2} B C$ 的长为半径作弧, 两弧相交于点 $\\mathrm{M}$ 和 $\\mathrm{N}$; (2)作直线 $\\mathrm{MN}$ 交 $\\mathrm{AC}$ 于点 $\\mathrm{D}$, 连接 $\\mathrm{BD}$.若 $A B=5, A C=7$,",
+    "full_question": "如图, 在 $\\triangle A B C$ 中, 按以下步骤作图: (1)分别以点 $\\mathrm{B}$ 和 $\\mathrm{C}$ 为圆心,以大于 $\\frac{1}{2} B C$ 的长为半径作弧, 两弧相交于点 $\\mathrm{M}$ 和 $\\mathrm{N}$; (2)作直线 $\\mathrm{MN}$ 交 $\\mathrm{AC}$ 于点 $\\mathrm{D}$, 连接 $\\mathrm{BD}$.若 $A B=5, A C=7$, 则 $\\triangle A B D$ 的周长为 $(\\quad)$",
+    "rewritten": "画三角形 ABC，AB=5，AC=7；作 BC 的垂直平分线交 AC 于点 D，连接 BD",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "701",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "如图, $\\odot O$ 的半径为 4 , 点 $A$ 为 $\\odot O$ 上的一点, $O D \\perp$ 弦 $B C$ 于点 $D, O D=2$,",
+    "full_question": "如图, $\\odot O$ 的半径为 4 , 点 $A$ 为 $\\odot O$ 上的一点, $O D \\perp$ 弦 $B C$ 于点 $D, O D=2$,则 $\\angle B A C$ 的度数是 $(\\quad)$",
+    "rewritten": "画圆 O，半径为 4，点 A 在圆 O 上；作弦 BC，OD 垂直于弦 BC 于点 D，OD=2",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "5157",
+    "subject": "度量几何学",
+    "difficulty": "中等",
+    "original_description": "如图,在四边形$ABCD$中,$AD//BC,AC$与$BD$交于点$E$,点$E$是$BD$的中点,延长$CD$到点$F$,使$DF=CD$,连接$AF$.(1)求证:$AE=CE$;(2)求证:四边形$ABDF$是平行四边形;(3)若$AB=4,AF=8,angleF=30^{circ}$，",
+    "full_question": "如图,在四边形$ABCD$中,$AD//BC,AC$与$BD$交于点$E$,点$E$是$BD$的中点,延长$CD$到点$F$,使$DF=CD$,连接$AF$.(1)求证:$AE=CE$;(2)求证:四边形$ABDF$是平行四边形;(3)若$AB=4,AF=8,angleF=30^{circ}$，则四边形$ABCF$的面积为24.",
+    "rewritten": "画四边形 ABCD，AD∥BC，AC 与 BD 交于点 E，E 是 BD 的中点；延长 CD 到点 F，使 DF=CD，连接 AF，其中 AB=4，AF=8，∠F=30°",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "3265",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "（本题8分）课本中有一个例题.有一个窗户形状如图(1),上部是一个半圆,下部是一个矩形,如果制作窗框的材料总长为$6{~m}$,如何设计这个窗户能使透光面积最大?这个例题的答案是当窗户半圆的半径约为$0.35{~m}$时,透光面积的最大值约为$1.05{~m}^{2}$.我们如果改变这个窗户的形状,上部改为由两个正方形组成的矩形,如图(2),材料总长仍为$6{~m}$,利用图(3),解答下列问题:(1)若$AB$为$1{~m}$,",
+    "full_question": "（本题8分）课本中有一个例题.有一个窗户形状如图(1),上部是一个半圆,下部是一个矩形,如果制作窗框的材料总长为$6{~m}$,如何设计这个窗户能使透光面积最大?这个例题的答案是当窗户半圆的半径约为$0.35{~m}$时,透光面积的最大值约为$1.05{~m}^{2}$.我们如果改变这个窗户的形状,上部改为由两个正方形组成的矩形,如图(2),材料总长仍为$6{~m}$,利用图(3),解答下列问题:(1)若$AB$为$1{~m}$,求此时窗户的透光面积;（2）与课本中的例题比较,改变窗户形状后,窗户透光面积的最大值有没有变大？请通过计算说明.(1)(2)(3)",
+    "rewritten": "画一个窗户形状：下部是矩形 ABCD，AB 在底部；上部由两个相同的正方形并排组成一个矩形，紧贴在 CD 上方",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "5172",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "如图,菱形$ABCD$的边长为$10{~cm}$,其中对角线$AC$的长为$16{~cm}$,",
+    "full_question": "如图,菱形$ABCD$的边长为$10{~cm}$,其中对角线$AC$的长为$16{~cm}$,则菱形$ABCD$的面积为${cm}^{2}$.",
+    "rewritten": "画菱形 ABCD，边长为 10cm，对角线 AC=16cm",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4871",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "在 $\\triangle A B C$ 中, $D, E$ 分别是 $A C 、 B C$ 上的点, 过点 $D$ 作 $D F \\perp A B, D G \\perp B C$, 垂足分别是点 $F, G$,连接 $D E$, 若 $D F=D G, B E=D E$,",
+    "full_question": "在 $\\triangle A B C$ 中, $D, E$ 分别是 $A C 、 B C$ 上的点, 过点 $D$ 作 $D F \\perp A B, D G \\perp B C$, 垂足分别是点 $F, G$,连接 $D E$, 若 $D F=D G, B E=D E$, 则下面三个结论: (1) $B F=B G$; (2) $D E / / B F$; (3) $\\triangle A D F \\cong \\triangle C D G$.其中正确的是 $(\\quad ＼quad)$",
+    "rewritten": "画三角形 ABC，D 在 AC 上，E 在 BC 上；过 D 作 DF⊥AB 于 F，作 DG⊥BC 于 G，且 DF=DG；连接 DE，且 BE=DE",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4602",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "如图, 为测量池塘两端 $A 、 B$ 的距离, 小康在池塘外一块平地上选取了一点 $O$,\n\n连接 $A O, B O$, 并分别延长 $A O, B O$ 到点 $C, D$, 使得 $A O=D O, B O=C O$,\n\n连接 $C D$, 测得 $C D$ 的长为 165 米,",
+    "full_question": "如图, 为测量池塘两端 $A 、 B$ 的距离, 小康在池塘外一块平地上选取了一点 $O$,\n\n连接 $A O, B O$, 并分别延长 $A O, B O$ 到点 $C, D$, 使得 $A O=D O, B O=C O$,\n\n连接 $C D$, 测得 $C D$ 的长为 165 米, 则池塘两端 $A, B$ 之间的距离为（）",
+    "rewritten": "画点 O，连接并延长线段 AO 到点 D，使 AO=DO；连接并延长线段 BO 到点 C，使 BO=CO；连接 AB 和 CD，标注 CD=165 米",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "28754",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "如图, $\\angle 1=30^{\\circ}, \\angle 2=110^{\\circ}, \\angle 3=(\\quad)$ 。",
+    "full_question": "如图, $\\angle 1=30^{\\circ}, \\angle 2=110^{\\circ}, \\angle 3=(\\quad)$ 。",
+    "rewritten": null,
+    "skip_reason": "题目依赖原图，缺少几何结构描述，无法重建图形",
+    "rewrite_status": "skipped"
+  },
+  {
+    "id": "316",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "如图, 四边形 $A B C D$ 内接于 $\\odot O, \\angle A=125^{\\circ}$,",
+    "full_question": "如图, 四边形 $A B C D$ 内接于 $\\odot O, \\angle A=125^{\\circ}$, 则 $\\angle C$ 的度数为 ( )\n\n  \n\n  （第 2 题）",
+    "rewritten": "画圆 O，作圆内接四边形 ABCD，其中 ∠A=125°",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4078",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "已知: 如图, 在 $\\triangle A B C$ 与 $\\triangle A E F$ 中, 点 $F$ 在 $B C$ 上, $A B=A E, B C=E F, \\angle B=\\angle E$, $A B$ 交 $E F$ 于点 $D$, 下列结论:\n(1) $\\angle E A B=\\angle F A C$\n(2) $A F=A C$\n(3) $F A$ 平分 $\\angle E F C$\n(4) $\\angle B F E=\\angle F A C$ 中,\n\n其中正确的有 $(\\quad)$ 个.",
+    "full_question": "已知: 如图, 在 $\\triangle A B C$ 与 $\\triangle A E F$ 中, 点 $F$ 在 $B C$ 上, $A B=A E, B C=E F, \\angle B=\\angle E$, $A B$ 交 $E F$ 于点 $D$, 下列结论:\n(1) $\\angle E A B=\\angle F A C$\n(2) $A F=A C$\n(3) $F A$ 平分 $\\angle E F C$\n(4) $\\angle B F E=\\angle F A C$ 中,\n\n其中正确的有 $(\\quad)$ 个.",
+    "rewritten": "画三角形 ABC 与三角形 AEF，点 F 在 BC 上，AB=AE，BC=EF，∠B=∠E，AB 与 EF 交于点 D",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "2096",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "(本小题 8.0 分)\n\n把一副三角尺如图所示拼在一起.\n\n\n\n(1)写出图中 $\\angle A, \\angle B, \\angle B C D, \\angle D, \\angle A E D$ 的度数.\n\n(2)用 “<” 将上述各角连接起来.\n\n(3)指出上述各角中的锐角、直角和针角.",
+    "full_question": "(本小题 8.0 分)\n\n把一副三角尺如图所示拼在一起.\n\n\n\n(1)写出图中 $\\angle A, \\angle B, \\angle B C D, \\angle D, \\angle A E D$ 的度数.\n\n(2)用 “<” 将上述各角连接起来.\n\n(3)指出上述各角中的锐角、直角和针角.",
+    "rewritten": "画一副三角尺拼在一起的图形：直角三角形 ABC（∠A=45°，∠B=45°，∠ACB=90°）与直角三角形 ECD（∠DCE=30°，∠D=60°，∠DEC=90°）拼接，公共边为 CE，点 E 在 AB 上",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "2455",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "(3 分) 在 $\\triangle \\mathrm{ABC}$ 中, $\\mathrm{AC}=\\sqrt{6}, \\mathrm{BC}=2, \\angle \\mathrm{A}=45^{\\circ}$,",
+    "full_question": "(3 分) 在 $\\triangle \\mathrm{ABC}$ 中, $\\mathrm{AC}=\\sqrt{6}, \\mathrm{BC}=2, \\angle \\mathrm{A}=45^{\\circ}$, 则 $\\angle B=60^{\\circ}$.",
+    "rewritten": "画三角形 ABC，AC=√6，BC=2，∠A=45°",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "26616",
+    "subject": "度量几何学",
+    "difficulty": "基础",
+    "original_description": "一个直角三角形，两直角边的长度分别为 $30 \\mathrm{~cm}$ 和 $40 \\mathrm{~cm}$ ，斜边的长度为 $50 \\mathrm{~cm}$ 。如果将这个图形的两条直角边按 $1: 5$ 缩小后，斜边的长度变为 $\\qquad$ $\\mathrm{cm}$ ，缩小后三角形的面积为 $\\qquad$ $\\mathrm{cm}^{2}$ 。",
+    "full_question": "一个直角三角形，两直角边的长度分别为 $30 \\mathrm{~cm}$ 和 $40 \\mathrm{~cm}$ ，斜边的长度为 $50 \\mathrm{~cm}$ 。如果将这个图形的两条直角边按 $1: 5$ 缩小后，斜边的长度变为 $\\qquad$ $\\mathrm{cm}$ ，缩小后三角形的面积为 $\\qquad$ $\\mathrm{cm}^{2}$ 。",
+    "rewritten": "画直角三角形，两直角边长分别为 30cm 和 40cm，斜边长为 50cm",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "543",
+    "subject": "度量几何学",
+    "difficulty": "困难",
+    "original_description": "如图, $\\odot O$ 是锐角三角形 $A B C$ 的外接圆, $O D \\perp A B, O E \\perp B C, O F \\perp A C$, 垂足分别为 $D, E, F$, 连接 $D E, E F, F D$. 若 $D E+D F=6.5, \\triangle A B C$ 的周长为 21 ,",
+    "full_question": "如图, $\\odot O$ 是锐角三角形 $A B C$ 的外接圆, $O D \\perp A B, O E \\perp B C, O F \\perp A C$, 垂足分别为 $D, E, F$, 连接 $D E, E F, F D$. 若 $D E+D F=6.5, \\triangle A B C$ 的周长为 21 , 则 $E F$ 的长为\n\n  \n\n  (第 9 题)",
+    "rewritten": "画锐角三角形 ABC 及其外接圆 ⊙O，从 O 分别作 AB、BC、AC 的垂线，垂足分别为 D、E、F，连接 DE、EF、FD",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "26584",
+    "subject": "立体几何学",
+    "difficulty": "困难",
+    "original_description": "一个圆锥和一个圆柱体的底面半径相等，体积之比为 3:4, 它们的高之比是 $\\qquad$ .",
+    "full_question": "一个圆锥和一个圆柱体的底面半径相等，体积之比为 3:4, 它们的高之比是 $\\qquad$ .",
+    "rewritten": null,
+    "skip_reason": "纯体积比计算，无具体几何图形作图要素",
+    "rewrite_status": "skipped"
+  },
+  {
+    "id": "24092",
+    "subject": "立体几何学",
+    "difficulty": "困难",
+    "original_description": "(2022・海门市) 用 5 个相同的正方体摆成一个立体图形, 如果从上面看到的图形是\n\n\n从前面看到的图形是",
+    "full_question": "(2022・海门市) 用 5 个相同的正方体摆成一个立体图形, 如果从上面看到的图形是\n\n\n从前面看到的图形是\n\n\n那么这个立体图形是（）。",
+    "rewritten": null,
+    "skip_reason": "三视图描述不完整，无法确定具体立体图形",
+    "rewrite_status": "skipped"
+  },
+  {
+    "id": "15815",
+    "subject": "立体几何学",
+    "difficulty": "困难",
+    "original_description": "如图, 四棱雉 $S-A B C D$ 的底面为正方形, $S D \\perp$ 底面 $A B C D$,",
+    "full_question": "如图, 四棱雉 $S-A B C D$ 的底面为正方形, $S D \\perp$ 底面 $A B C D$, 则下列结论中不正确的是 ( )",
+    "rewritten": "画四棱锥 S-ABCD，底面 ABCD 为正方形，SD 垂直于底面 ABCD",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "27028",
+    "subject": "立体几何学",
+    "difficulty": "困难",
+    "original_description": "（５分）一个粮仓装满稻谷后上半部分是圆锥形，下半部分是圆柱形。粮仓的底面周长是 18.84 米，圆柱高 2 米，圆锥高 0.6 米。如果每立方米稻谷重 600 千克，",
+    "full_question": "（５分）一个粮仓装满稻谷后上半部分是圆锥形，下半部分是圆柱形。粮仓的底面周长是 18.84 米，圆柱高 2 米，圆锥高 0.6 米。如果每立方米稻谷重 600 千克，那么这个粮仓装有多少千克稻谷?",
+    "rewritten": "画一个组合立体图形：下方为圆柱，底面周长 18.84 米，高 2 米；上方为圆锥，与圆柱共底面，高 0.6 米",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "25185",
+    "subject": "立体几何学",
+    "difficulty": "困难",
+    "original_description": "如图, 将这个展开图围成正方体后, 字母 A 和字母( )相对。",
+    "full_question": "如图, 将这个展开图围成正方体后, 字母 A 和字母( )相对。",
+    "rewritten": null,
+    "skip_reason": "正方体展开图判断对面字母，无法用平面几何作图工具表达",
+    "rewrite_status": "skipped"
+  },
+  {
+    "id": "26530",
+    "subject": "立体几何学",
+    "difficulty": "困难",
+    "original_description": "如图，以梯形的上底所在直线为轴，将梯形旋转一周，得到的几何体的体积是 $\\qquad$ ) $\\mathrm{cm}^{3}$ 。",
+    "full_question": "如图，以梯形的上底所在直线为轴，将梯形旋转一周，得到的几何体的体积是 $\\qquad$ ) $\\mathrm{cm}^{3}$ 。",
+    "rewritten": "画一个梯形，并画出过其上底所在的直线作为旋转轴，表示梯形绕该轴旋转一周",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "15618",
+    "subject": "立体几何学",
+    "difficulty": "困难",
+    "original_description": "某多面体的三视图如图所示, 网格小正方形的边长为 1 ,",
+    "full_question": "某多面体的三视图如图所示, 网格小正方形的边长为 1 , 则该多面体最长棱的长为 ( )",
+    "rewritten": null,
+    "skip_reason": "三视图题目需要查看原图才能确定多面体形状，无法仅凭文字作图",
+    "rewrite_status": "skipped"
+  },
+  {
+    "id": "22494",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "16. 如图, $\\mathrm{AB} / / \\mathrm{CD} / / \\mathrm{EF}, \\mathrm{AF}, \\mathrm{BE}$ 相交于点 $\\mathrm{O}$, 若 $\\mathrm{AO}=\\mathrm{OD}=\\mathrm{DF}, \\mathrm{BE}=10 \\mathrm{~cm}$,",
+    "full_question": "16. 如图, $\\mathrm{AB} / / \\mathrm{CD} / / \\mathrm{EF}, \\mathrm{AF}, \\mathrm{BE}$ 相交于点 $\\mathrm{O}$, 若 $\\mathrm{AO}=\\mathrm{OD}=\\mathrm{DF}, \\mathrm{BE}=10 \\mathrm{~cm}$, 则 $\\mathrm{BO}=$ $\\mathrm{cm}$.",
+    "rewritten": "画三条平行线 AB、CD、EF，AF 与 BE 相交于点 O，满足 AO=OD=DF，BE=10cm",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4620",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "如图所示, 在 $\\triangle \\mathrm{ABC}$ 中, $\\angle \\mathrm{BAC}=90^{\\circ}, \\mathrm{AB}=\\mathrm{AC}$,\n\n$\\mathrm{MN}$ 是经过点 A 的直线, $\\mathrm{BD} \\perp \\mathrm{MN}, \\mathrm{CE} \\perp \\mathrm{MN}$, 垂足分别为 D, E.\n\n(1)",
+    "full_question": "如图所示, 在 $\\triangle \\mathrm{ABC}$ 中, $\\angle \\mathrm{BAC}=90^{\\circ}, \\mathrm{AB}=\\mathrm{AC}$,\n\n$\\mathrm{MN}$ 是经过点 A 的直线, $\\mathrm{BD} \\perp \\mathrm{MN}, \\mathrm{CE} \\perp \\mathrm{MN}$, 垂足分别为 D, E.\n\n(1) 求证: (1) $\\angle \\mathrm{BAD}=\\angle \\mathrm{ACE}$; (2) $\\mathrm{BD}=\\mathrm{AE}$.\n\n(2) 请写出 $\\math",
+    "rewritten": "画等腰直角三角形 ABC，∠BAC=90°，AB=AC；过点 A 画直线 MN；从 B 作 BD⊥MN 于 D，从 C 作 CE⊥MN 于 E",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "3450",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "如图, 在 $\\triangle A B C$ 中, 点 $D$ 为 $\\triangle A B C$ 的内心, $\\angle A=60^{\\circ}, C D=2, B D=4$,",
+    "full_question": "如图, 在 $\\triangle A B C$ 中, 点 $D$ 为 $\\triangle A B C$ 的内心, $\\angle A=60^{\\circ}, C D=2, B D=4$, 则 $\\triangle D B C$ 的面积是 $(\\quad)$",
+    "rewritten": "画三角形 ABC，∠A=60°，D 为三角形 ABC 的内心，CD=2，BD=4",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "341",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "(6 分) 如图, $\\triangle A B C$ 为圆 $O$ 的内接三角形, $A B=A C$, 连接 $A O$ 并延长交 $B C$ 于点 $M$.\n\n(1)",
+    "full_question": "(6 分) 如图, $\\triangle A B C$ 为圆 $O$ 的内接三角形, $A B=A C$, 连接 $A O$ 并延长交 $B C$ 于点 $M$.\n\n(1)求证: $A M \\perp B C$;\n\n(2)若 $B C=6, A B=3 \\sqrt{10}$, 求 $\\odot O$ 的半径.",
+    "rewritten": "画圆 O 及其内接三角形 ABC，AB=AC，连接 AO 并延长交 BC 于点 M",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4754",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "如图, $\\angle C=\\angle D=90^{\\circ}, A C=A D, \\angle C B D=130^{\\circ}$,",
+    "full_question": "如图, $\\angle C=\\angle D=90^{\\circ}, A C=A D, \\angle C B D=130^{\\circ}$, 则 $\\angle B A D=$ \\$ \\qquad \\$ ${ }^{\\circ}$.",
+    "rewritten": "画四边形 ABCD（或相应图形），其中 ∠C=∠D=90°，AC=AD，∠CBD=130°",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4251",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "如图, $C$ 为线段 $A E$ 上一动点 (不与点 $A, E$ 重合), 在 $A E$ 同侧分别作等边 $\\triangle A B C$ 和等边 $\\triangle C D E$, $A D$ 与 $B E$ 交于点 $O, A D$ 与 $B C$ 交于点 $P, B E$ 与 $C D$ 交于点 $Q$, 连接 $P Q$.",
+    "full_question": "如图, $C$ 为线段 $A E$ 上一动点 (不与点 $A, E$ 重合), 在 $A E$ 同侧分别作等边 $\\triangle A B C$ 和等边 $\\triangle C D E$, $A D$ 与 $B E$ 交于点 $O, A D$ 与 $B C$ 交于点 $P, B E$ 与 $C D$ 交于点 $Q$, 连接 $P Q$. 则下列结论:\n(1) $A D=B E ;$\n(2) $P Q / / A E$\n(3) $A P=B Q$;\n(4) $D E=D P$;\n(5) $\\angle A O B=60^{\\circ}$.\n\n其中正确的是 $(\\quad)$",
+    "rewritten": "画线段 AE，在 AE 上取动点 C，在 AE 同侧分别作等边三角形 ABC 和等边三角形 CDE；连接 AD 与 BE 交于点 O，AD 与 BC 交于点 P，BE 与 CD 交于点 Q，连接 PQ",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "266",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "如图, 在 Rt $\\triangle A B C$ 中, $\\angle A C B=90^{\\circ}$, 以该三角形的三条边为边向形外作正方形,正方形的顶点 $E, F, G, M, N$ 都在同一个圆上. 记该圆面积为 $S_{1}, \\triangle A B C$ 面积为 $S_{2}$,",
+    "full_question": "如图, 在 Rt $\\triangle A B C$ 中, $\\angle A C B=90^{\\circ}$, 以该三角形的三条边为边向形外作正方形,正方形的顶点 $E, F, G, M, N$ 都在同一个圆上. 记该圆面积为 $S_{1}, \\triangle A B C$ 面积为 $S_{2}$,则 $\\frac{S_{1}}{S_{2}}$ 的值是 $\\qquad$\n\n    \n\n    (第 18 题)\n\n##",
+    "rewritten": "画直角三角形 ABC，∠ACB=90°；以三角形的三条边 AB、BC、CA 分别向三角形外侧作正方形；标出这些正方形中除三角形顶点外的五个顶点 E、F、G、M、N，并画出经过 E、F、G、M、N 五点的圆",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "3878",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "如图, $\\mathrm{PA} 、 \\mathrm{~PB} 、 \\mathrm{EF}$ 分别切 $\\odot \\mathrm{O}$ 于 $\\mathrm{A} 、 \\mathrm{~B} 、 \\mathrm{D}$, 若 $\\mathrm{PA}=10 \\mathrm{~cm}$,",
+    "full_question": "如图, $\\mathrm{PA} 、 \\mathrm{~PB} 、 \\mathrm{EF}$ 分别切 $\\odot \\mathrm{O}$ 于 $\\mathrm{A} 、 \\mathrm{~B} 、 \\mathrm{D}$, 若 $\\mathrm{PA}=10 \\mathrm{~cm}$, 则 $\\triangle \\mathrm{PEF}$ 的周长是 \\$ \\qquad \\$ $\\mathrm{cm}$,若 $\\angle \\mathrm{P}=35^{\\circ}$, 则 $\\angle \\mathrm{AOB}=$ \\$ \\qquad \\$ (度),$\\angle \\mathrm{EOF",
+    "rewritten": "画圆 O 及圆外一点 P，从 P 作圆 O 的两条切线 PA、PB，切点分别为 A、B；再作圆 O 的另一条切线 EF，切点为 D，E 在 PA 上，F 在 PB 上，PA=10cm",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4409",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "如图, 已知 $\\triangle A B C$ 和 $\\triangle C D E$ 都是等边三角形, $A D, B E$ 交于点 $F$, 则 $\\angle A F B$",
+    "full_question": "如图, 已知 $\\triangle A B C$ 和 $\\triangle C D E$ 都是等边三角形, $A D, B E$ 交于点 $F$, 则 $\\angle A F B$ 等于 ( )",
+    "rewritten": "画等边三角形 ABC 和等边三角形 CDE，连接 AD 和 BE，AD 与 BE 交于点 F",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4148",
+    "subject": "组合几何学",
+    "difficulty": "基础",
+    "original_description": "如图, $\\angle A=15^{\\circ}, A B=B C=C D=D E=E F$, 则 $\\angle D E F$",
+    "full_question": "如图, $\\angle A=15^{\\circ}, A B=B C=C D=D E=E F$, 则 $\\angle D E F$ 等于（）",
+    "rewritten": "画一条折线，使得 AB=BC=CD=DE=EF，且 ∠A=15°，连接 AB、BC、CD、DE、EF",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "524",
+    "subject": "画法几何学",
+    "difficulty": "基础",
+    "original_description": "某农场拟建两间矩形饲养室, 一面靠现有墙（墙长 $12 \\mathrm{~m}$ ), 中间用一道墙隔开, 并在如图所示的三处各留 $1 \\mathrm{~m}$ 宽的门. 已知计划中的材料可建墙体(不包括门)总长为 $27 \\mathrm{~m}$,",
+    "full_question": "某农场拟建两间矩形饲养室, 一面靠现有墙（墙长 $12 \\mathrm{~m}$ ), 中间用一道墙隔开, 并在如图所示的三处各留 $1 \\mathrm{~m}$ 宽的门. 已知计划中的材料可建墙体(不包括门)总长为 $27 \\mathrm{~m}$,则能建成的饲养室面积最大为 $\\qquad$ $\\mathrm{m}^{2}$.\n\n\n\n（第 13 题）",
+    "rewritten": null,
+    "skip_reason": "题目未完整给出问题，且为应用题求最值，图形为示意性矩形分区，作图意义不大",
+    "rewrite_status": "skipped"
+  },
+  {
+    "id": "848",
+    "subject": "画法几何学",
+    "difficulty": "基础",
+    "original_description": "如图, 一块三角形余料 $A B C$, 它的边 $B C=80 \\mathrm{~cm}$, 高 $A D=60 \\mathrm{~cm}$. 现在要把它加工成如图所示的两个大小相同的正方形零件 EFGH和FGMN,",
+    "full_question": "如图, 一块三角形余料 $A B C$, 它的边 $B C=80 \\mathrm{~cm}$, 高 $A D=60 \\mathrm{~cm}$. 现在要把它加工成如图所示的两个大小相同的正方形零件 EFGH和FGMN, 则正方形的边长为 $\\qquad$ $\\mathrm{cm}$.",
+    "rewritten": "画三角形 ABC，BC=80cm，AD 为 BC 边上的高，AD=60cm，D 在 BC 上；在三角形内画两个大小相同的正方形 EFGH 和 FGMN，两正方形共用边 FG",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "4526",
+    "subject": "画法几何学",
+    "difficulty": "中等",
+    "original_description": "如图, 在边长为 1 的正方形组成的网格中, $\\triangle A B C$ 的顶点均在格点上,\n\n$$\nA(-3,2), \\quad B(-4,-3), \\quad C(-1,-1)\n$$\n\n\n\n(1) 画出 $\\triangle A B C$ 关于 $y$ 轴对称的图形 $\\triangle A^{\\prime} B^{\\prime} C^{\\prime}$;\n\n(2) 写出 $A^{\\prime} 、 C^{\\prime}$ 的坐标（直接写出答案） $A^{\\prime}$ \\$ \\qquad \\$ $C^{\\prime}$ \\$ \\qquad \\$\n(3) 写出 $\\triangle A^{\\prime} B^{\\prime} C^{\\prime}$ 的面积为 \\$ \\qquad \\$ ; (直接写出答案)\n\n(4) 在 $y$ 轴上",
+    "full_question": "如图, 在边长为 1 的正方形组成的网格中, $\\triangle A B C$ 的顶点均在格点上,\n\n$$\nA(-3,2), \\quad B(-4,-3), \\quad C(-1,-1)\n$$\n\n\n\n(1) 画出 $\\triangle A B C$ 关于 $y$ 轴对称的图形 $\\triangle A^{\\prime} B^{\\prime} C^{\\prime}$;\n\n(2) 写出 $A^{\\prime} 、 C^{\\prime}$ 的坐标（直接写出答案） $A^{\\prime}$ \\$ \\qquad \\$ $C^{\\prime}$ \\$ \\qquad \\$\n(3) 写出 $\\triangl",
+    "rewritten": "在平面直角坐标系中画三角形 ABC，其中 A(-3,2)，B(-4,-3)，C(-1,-1)，并画出三角形 ABC 关于 y 轴对称的三角形 A'B'C'",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "573",
+    "subject": "画法几何学",
+    "difficulty": "基础",
+    "original_description": "1672 年, 丹麦数学家莫尔在他的著作《欧几里得作图》中指出: 只用圆规可以完成一切尺规作图. 1797 年, 意大利数学家马斯凯罗尼又独立发现此结论, 并写在他的著作《圆规的几何学》中. 请你利用数学家们发现的结论, 完成下面的作图题:\n\n如图, 已知 $\\odot O, \\mathrm{~A}$ 是 $\\odot O$ 上一点, 只用圆规将 $\\odot O$ 的圆周四等分. (按如下步骤完成,保留作图痕迹）\n\n\n\n(1)以点 $\\mathrm{A}$ 为圆心, $O A$ 长为半径, 自点 $\\mathrm{A}$ 起, 在 $\\odot O$ 上逆时针方向顺次截取 $A B=B C=C D$; (2)分别以点 $\\mathrm{A}$, 点 $D$ 为圆心, $A C$ 长为半径作弧, 两弧交于 $\\odot O$ 上方点 $E$;\n\n(3)以点 $\\mathrm{A}$ 为圆心, $O E$ 长为半径作弧交 $\\odot O$ 于 $G, H$ 两点. 即点 $\\mathrm{A}, G, D, H$ 将 $\\odot O$的圆周四等分.",
+    "full_question": "1672 年, 丹麦数学家莫尔在他的著作《欧几里得作图》中指出: 只用圆规可以完成一切尺规作图. 1797 年, 意大利数学家马斯凯罗尼又独立发现此结论, 并写在他的著作《圆规的几何学》中. 请你利用数学家们发现的结论, 完成下面的作图题:\n\n如图, 已知 $\\odot O, \\mathrm{~A}$ 是 $\\odot O$ 上一点, 只用圆规将 $\\odot O$ 的圆周四等分. (按如下步骤完成,保留作图痕迹）\n\n\n\n(1)以点 $\\mathrm{A}$ 为圆心, $O A$ 长为半径, 自点 $\\mathrm{A}$ 起, 在 $\\odot O$ 上逆时针方向顺次截取 $A B=B C=",
+    "rewritten": "画圆 O，A 为圆上一点；以 A 为圆心、OA 长为半径，从 A 起在圆 O 上沿逆时针方向依次截取 AB=BC=CD；分别以 A、D 为圆心，AC 长为半径作弧，两弧相交于圆 O 上方的点 E；以 A 为圆心、OE 长为半径作弧交圆 O 于 G、H 两点",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "375",
+    "subject": "变换几何",
+    "difficulty": "困难",
+    "original_description": "如图, 正方形 $A B C D$ 与 $\\triangle E F G$ 在方格纸中, 正方形和三角形的顶点都在格点上,",
+    "full_question": "如图, 正方形 $A B C D$ 与 $\\triangle E F G$ 在方格纸中, 正方形和三角形的顶点都在格点上, 那么与 $\\triangle E F G$ 相似的是（）\n\n  \n\n  (第 8 题)",
+    "rewritten": "在方格纸上画正方形 ABCD 和三角形 EFG，顶点都在格点上",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "23874",
+    "subject": "变换几何",
+    "difficulty": "困难",
+    "original_description": "如图, 已知长方形 $A B C D$ 中, $A B=10 \\mathrm{~cm}, B C=6 \\mathrm{~cm}$.试问: 应将长方形 $A B C D$ 沿射线 $B C$ 方向平移多少才能够使平移后的长方形与原来的长方形 $A B C D$ 重叠部分的面积为 $20 \\mathrm{~cm}^{2}$.",
+    "full_question": "如图, 已知长方形 $A B C D$ 中, $A B=10 \\mathrm{~cm}, B C=6 \\mathrm{~cm}$.试问: 应将长方形 $A B C D$ 沿射线 $B C$ 方向平移多少才能够使平移后的长方形与原来的长方形 $A B C D$ 重叠部分的面积为 $20 \\mathrm{~cm}^{2}$.",
+    "rewritten": "画长方形 ABCD，AB=10cm，BC=6cm",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "23928",
+    "subject": "变换几何",
+    "difficulty": "困难",
+    "original_description": "如图, 在 $R t \\triangle A B C$ 中, $\\angle B A C=90^{\\circ}, A B=3 \\mathrm{~cm}, A C=4 \\mathrm{~cm}$, 把 $\\triangle A B C$ 沿着直线 $B C$的方向平移 $2.5 \\mathrm{~cm}$ 后得到 $\\triangle D E F$, 连结 $A E, A D$. 有以下结论: (1) $A C / / D F$; (2) $A D / /$ $B E$; (3) $C F=2.5 \\mathrm{~cm}$; (4) $D E \\perp A C$, 其中正确的结论有 ( )",
+    "full_question": "如图, 在 $R t \\triangle A B C$ 中, $\\angle B A C=90^{\\circ}, A B=3 \\mathrm{~cm}, A C=4 \\mathrm{~cm}$, 把 $\\triangle A B C$ 沿着直线 $B C$的方向平移 $2.5 \\mathrm{~cm}$ 后得到 $\\triangle D E F$, 连结 $A E, A D$. 有以下结论: (1) $A C / / D F$; (2) $A D / /$ $B E$; (3) $C F=2.5 \\mathrm{~cm}$; (4) $D E \\perp A C$, 其中正确的结论有 ( )",
+    "rewritten": "画直角三角形 ABC，∠BAC=90°，AB=3cm，AC=4cm；将三角形 ABC 沿直线 BC 方向平移 2.5cm 得到三角形 DEF，连接 AE、AD",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  },
+  {
+    "id": "390",
+    "subject": "变换几何",
+    "difficulty": "困难",
+    "original_description": "(8 分) 如图, 在平面直角坐标系中, 四边形 $A B C D$ 的坐标分别为 $A(-6,6)$, $B(-8,2), C(-4,0), D(-2,4)$. (1) 画出一个四边形 $A^{\\prime} B^{\\prime} C^{\\prime} D^{\\prime}$, 使四边形 $A^{\\prime} B^{\\prime} C^{\\prime} D^{\\prime}$ 与四边形 $A B C D$ 是以原点 $O$ 为位似中心，相似比为 $1: 2$ 的位似图形.\n\n(2) 直接写出点的坐标: $A^{\\prime}($ $\\qquad$ ),\n\n$B^{\\prime}$ $\\qquad$ ), $C^{\\prime}$ $\\qquad$ ), $D^{\\prime}($ $\\qquad$ ).",
+    "full_question": "(8 分) 如图, 在平面直角坐标系中, 四边形 $A B C D$ 的坐标分别为 $A(-6,6)$, $B(-8,2), C(-4,0), D(-2,4)$. (1) 画出一个四边形 $A^{\\prime} B^{\\prime} C^{\\prime} D^{\\prime}$, 使四边形 $A^{\\prime} B^{\\prime} C^{\\prime} D^{\\prime}$ 与四边形 $A B C D$ 是以原点 $O$ 为位似中心，相似比为 $1: 2$ 的位似图形.\n\n(2) 直接写出点的坐标: $A^{\\prime}($ $\\qquad$ ),\n\n$B^{\\prime}$ $\\qq",
+    "rewritten": "在平面直角坐标系中画四边形 ABCD，其中 A(-6,6)、B(-8,2)、C(-4,0)、D(-2,4)，并以原点 O 为位似中心，按相似比 1:2 画出位似四边形 A'B'C'D'",
+    "skip_reason": null,
+    "rewrite_status": "done"
+  }
+]

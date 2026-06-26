@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# === T2G specific ===
+backend/data/
+backend/logs/
+backend/.venv/
+backend/tests/golden/*.svg
+backend/t2g_backend.egg-info/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+data/
+.DS_Store
+

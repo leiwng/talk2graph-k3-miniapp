@@ -1,0 +1,12 @@
+你刚才返回的 JSON 经过 DSL 校验，存在以下错误：
+
+{errors}
+
+请仔细修正，**直接输出修正后的完整 JSON**（不要任何解释、Markdown 代码块或额外文字）。
+
+提示：
+- 检查所有 id 是否在 objects 中存在
+- 检查 segment 的 a/b、polygon 的 vertices 是否引用了点
+- isoceles 的 apex 必须是 polygon 的顶点
+- 圆的 definition.of 必须引用 polygon id
+- 角度的 value 必须在 (0, 180) 度

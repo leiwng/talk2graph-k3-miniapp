@@ -1,0 +1,54 @@
+services:
+  backend:
+    build: ./backend
+    container_name: t2g-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./data/db:/app/data
+      - ./data/logs:/app/logs
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build: ./frontend
+    container_name: t2g-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    # 宿主机端口由 T2G_HOST_PORT 控制，默认 8080（避开未备案的 80）
+    # 启 HTTPS（caddy profile）时不会和 caddy 抢端口
+    ports:
+      - "${T2G_HOST_PORT:-8080}:80"
+
+  # HTTPS（域名生效后启用）：
+  #   1) 配置 DNS A 记录指向服务器
+  #   2) export T2G_DOMAIN=t2g.yourdomain.com
+  #   3) docker compose --profile https up -d
+  # 启 https profile 时，frontend 不再对外暴露端口；流量都从 caddy 进
+  caddy:
+    image: caddy:2
+    container_name: t2g-caddy
+    restart: unless-stopped
+    profiles: ["https"]
+    environment:
+      - T2G_DOMAIN=${T2G_DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
+volumes:
+  caddy_data:
+  caddy_config:
