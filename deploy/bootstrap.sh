@@ -37,10 +37,31 @@ if ! docker compose version >/dev/null 2>&1; then
     exit 1
 fi
 
-# 3. 拉最新代码（若是 git 仓库）
+# 3. 拉最新代码（若是 git 仓库且配了 origin）
 if [ -d .git ]; then
-    echo "[T2G] git pull"
-    git pull --ff-only || true
+    if git remote get-url origin >/dev/null 2>&1; then
+        echo "[T2G] git fetch + reset --hard origin/main（生产期对齐远端）"
+        if ! git fetch origin main; then
+            echo "[T2G] ❌ git fetch 失败。如果是 GitHub 在国内不稳，可临时切镜像："
+            echo "       git remote set-url origin https://kkgithub.com/leiwng/talk2graph-glm.git"
+            echo "    或跳过更新只重建本地代码：T2G_SKIP_GIT=1 ./deploy/bootstrap.sh"
+            if [ "${T2G_SKIP_GIT:-0}" != "1" ]; then
+                exit 1
+            fi
+        else
+            # 仅当本地无未提交改动时硬对齐
+            if [ -z "$(git status --porcelain)" ]; then
+                git reset --hard origin/main
+                NEW_HEAD=$(git rev-parse --short HEAD)
+                echo "[T2G] HEAD 已对齐到 $NEW_HEAD"
+            else
+                echo "[T2G] ⚠ 检测到本地未提交改动，跳过 reset；如需强制对齐：git stash 后重跑"
+            fi
+        fi
+    else
+        echo "[T2G] ⚠ 未配置 git origin，跳过远端拉取。建议："
+        echo "       git remote add origin https://github.com/leiwng/talk2graph-glm.git"
+    fi
 fi
 
 # 4. 创建持久化目录

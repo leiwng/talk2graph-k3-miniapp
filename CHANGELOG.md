@@ -55,6 +55,10 @@
 ### 修复
 
 - 之前 `deploy/bootstrap.sh` 隐含可能误删开发期 DB 的风险 → 现强制 opt-in
+- `deploy/bootstrap.sh` 的 `git pull --ff-only || true` 会**静默吞掉**未配 origin / 网络失败等错误，导致"假成功"（镜像全 CACHED，容器 Running，但代码并没更新）→ 改为：
+  - 先检查 `git remote get-url origin`，未配置时明确告警
+  - 用 `git fetch origin main` + `git reset --hard origin/main`（仅当本地无未提交改动时），失败默认 exit 1
+  - 提供 `T2G_SKIP_GIT=1` 逃生口，仅对当前本地代码重建（用于本机调试 / 网络故障时）
 
 ### 待落地（SSH 阶段后填回）
 
