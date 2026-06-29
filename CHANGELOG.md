@@ -60,6 +60,8 @@
   - 用 `git fetch origin main` + `git reset --hard origin/main`（仅当本地无未提交改动时），失败默认 exit 1
   - 提供 `T2G_SKIP_GIT=1` 逃生口，仅对当前本地代码重建（用于本机调试 / 网络故障时）
   - 新增 `T2G_GIT_MIRROR` 环境变量：主 origin fetch 失败时自动切镜像重试（国内 GitHub TLS 抖动场景必备）
+- `backend/Dockerfile` 用 `PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple` 走清华源；`PIP_DEFAULT_TIMEOUT=120` —— 国内服务器装 numpy/scipy 等大轮子从 KB/s 跃升到 MB/s，避免 `ReadTimeoutError`
+- `frontend/Dockerfile` 用 `npm config set registry https://registry.npmmirror.com` 走淘宝镜像
 
 ### 待落地（SSH 阶段后填回）
 

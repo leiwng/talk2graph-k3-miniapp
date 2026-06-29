@@ -2,6 +2,9 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
+# 用淘宝 npm 镜像，国内构建避免超时
+RUN npm config set registry https://registry.npmmirror.com
+
 COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund 2>/dev/null || npm install --no-audit --no-fund
 
