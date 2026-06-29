@@ -59,6 +59,7 @@
   - 先检查 `git remote get-url origin`，未配置时明确告警
   - 用 `git fetch origin main` + `git reset --hard origin/main`（仅当本地无未提交改动时），失败默认 exit 1
   - 提供 `T2G_SKIP_GIT=1` 逃生口，仅对当前本地代码重建（用于本机调试 / 网络故障时）
+  - 新增 `T2G_GIT_MIRROR` 环境变量：主 origin fetch 失败时自动切镜像重试（国内 GitHub TLS 抖动场景必备）
 
 ### 待落地（SSH 阶段后填回）
 

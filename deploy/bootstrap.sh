@@ -5,6 +5,9 @@
 #   ./deploy/bootstrap.sh                    # 默认对外 8080 端口
 #   T2G_HOST_PORT=8081 ./deploy/bootstrap.sh # 自定义端口
 #   T2G_RESET_DB=1 ./deploy/bootstrap.sh     # 显式重置 DB（破坏性，谨慎）
+#   T2G_SKIP_GIT=1 ./deploy/bootstrap.sh     # 跳过远端拉取，只重建本地代码
+#   T2G_GIT_MIRROR=https://kkgithub.com/leiwng/talk2graph-glm.git \
+#     ./deploy/bootstrap.sh                  # GitHub 失败时自动重试镜像（国内推荐）
 
 set -euo pipefail
 
@@ -38,17 +41,39 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 
 # 3. 拉最新代码（若是 git 仓库且配了 origin）
+fetch_with_fallback() {
+    # 先用 origin 试一次；失败且配了 T2G_GIT_MIRROR 时切镜像重试
+    if git fetch origin main 2>&1; then
+        return 0
+    fi
+    if [ -n "${T2G_GIT_MIRROR:-}" ]; then
+        local cur
+        cur="$(git remote get-url origin)"
+        echo "[T2G] ⚠ 主 origin fetch 失败，自动切镜像 $T2G_GIT_MIRROR 重试"
+        git remote set-url origin "$T2G_GIT_MIRROR"
+        if git fetch origin main 2>&1; then
+            echo "[T2G] 镜像 fetch 成功；保留为当前 origin"
+            return 0
+        fi
+        echo "[T2G] 镜像也失败，恢复原 origin"
+        git remote set-url origin "$cur"
+    fi
+    return 1
+}
+
 if [ -d .git ]; then
     if git remote get-url origin >/dev/null 2>&1; then
-        echo "[T2G] git fetch + reset --hard origin/main（生产期对齐远端）"
-        if ! git fetch origin main; then
-            echo "[T2G] ❌ git fetch 失败。如果是 GitHub 在国内不稳，可临时切镜像："
-            echo "       git remote set-url origin https://kkgithub.com/leiwng/talk2graph-glm.git"
-            echo "    或跳过更新只重建本地代码：T2G_SKIP_GIT=1 ./deploy/bootstrap.sh"
-            if [ "${T2G_SKIP_GIT:-0}" != "1" ]; then
+        if [ "${T2G_SKIP_GIT:-0}" = "1" ]; then
+            echo "[T2G] T2G_SKIP_GIT=1，跳过远端拉取，只重建本地代码"
+        else
+            echo "[T2G] git fetch + reset --hard origin/main（生产期对齐远端）"
+            if ! fetch_with_fallback; then
+                echo "[T2G] ❌ git fetch 失败。可选："
+                echo "       1) 设置镜像重试：T2G_GIT_MIRROR=https://kkgithub.com/leiwng/talk2graph-glm.git ./deploy/bootstrap.sh"
+                echo "       2) 手工切镜像：git remote set-url origin https://kkgithub.com/leiwng/talk2graph-glm.git"
+                echo "       3) 跳过拉取重建本地：T2G_SKIP_GIT=1 ./deploy/bootstrap.sh"
                 exit 1
             fi
-        else
             # 仅当本地无未提交改动时硬对齐
             if [ -z "$(git status --porcelain)" ]; then
                 git reset --hard origin/main
