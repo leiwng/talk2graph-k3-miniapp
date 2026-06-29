@@ -8,11 +8,19 @@
 
 ## W8 — 生产部署（当前版本）
 
-**测试状态**：76/76 通过（无后端逻辑改动；仅部署脚本与文档）
+**测试状态**：78/78 通过（W7 基础 +2 拒绝消息分类测试）
 
 **目标**：将话图 T2G 真实部署到腾讯云轻量应用服务器，对外可访问，老师可以打开浏览器试用。
 
 ### 新增
+
+**后端 — 拒绝消息分类增强（试用反馈即时迭代）**
+- `app/api/chat.py::_make_refuse_message`：新增 `keywords_for_transform` 分支（旋转 / 平移 / 翻折 / 对称 / 镜像 / 变换 / 折叠）
+  - 触发场景：老师输入"三角形旋转 180 度"等几何变换指令
+  - 旧行为：落入通用拒绝消息，没有变通建议
+  - 新行为：明确说明"几何变换在 V2 支持"，并给出 3 类替代描述方式（中心对称用 midpoint、轴对称用 foot_of_perp、旋转用对应边角等长等角）
+- `app/llm/prompts/system.txt`：第 9 条把"几何变换"显式列入不支持类别，并给出 2 个 `{"error": ...}` 示例，引导 LLM 给出更精确的 reason
+- `tests/test_w7_feedback.py`：+2 测试（`test_refuse_message_transform_rotate`、`test_refuse_message_transform_reflect`）
 
 **部署 / 运维**
 - `deploy/firewall.md`：腾讯云安全组放行清单（22/8080/443），含 nc/curl 验证命令、轻量"防火墙" vs CVM"安全组"差异说明

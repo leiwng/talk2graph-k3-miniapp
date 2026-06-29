@@ -258,3 +258,18 @@ def test_refuse_message_coord():
 
     s = _make_refuse_message("暂不支持基于坐标 A(2,3) 的描述")
     assert "坐标" in s
+
+
+def test_refuse_message_transform_rotate():
+    from app.api.chat import _make_refuse_message
+
+    s = _make_refuse_message("暂不支持几何变换（旋转 180°）")
+    assert "几何变换" in s
+    assert "中心对称" in s or "对称点" in s
+
+
+def test_refuse_message_transform_reflect():
+    from app.api.chat import _make_refuse_message
+
+    s = _make_refuse_message("暂不支持轴对称 / 翻折 操作")
+    assert "几何变换" in s
