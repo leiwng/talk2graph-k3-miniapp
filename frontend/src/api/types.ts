@@ -72,6 +72,7 @@ export interface Message {
   tokens_out: number | null
   latency_ms: number | null
   error_kind: 'refuse' | 'solve' | 'patch' | 'network' | null
+  fallback?: boolean | null
   created_at: string
   // 前端临时字段（乐观更新）
   pending?: boolean
@@ -88,6 +89,8 @@ export interface ChatResult {
   error?: string
   error_kind?: 'refuse' | 'solve' | 'patch' | 'network' | null
   raw_reason?: string
+  fallback?: boolean
+  fallback_reason?: string | null
 }
 
 export interface ProviderInfo {

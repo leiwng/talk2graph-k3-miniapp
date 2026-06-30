@@ -98,6 +98,7 @@ async def list_messages(sid: str, db: AsyncSession = Depends(db_dep)) -> list[di
             "tokens_out": m.tokens_out,
             "latency_ms": m.latency_ms,
             "error_kind": m.error_kind,
+            "fallback": m.fallback,
             "created_at": m.created_at.isoformat(),
         }
         for m in msgs

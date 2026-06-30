@@ -91,6 +91,7 @@ async def add_message(
     tokens_out: int | None = None,
     latency_ms: int | None = None,
     error_kind: str | None = None,
+    fallback: bool | None = None,
 ) -> Message:
     m = Message(
         session_id=sid,
@@ -102,6 +103,7 @@ async def add_message(
         tokens_out=tokens_out,
         latency_ms=latency_ms,
         error_kind=error_kind,
+        fallback=fallback,
     )
     db.add(m)
     await db.commit()

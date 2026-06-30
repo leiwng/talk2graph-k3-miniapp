@@ -149,8 +149,12 @@ def render_svg(
         )
 
     # 点 + 标签
+    aux_points = _isolated_aux_points(dsl)
     for p in dsl.points():
         if p.id not in sol.coordinates:
+            continue
+        # 孤立辅助点（hint != None 且未被任何对象引用）不画
+        if p.id in aux_points:
             continue
         x, y = tx(*sol.coordinates[p.id])
         parts.append(
@@ -221,6 +225,34 @@ def _figure_center(sol: Solution) -> tuple[float, float]:
     xs = [p[0] for p in sol.coordinates.values()]
     ys = [p[1] for p in sol.coordinates.values()]
     return sum(xs) / len(xs), sum(ys) / len(ys)
+
+
+def _isolated_aux_points(dsl: DSL) -> set[str]:
+    """识别"孤立辅助点"：hint != None 且未被任何 segment/line/polygon/circle/axis 引用。
+    这类点仅用作 same_side 的方位参考，不在画板上渲染。
+    constraint 引用（如 same_side.ref）不算作"被引用"，因为它本身就是要隐藏的语义。
+    """
+    referenced: set[str] = set()
+    for o in dsl.objects:
+        if isinstance(o, (SegmentObj, LineObj)):
+            referenced.add(o.a)
+            referenced.add(o.b)
+        elif isinstance(o, PolygonObj):
+            referenced.update(o.vertices)
+        elif isinstance(o, CircleObj):
+            d = o.definition
+            if hasattr(d, "center"):
+                referenced.add(d.center)
+            if hasattr(d, "through"):
+                referenced.add(d.through)
+        elif isinstance(o, AxisObj):
+            referenced.add(o.origin)
+
+    aux: set[str] = set()
+    for p in dsl.points():
+        if p.hint is not None and p.id not in referenced:
+            aux.add(p.id)
+    return aux
 
 
 def _annotation_text(ann, dsl: DSL, sol: Solution) -> str | None:

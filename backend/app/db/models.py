@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -53,6 +53,8 @@ class Message(Base):
     #   "patch"    = patch 应用失败
     #   "network"  = LLM 网络/鉴权错误
     error_kind: Mapped[Optional[str]] = mapped_column(String(16))
+    # W10：patch 失败自动 fallback 重画时为 True，便于前端显示"已重新理解为重画"小提示
+    fallback: Mapped[Optional[bool]] = mapped_column(Boolean)
     created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp())
 
     session: Mapped[Session] = relationship(back_populates="messages")

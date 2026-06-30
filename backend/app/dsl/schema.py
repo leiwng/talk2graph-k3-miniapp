@@ -242,6 +242,25 @@ class ParallelogramC(_C):
     polygon: str
 
 
+class SameSideC(_C):
+    """点 point 与参考点 ref 在直线 line 的同一侧。
+    用于表达"C 在 AB 上方"等方位语义：把"上方"建模为一个 hint 朝目标方向放置的辅助点
+    P0，再用 same_side 强制 C 与 P0 同侧。
+    """
+    type: Literal["same_side"]
+    line: str    # segment 或 line id
+    point: str   # point id
+    ref: str     # point id
+
+
+class OppositeSideC(_C):
+    """点 point 与参考点 ref 在直线 line 的两侧。"""
+    type: Literal["opposite_side"]
+    line: str
+    point: str
+    ref: str
+
+
 Constraint = Annotated[
     Union[
         LengthC, EqualLengthC, AngleC,
@@ -250,6 +269,7 @@ Constraint = Annotated[
         IsocelesC, EquilateralC, RightTriangleC,
         RadiusC,
         MidpointC, FootOfPerpC, AngleBisectorC, ConcyclicC, ParallelogramC,
+        SameSideC, OppositeSideC,
     ],
     Field(discriminator="type"),
 ]

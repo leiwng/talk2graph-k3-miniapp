@@ -6,7 +6,106 @@
 
 ---
 
-## W9 — V2-A 坐标系支持（当前版本）
+## W10 — 半平面约束 + patch fallback + DB 自动迁移（当前版本）
+
+**测试状态**：103/103 通过（W9 89 + W10 14）
+
+**目标**：解决两个老师试用反馈的真实问题——
+
+1. 「C 在 AB 上方」LLM 无法精准表达 → 求解出现"镜像解"（今天上、明天下），不可控
+2. 「修改后图形不合法」错误突兀，老师看不懂——LLM 输出的 patch 不闭合时直接 422
+
+### 新增
+
+**后端 — DSL 层**
+- `app/dsl/schema.py`：新增 2 个约束
+  - `SameSideC{line, point, ref}` — 点 point 与参考点 ref 在 line 同侧
+  - `OppositeSideC{line, point, ref}` — 异侧
+- `app/dsl/validator.py`：校验 line 是 segment/line；point/ref 是 point；point ≠ ref
+
+**后端 — 求解器**
+- `app/solver/engine.py`：不等式软残差 builder
+  - 残差公式：`max(0, margin - sign·sd_p·sd_r) * weight`（margin=0.1, weight=5.0）
+  - `sd_p` / `sd_r` 复用现有 `_signed_point_line_distance`
+  - `sign = +1`（same_side）/ `-1`（opposite_side）
+  - 若 product 已满足，残差为 0（不干扰其他约束求解）
+
+**后端 — 渲染**
+- `app/render/svg.py`：新增 `_isolated_aux_points(dsl)` 辅助函数
+  - 识别 hint != None 且未被任何 segment/line/polygon/circle/axis 引用的 point
+  - 渲染主循环跳过这类点（不画 circle、不写 label）
+  - 用途：LLM 为表达"C 在 AB 上方"时引入的 P0 辅助点对老师隐形
+
+**后端 — DB 层**
+- `app/db/models.py`：`Message` 新增 `fallback: bool | None` 列
+- `app/db/migrations.py`（新文件，~50 LOC）：轻量自动迁移
+  - 启动时检测 `REQUIRED_COLUMNS` 中声明的列；缺失则 ALTER TABLE 添加
+  - 仅支持 SQLite（PRAGMA table_info + ALTER TABLE ADD COLUMN）
+  - 幂等，已存在不重复加
+  - 表不存在时静默跳过（由 create_all 创建）
+  - 设计意图：未来新增可空列只需在 REQUIRED_COLUMNS 加一行，开发期/生产期都无需手动 ALTER
+- `app/db/session.py::init_db`：create_all 之后调用 ensure_schema
+
+**后端 — API 层**
+- `app/api/chat.py`：patch fallback 逻辑
+  - 当 `apply_patch` 抛 `DSLPatchError(resulting DSL invalid)` 时，**不再直接 422**
+  - 自动用 user nl 重发一次 LLM，**不带 current_dsl**，强制走完整 DSL 路径
+  - 成功 → 返回 `ok=true, fallback=true, fallback_reason=<原 patch 错误>`，并把 `Message.fallback=True` 落库
+  - fallback 也失败 → 返回 422 + detail 含两次错误信息（[fallback]: ...）
+- `app/api/session.py::list_messages`：响应加 `fallback` 字段
+- `app/session/repo.py::add_message`：接受 `fallback` 参数
+
+**LLM — Prompt / few-shot**
+- `app/llm/prompts/system.txt`：
+  - DSL Schema 节加 `same_side` / `opposite_side` 说明
+  - 新增第 11 条「方位/上下方约束」：详细说明何时用 same_side、辅助点 P0 的 hint 怎么填、id 命名约定
+  - **明确加反例**：「老师只说"画三角形 ABC"或"画三条平行线"，不要自作主张加 same_side」（防止 LLM 行为漂移导致老题退化）
+- `app/llm/prompts/fewshots.jsonl`：+1 条 few-shot（直角三角形 + C 在 AB 上方）
+- `app/llm/extractor.py`：`fewshot_limit` 14 → 15
+
+**前端**
+- `frontend/src/api/types.ts`：`Message.fallback?: boolean`、`ChatResult.fallback / fallback_reason`
+- `frontend/src/components/ChatPanel.tsx`：fallback=true 的 assistant 消息上方加一行灰色小提示「（AI 第一次输出与现有图形有冲突，已自动重新理解为重画）」
+- `frontend/src/styles.css`：`.fallback-hint` 样式（灰色斜体 + 虚线下划线分隔）
+
+**测试**
+- `tests/test_w10_halfplane.py`（10 个测试）：
+  - schema：same_side / opposite_side Pydantic 解析
+  - validator：非 segment 的 line、point==ref、未知 ref 三种边界
+  - solver：same_side 强制 C 在 AB 上方（C.y > 0）+ opposite_side 强制下方（C.y < 0），同时校验几何不变量（边长、∠C=90°）
+  - render：`_isolated_aux_points` 检测、SVG 不含 `data-id="P0"`、被引用的 hint 点仍画
+- `tests/test_w10_fallback.py`（4 个测试）：
+  - ensure_schema 给旧版 message 表自动加 fallback 列
+  - ensure_schema 表不存在时不报错（幂等）
+  - patch fallback 成功路径：bad patch → 自动重画 → ok=true + fallback=true 落库
+  - patch fallback 也失败：detail 含 `[fallback]:` 标记
+
+**评估**
+- cmm v2r 评估：W9 36/56 → W10 35/56（-1 题）
+  - #48「折线 AB=BC=CD=DE=EF，∠A=15°」：W9 ok → W10 llm_refuse（拒绝理由合理："∠A 不明确，仅 1 条边连 A"），属 LLM 判断更严谨，**不是回归**
+  - W9 → W10 评估结果备份在 `backend/test/results_cmm_v2r_w9_baseline/`
+
+### 变更
+
+- 无破坏性变更。所有 W9 之前的 78 个测试无修改、无回归。
+
+### 修复
+
+- `app/db/session.py::init_db`：之前只 `create_all`，无法给已存在的表加新列；现在调 ensure_schema 兜底
+- 之前 patch 不合法时直接 422，老师看到突兀错误；现在自动 fallback 重画，体感顺滑
+
+### DB Schema 升级
+
+W9 → W10：**新增 `message.fallback BOOLEAN` 列**。
+
+**升级方式**：
+- 开发期 / 生产期都**无需任何手动操作**。启动时 `init_db()` 会调用 `ensure_schema()` 自动 ALTER TABLE 添加列
+- 已有 DB 中所有现存 message 的 fallback 值为 NULL（向后兼容）
+- 仅支持 SQLite；切换到 PostgreSQL 时需要把 ensure_schema 改写或上 Alembic
+
+---
+
+## W9 — V2-A 坐标系支持
 
 **测试状态**：89/89 通过（W8 78 + W9 11）
 

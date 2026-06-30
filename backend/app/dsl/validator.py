@@ -150,6 +150,13 @@ def validate(dsl: DSL) -> None:
             _require(c.polygon, PolygonObj, "parallelogram.polygon")
             if len(obj_map[c.polygon].vertices) != 4:
                 raise DSLValidationError("parallelogram requires quadrilateral")
+        elif t in ("same_side", "opposite_side"):
+            if not (_is(c.line, SegmentObj) or _is(c.line, LineObj)):
+                raise DSLValidationError(f"{t}.line must be segment/line")
+            _require(c.point, PointObj, f"{t}.point")
+            _require(c.ref, PointObj, f"{t}.ref")
+            if c.point == c.ref:
+                raise DSLValidationError(f"{t}: point and ref are the same")
 
     # 4. label key must point to existing object
     for k in dsl.labels:

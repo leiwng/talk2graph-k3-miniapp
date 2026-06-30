@@ -86,21 +86,48 @@ async def chat(
         }
 
     # 4. patch 或完整 DSL → 得到 new_dsl
+    fallback_used = False
+    fallback_reason: str | None = None
     if result.patch is not None:
         if current_dsl is None:
             raise HTTPException(400, detail="收到 patch 但当前没有 DSL")
         try:
             new_dsl = apply_patch(current_dsl, result.patch)
+            patch_for_log = json.dumps(result.patch, ensure_ascii=False)
         except DSLPatchError as e:
-            fe = classify(e)
-            await repo_mod.add_message(
-                db, sid, role="assistant", content=fe.message,
-                dsl_patch_json=json.dumps(result.patch, ensure_ascii=False),
-                llm_provider=result.provider,
-                error_kind="patch",
-            )
-            raise HTTPException(422, detail=to_dict(fe))
-        patch_for_log = json.dumps(result.patch, ensure_ascii=False)
+            # W10：patch 不合法时自动 fallback —— 把 user nl 再发一次，不带 current_dsl
+            patch_err = str(e)
+            try:
+                fb_result = await extract_dsl(provider, req.nl, current_dsl=None)
+            except LLMError as e2:
+                fe = classify(e2)
+                await repo_mod.add_message(
+                    db, sid, role="assistant", content=fe.message,
+                    llm_provider=getattr(provider, "name", None),
+                    error_kind="network",
+                )
+                raise HTTPException(502, detail=to_dict(fe))
+
+            if fb_result.error or fb_result.dsl is None:
+                # fallback 也失败：返回原 patch 错误 + fallback 错误
+                fe = classify(e)
+                fb_detail = fb_result.error if fb_result.error else "fallback 重画失败"
+                if fe.detail:
+                    fe.detail = f"{fe.detail}\n[fallback]: {fb_detail}"
+                else:
+                    fe.detail = f"[fallback]: {fb_detail}"
+                await repo_mod.add_message(
+                    db, sid, role="assistant", content=fe.message,
+                    dsl_patch_json=json.dumps(result.patch, ensure_ascii=False),
+                    llm_provider=result.provider,
+                    error_kind="patch",
+                )
+                raise HTTPException(422, detail=to_dict(fe))
+
+            new_dsl = fb_result.dsl
+            fallback_used = True
+            fallback_reason = patch_err
+            patch_for_log = None  # fallback 后是全量 DSL，不再有 patch
     else:
         assert result.dsl is not None
         new_dsl = result.dsl
@@ -138,6 +165,7 @@ async def chat(
         content=json.dumps(new_dsl.to_json_dict(), ensure_ascii=False),
         dsl_patch_json=patch_for_log,
         llm_provider=result.provider,
+        fallback=True if fallback_used else None,
     )
 
     return {
@@ -149,6 +177,8 @@ async def chat(
         "provider": result.provider,
         "attempts": result.attempts,
         "error_kind": None,
+        "fallback": fallback_used,
+        "fallback_reason": fallback_reason if fallback_used else None,
     }
 
 

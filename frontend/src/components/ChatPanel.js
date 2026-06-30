@@ -62,5 +62,5 @@ function ChatMsgItem({ msg }) {
     catch {
         /* 文本消息原样 */
     }
-    return _jsx("div", { className: "chat-msg assistant", children: preview });
+    return (_jsxs("div", { className: "chat-msg assistant", children: [msg.fallback && (_jsx("div", { className: "fallback-hint", children: "\uFF08AI \u7B2C\u4E00\u6B21\u8F93\u51FA\u4E0E\u73B0\u6709\u56FE\u5F62\u6709\u51B2\u7A81\uFF0C\u5DF2\u81EA\u52A8\u91CD\u65B0\u7406\u89E3\u4E3A\u91CD\u753B\uFF09" })), preview] }));
 }

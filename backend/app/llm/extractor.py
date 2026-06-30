@@ -41,7 +41,7 @@ def _load_repair_prompt() -> str:
     return (PROMPTS_DIR / "repair.txt").read_text(encoding="utf-8")
 
 
-def _load_fewshots(limit: int = 14) -> list[dict]:
+def _load_fewshots(limit: int = 15) -> list[dict]:
     path = PROMPTS_DIR / "fewshots.jsonl"
     if not path.exists():
         return []
@@ -59,7 +59,7 @@ def build_messages(
     nl: str,
     *,
     current_dsl: DSL | None = None,
-    fewshot_limit: int = 14,
+    fewshot_limit: int = 15,
 ) -> list[ChatMessage]:
     msgs: list[ChatMessage] = [ChatMessage("system", _load_system_prompt())]
     for ex in _load_fewshots(fewshot_limit):

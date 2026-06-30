@@ -12,8 +12,8 @@
     "objects": 10,
     "constraints": 5,
     "residual": 6.249334018592488e-13,
-    "latency_ms": 6021,
-    "svg_bytes": 1839,
+    "latency_ms": 7289,
+    "svg_bytes": 2191,
     "error": ""
   },
   {
@@ -28,9 +28,9 @@
     "attempts": 1,
     "objects": 5,
     "constraints": 1,
-    "residual": 1.4748070436975837e-20,
-    "latency_ms": 12353,
-    "svg_bytes": 3912,
+    "residual": 0.0,
+    "latency_ms": 9413,
+    "svg_bytes": 3765,
     "error": ""
   },
   {
@@ -45,9 +45,9 @@
     "attempts": 1,
     "objects": 7,
     "constraints": 3,
-    "residual": 2.465190328815662e-32,
-    "latency_ms": 6692,
-    "svg_bytes": 1813,
+    "residual": 4.7480103407673024e-63,
+    "latency_ms": 8735,
+    "svg_bytes": 1811,
     "error": ""
   },
   {
@@ -62,9 +62,9 @@
     "attempts": 1,
     "objects": 7,
     "constraints": 3,
-    "residual": 1.0053823416929744e-86,
-    "latency_ms": 8372,
-    "svg_bytes": 1721,
+    "residual": 1.4298771081855637e-85,
+    "latency_ms": 11971,
+    "svg_bytes": 1712,
     "error": ""
   },
   {
@@ -79,8 +79,8 @@
     "attempts": 1,
     "objects": 11,
     "constraints": 6,
-    "residual": 5.478200730701471e-32,
-    "latency_ms": 10364,
+    "residual": 4.937395992665201e-32,
+    "latency_ms": 12175,
     "svg_bytes": 2270,
     "error": ""
   },
@@ -97,7 +97,7 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 9408,
+    "latency_ms": 4865,
     "svg_bytes": 0,
     "error": "暂不支持抛物线及其准线的作图"
   },
@@ -114,7 +114,7 @@
     "objects": 5,
     "constraints": 1,
     "residual": 0.0,
-    "latency_ms": 7529,
+    "latency_ms": 7164,
     "svg_bytes": 1127,
     "error": ""
   },
@@ -131,7 +131,7 @@
     "objects": 7,
     "constraints": 2,
     "residual": 1.232595164407831e-32,
-    "latency_ms": 4982,
+    "latency_ms": 5275,
     "svg_bytes": 1765,
     "error": ""
   },
@@ -148,9 +148,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 4243,
+    "latency_ms": 3813,
     "svg_bytes": 0,
-    "error": "暂不支持圆锥曲线（椭圆）的作图"
+    "error": "暂不支持椭圆（圆锥曲线）的作图"
   },
   {
     "no": 10,
@@ -165,9 +165,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 7405,
+    "latency_ms": 4775,
     "svg_bytes": 0,
-    "error": "暂不支持几何变换（旋转 90°），请改成用几何关系描述目标位置，例如：D 满足 AD=AC 且 ∠CAD=90°"
+    "error": "暂不支持几何变换（旋转 90°），请改成直接描述旋转后点 D 的几何关系，例如 AD=AC 且 ∠CAD=90°"
   },
   {
     "no": 11,
@@ -198,9 +198,9 @@
     "attempts": 1,
     "objects": 10,
     "constraints": 9,
-    "residual": 1.3594724412017935e-31,
-    "latency_ms": 11662,
-    "svg_bytes": 2174,
+    "residual": 7.118669008547334e-67,
+    "latency_ms": 12168,
+    "svg_bytes": 2175,
     "error": ""
   },
   {
@@ -216,7 +216,7 @@
     "objects": 7,
     "constraints": 3,
     "residual": 1.2868893973670072e-85,
-    "latency_ms": 6920,
+    "latency_ms": 8180,
     "svg_bytes": 1797,
     "error": ""
   },
@@ -230,11 +230,11 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 12,
+    "objects": 13,
     "constraints": 8,
-    "residual": 6.440309734030917e-31,
-    "latency_ms": 14386,
-    "svg_bytes": 2466,
+    "residual": 5.285368064980779e-29,
+    "latency_ms": 11012,
+    "svg_bytes": 2686,
     "error": ""
   },
   {
@@ -267,9 +267,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 4323,
+    "latency_ms": 4124,
     "svg_bytes": 0,
-    "error": "暂不支持函数图像（反比例函数 y=k/x 与正比例函数 y=x）的绘制，请改用几何关系（如点、线段、角度）描述目标图形"
+    "error": "暂不支持函数图像（反比例函数 y=k/x、正比例函数 y=x）的绘制，请改用具体几何关系描述"
   },
   {
     "no": 17,
@@ -283,9 +283,9 @@
     "attempts": 1,
     "objects": 18,
     "constraints": 11,
-    "residual": 3.884399951621203e-15,
-    "latency_ms": 17763,
-    "svg_bytes": 3849,
+    "residual": 0.0,
+    "latency_ms": 14634,
+    "svg_bytes": 3827,
     "error": ""
   },
   {
@@ -297,12 +297,12 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 1,
+    "attempts": 2,
     "objects": 10,
     "constraints": 5,
     "residual": 2.284706549000687e-56,
-    "latency_ms": 9524,
-    "svg_bytes": 2280,
+    "latency_ms": 16953,
+    "svg_bytes": 2191,
     "error": ""
   },
   {
@@ -318,7 +318,7 @@
     "objects": 8,
     "constraints": 5,
     "residual": 3.8239688455185604e-16,
-    "latency_ms": 6724,
+    "latency_ms": 14726,
     "svg_bytes": 1721,
     "error": ""
   },
@@ -334,8 +334,8 @@
     "attempts": 1,
     "objects": 15,
     "constraints": 9,
-    "residual": 1.2376379212749172e-11,
-    "latency_ms": 13296,
+    "residual": 7.0492004179031e-12,
+    "latency_ms": 14994,
     "svg_bytes": 2926,
     "error": ""
   },
@@ -349,11 +349,11 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 23,
-    "constraints": 11,
-    "residual": 8.703532829580546e-34,
-    "latency_ms": 27281,
-    "svg_bytes": 5232,
+    "objects": 20,
+    "constraints": 12,
+    "residual": 6.678105120073219e-34,
+    "latency_ms": 33179,
+    "svg_bytes": 4269,
     "error": ""
   },
   {
@@ -369,8 +369,8 @@
     "objects": 10,
     "constraints": 3,
     "residual": 3.1554436208840472e-30,
-    "latency_ms": 6745,
-    "svg_bytes": 2390,
+    "latency_ms": 10401,
+    "svg_bytes": 2394,
     "error": ""
   },
   {
@@ -385,9 +385,9 @@
     "attempts": 1,
     "objects": 15,
     "constraints": 9,
-    "residual": 5.127595883936577e-30,
-    "latency_ms": 10336,
-    "svg_bytes": 3074,
+    "residual": 2.0214560696288428e-30,
+    "latency_ms": 11677,
+    "svg_bytes": 3073,
     "error": ""
   },
   {
@@ -400,11 +400,11 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 11,
-    "constraints": 5,
-    "residual": 3.0814879110195774e-33,
-    "latency_ms": 10701,
-    "svg_bytes": 2174,
+    "objects": 9,
+    "constraints": 4,
+    "residual": 1.867134126914209e-14,
+    "latency_ms": 19115,
+    "svg_bytes": 1922,
     "error": ""
   },
   {
@@ -435,10 +435,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 11,
-    "constraints": 3,
-    "residual": 2.2962801642277674e-13,
-    "latency_ms": 10088,
-    "svg_bytes": 2238,
+    "constraints": 5,
+    "residual": 9.710553205226808e-15,
+    "latency_ms": 10108,
+    "svg_bytes": 2220,
     "error": ""
   },
   {
@@ -453,9 +453,9 @@
     "attempts": 1,
     "objects": 14,
     "constraints": 9,
-    "residual": 1.421490373353331e-29,
-    "latency_ms": 16927,
-    "svg_bytes": 3165,
+    "residual": 4.388038785291878e-30,
+    "latency_ms": 11038,
+    "svg_bytes": 3142,
     "error": ""
   },
   {
@@ -469,10 +469,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 13,
-    "constraints": 7,
-    "residual": 8.38164711797325e-31,
-    "latency_ms": 19045,
-    "svg_bytes": 3134,
+    "constraints": 8,
+    "residual": 1.557229281782733e-32,
+    "latency_ms": 18799,
+    "svg_bytes": 3120,
     "error": ""
   },
   {
@@ -488,7 +488,7 @@
     "objects": 7,
     "constraints": 3,
     "residual": 1.2938341901628289e-59,
-    "latency_ms": 6267,
+    "latency_ms": 5782,
     "svg_bytes": 1799,
     "error": ""
   },
@@ -504,9 +504,9 @@
     "attempts": 1,
     "objects": 7,
     "constraints": 4,
-    "residual": 4.040947278403438e-49,
-    "latency_ms": 6138,
-    "svg_bytes": 1779,
+    "residual": 0.0,
+    "latency_ms": 6607,
+    "svg_bytes": 1791,
     "error": ""
   },
   {
@@ -520,10 +520,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 18,
-    "constraints": 8,
-    "residual": 1.27538013918042e-62,
-    "latency_ms": 12454,
-    "svg_bytes": 2946,
+    "constraints": 9,
+    "residual": 1.0107280348144214e-30,
+    "latency_ms": 13454,
+    "svg_bytes": 2972,
     "error": ""
   },
   {
@@ -573,7 +573,7 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 5722,
+    "latency_ms": 5515,
     "svg_bytes": 0,
     "error": "暂不支持立体几何（四棱锥）作图"
   },
@@ -590,7 +590,7 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 3976,
+    "latency_ms": 3566,
     "svg_bytes": 0,
     "error": "暂不支持立体几何（圆柱、圆锥）作图"
   },
@@ -624,9 +624,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 4625,
+    "latency_ms": 4205,
     "svg_bytes": 0,
-    "error": "暂不支持几何变换（旋转一周生成旋转体），请改用平面图形描述，如画出梯形和旋转轴直线即可"
+    "error": "暂不支持立体几何（旋转体）作图，请改用平面图形描述"
   },
   {
     "no": 38,
@@ -654,12 +654,12 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 1,
+    "attempts": 2,
     "objects": 15,
-    "constraints": 9,
-    "residual": 5.122338994590455e-78,
-    "latency_ms": 18983,
-    "svg_bytes": 2883,
+    "constraints": 6,
+    "residual": 3.398722898086366e-14,
+    "latency_ms": 59729,
+    "svg_bytes": 2908,
     "error": ""
   },
   {
@@ -675,7 +675,7 @@
     "objects": 14,
     "constraints": 6,
     "residual": 5.183012917496372e-16,
-    "latency_ms": 11066,
+    "latency_ms": 9583,
     "svg_bytes": 2714,
     "error": ""
   },
@@ -690,10 +690,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 10,
-    "constraints": 5,
-    "residual": 1.232595164407831e-32,
-    "latency_ms": 10730,
-    "svg_bytes": 2217,
+    "constraints": 6,
+    "residual": 4.067564042545842e-31,
+    "latency_ms": 11185,
+    "svg_bytes": 2216,
     "error": ""
   },
   {
@@ -709,7 +709,7 @@
     "objects": 11,
     "constraints": 4,
     "residual": 2.6961891116229144e-15,
-    "latency_ms": 16137,
+    "latency_ms": 10484,
     "svg_bytes": 2277,
     "error": ""
   },
@@ -724,11 +724,11 @@
     "model": "glm-5.2",
     "attempts": 2,
     "objects": 11,
-    "constraints": 4,
+    "constraints": 5,
     "residual": NaN,
-    "latency_ms": 24419,
+    "latency_ms": 24736,
     "svg_bytes": 0,
-    "error": "solver failed to converge (residual=2.728e-01); 约束可能不一致或欠定。"
+    "error": "solver failed to converge (residual=2.070e-01); 约束可能不一致或欠定。"
   },
   {
     "no": 44,
@@ -740,11 +740,11 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 19,
-    "constraints": 9,
-    "residual": 3.269144236049831e-30,
-    "latency_ms": 16816,
-    "svg_bytes": 3906,
+    "objects": 21,
+    "constraints": 13,
+    "residual": 9.860761315262648e-31,
+    "latency_ms": 28206,
+    "svg_bytes": 3990,
     "error": ""
   },
   {
@@ -756,13 +756,13 @@
     "status": "llm_refuse",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 1,
+    "attempts": 3,
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 16554,
+    "latency_ms": 126018,
     "svg_bytes": 0,
-    "error": "题意描述存在矛盾：直角三角形三边向外各作一个正方形，共会产生 6 个三角形顶点之外的新顶点，而不是 5 个；另外当前 DSL 暂不支持指定『向三角形外侧』作正方形的方向约束。请确认是 6 个点（或哪 5 个点），并考虑改用具体边长描述。"
+    "error": "cannot parse JSON from LLM output: "
   },
   {
     "no": 46,
@@ -777,7 +777,7 @@
     "objects": 14,
     "constraints": 10,
     "residual": 1.84809382703978e-20,
-    "latency_ms": 15356,
+    "latency_ms": 14531,
     "svg_bytes": 2524,
     "error": ""
   },
@@ -794,7 +794,7 @@
     "objects": 16,
     "constraints": 6,
     "residual": 7.966188615720502e-17,
-    "latency_ms": 8852,
+    "latency_ms": 12184,
     "svg_bytes": 3488,
     "error": ""
   },
@@ -804,16 +804,16 @@
     "subject": "组合几何学",
     "difficulty": "基础",
     "description_preview": "画一条折线，使得 AB=BC=CD=DE=EF，且 ∠A=15°，连接 AB、BC、CD、DE、EF",
-    "status": "ok",
+    "status": "llm_refuse",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 2,
-    "objects": 11,
-    "constraints": 6,
-    "residual": 2.1190286450673075e-62,
-    "latency_ms": 59993,
-    "svg_bytes": 2872,
-    "error": ""
+    "attempts": 1,
+    "objects": 0,
+    "constraints": 0,
+    "residual": NaN,
+    "latency_ms": 22561,
+    "svg_bytes": 0,
+    "error": "折线 A-B-C-D-E-F 中顶点 A 仅与 B 相连，无法定义 ∠A；请补充说明 ∠A 是哪三点构成的角（如 ∠BAC、∠FAB），或补充 ∠B、∠C、∠D、∠E 的取值"
   },
   {
     "no": 49,
@@ -841,12 +841,12 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 3,
+    "attempts": 1,
     "objects": 24,
-    "constraints": 12,
-    "residual": 3.5342074607650785e-28,
-    "latency_ms": 112586,
-    "svg_bytes": 5204,
+    "constraints": 14,
+    "residual": 3.6777158754569484e-28,
+    "latency_ms": 38956,
+    "svg_bytes": 5705,
     "error": ""
   },
   {
@@ -862,9 +862,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 4715,
+    "latency_ms": 4686,
     "svg_bytes": 0,
-    "error": "暂不支持基于坐标 A(-3,2) 等具体坐标的描述，也暂不支持轴对称变换；请改用边长 / 角度等几何关系描述三角形，或仅画出坐标系"
+    "error": "暂不支持基于坐标 A(-3,2) 的描述，以及轴对称变换操作；请改用边长 / 角度等几何关系描述三角形，或仅画出坐标系"
   },
   {
     "no": 52,
@@ -875,12 +875,12 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 1,
-    "objects": 19,
-    "constraints": 8,
-    "residual": 3.591675269520342e-15,
-    "latency_ms": 18196,
-    "svg_bytes": 4773,
+    "attempts": 3,
+    "objects": 21,
+    "constraints": 10,
+    "residual": 1.0833355937178202e-34,
+    "latency_ms": 62335,
+    "svg_bytes": 4897,
     "error": ""
   },
   {
@@ -895,9 +895,9 @@
     "attempts": 1,
     "objects": 18,
     "constraints": 7,
-    "residual": 3.6396186127287606e-20,
-    "latency_ms": 8933,
-    "svg_bytes": 9633,
+    "residual": 1.7485785508082962e-18,
+    "latency_ms": 10262,
+    "svg_bytes": 10635,
     "error": ""
   },
   {
@@ -913,7 +913,7 @@
     "objects": 9,
     "constraints": 5,
     "residual": 1.7729792948629088e-59,
-    "latency_ms": 6556,
+    "latency_ms": 6353,
     "svg_bytes": 2200,
     "error": ""
   },
@@ -930,9 +930,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 5680,
+    "latency_ms": 5014,
     "svg_bytes": 0,
-    "error": "暂不支持平移操作，请改用几何关系（如对应点距离、平行等）描述平移后的三角形 DEF"
+    "error": "暂不支持平移操作，请改用几何关系（如指定 D、E、F 的位置或边长 / 平行关系）描述平移后的三角形 DEF"
   },
   {
     "no": 56,
@@ -947,8 +947,8 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 4648,
+    "latency_ms": 4871,
     "svg_bytes": 0,
-    "error": "暂不支持基于坐标 A(-6,6) 的精确点位描述及位似变换，请改用边长 / 角度等几何关系描述四边形，或仅画出坐标系"
+    "error": "暂不支持基于坐标 A(-6,6) 的精确点位描述，也不支持位似变换；请改用边长 / 角度 / 平行 / 中点等几何关系来描述图形"
   }
 ]

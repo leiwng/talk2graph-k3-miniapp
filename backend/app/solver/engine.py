@@ -488,6 +488,29 @@ def _build_constraint_residual(c, dsl: DSL, L: _VarLayout) -> Callable:
             ]
         return f
 
+    if t in ("same_side", "opposite_side"):
+        # 不等式软约束：要求 point 与 ref 在 line 的同侧（或异侧）
+        # 残差：max(0, margin - sign * sd_p * sd_r) * weight
+        # sign = +1 (same_side) / -1 (opposite_side)
+        line_obj = obj_map[c.line]
+        assert isinstance(line_obj, (SegmentObj, LineObj))
+        sign = 1.0 if t == "same_side" else -1.0
+        margin = 0.1
+        weight = 5.0
+
+        def f(x: np.ndarray) -> list[float]:
+            pa = L.get_point(x, line_obj.a)
+            pb = L.get_point(x, line_obj.b)
+            pp = L.get_point(x, c.point)
+            pr = L.get_point(x, c.ref)
+            sd_p = _signed_point_line_distance(pp, pa, pb)
+            sd_r = _signed_point_line_distance(pr, pa, pb)
+            product = sign * sd_p * sd_r
+            # 若违反（product < margin），输出非零残差；否则 0
+            violation = margin - product
+            return [max(0.0, violation) * weight]
+        return f
+
     raise NotImplementedError(f"constraint type {t}")
 
 

@@ -141,5 +141,14 @@ function ChatMsgItem({ msg }: { msg: Message }) {
   } catch {
     /* 文本消息原样 */
   }
-  return <div className="chat-msg assistant">{preview}</div>
+  return (
+    <div className="chat-msg assistant">
+      {msg.fallback && (
+        <div className="fallback-hint">
+          （AI 第一次输出与现有图形有冲突，已自动重新理解为重画）
+        </div>
+      )}
+      {preview}
+    </div>
+  )
 }
