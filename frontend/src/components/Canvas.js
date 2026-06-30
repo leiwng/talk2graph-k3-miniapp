@@ -164,6 +164,13 @@ function describe(id, dsl, sol) {
         }
         case 'polygon':
             return `多边形 [${(obj.vertices || []).join('')}]`;
+        case 'axis': {
+            const xr = obj.x_range;
+            const yr = obj.y_range;
+            if (xr && yr)
+                return `坐标系：x∈[${xr[0]},${xr[1]}], y∈[${yr[0]},${yr[1]}]`;
+            return '坐标系';
+        }
         default:
             return `${obj.kind} ${id}`;
     }

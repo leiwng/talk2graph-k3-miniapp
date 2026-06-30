@@ -12,8 +12,8 @@
     "objects": 10,
     "constraints": 5,
     "residual": 6.249334018592488e-13,
-    "latency_ms": 7434,
-    "svg_bytes": 2191,
+    "latency_ms": 6021,
+    "svg_bytes": 1839,
     "error": ""
   },
   {
@@ -26,11 +26,11 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 3,
+    "objects": 5,
     "constraints": 1,
-    "residual": 2.556330562871028e-16,
-    "latency_ms": 3728,
-    "svg_bytes": 919,
+    "residual": 1.4748070436975837e-20,
+    "latency_ms": 12353,
+    "svg_bytes": 3912,
     "error": ""
   },
   {
@@ -46,7 +46,7 @@
     "objects": 7,
     "constraints": 3,
     "residual": 2.465190328815662e-32,
-    "latency_ms": 6673,
+    "latency_ms": 6692,
     "svg_bytes": 1813,
     "error": ""
   },
@@ -63,7 +63,7 @@
     "objects": 7,
     "constraints": 3,
     "residual": 1.0053823416929744e-86,
-    "latency_ms": 8345,
+    "latency_ms": 8372,
     "svg_bytes": 1721,
     "error": ""
   },
@@ -79,8 +79,8 @@
     "attempts": 1,
     "objects": 11,
     "constraints": 6,
-    "residual": 5.4782007307014706e-33,
-    "latency_ms": 15088,
+    "residual": 5.478200730701471e-32,
+    "latency_ms": 10364,
     "svg_bytes": 2270,
     "error": ""
   },
@@ -97,9 +97,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 3526,
+    "latency_ms": 9408,
     "svg_bytes": 0,
-    "error": "当前 DSL 不支持抛物线及准线作图，仅支持点、线段、直线、多边形与圆。"
+    "error": "暂不支持抛物线及其准线的作图"
   },
   {
     "no": 7,
@@ -114,8 +114,8 @@
     "objects": 5,
     "constraints": 1,
     "residual": 0.0,
-    "latency_ms": 8437,
-    "svg_bytes": 1305,
+    "latency_ms": 7529,
+    "svg_bytes": 1127,
     "error": ""
   },
   {
@@ -131,7 +131,7 @@
     "objects": 7,
     "constraints": 2,
     "residual": 1.232595164407831e-32,
-    "latency_ms": 4635,
+    "latency_ms": 4982,
     "svg_bytes": 1765,
     "error": ""
   },
@@ -148,9 +148,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 4437,
+    "latency_ms": 4243,
     "svg_bytes": 0,
-    "error": "暂不支持椭圆作图，当前 DSL 仅支持点、线段、直线、多边形与圆。"
+    "error": "暂不支持圆锥曲线（椭圆）的作图"
   },
   {
     "no": 10,
@@ -158,16 +158,16 @@
     "subject": "解析几何",
     "difficulty": "基础",
     "description_preview": "画直角三角形 ABC，∠ABC=90°，AB=1，BC=2；将线段 AC 绕点 A 旋转 90° 得到线段 AD",
-    "status": "ok",
+    "status": "llm_refuse",
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 10,
-    "constraints": 5,
-    "residual": 7.609599212896327e-34,
-    "latency_ms": 11384,
-    "svg_bytes": 2374,
-    "error": ""
+    "objects": 0,
+    "constraints": 0,
+    "residual": NaN,
+    "latency_ms": 7405,
+    "svg_bytes": 0,
+    "error": "暂不支持几何变换（旋转 90°），请改成用几何关系描述目标位置，例如：D 满足 AD=AC 且 ∠CAD=90°"
   },
   {
     "no": 11,
@@ -197,9 +197,9 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 10,
-    "constraints": 8,
-    "residual": 3.1473004660335484e-32,
-    "latency_ms": 10756,
+    "constraints": 9,
+    "residual": 1.3594724412017935e-31,
+    "latency_ms": 11662,
     "svg_bytes": 2174,
     "error": ""
   },
@@ -216,7 +216,7 @@
     "objects": 7,
     "constraints": 3,
     "residual": 1.2868893973670072e-85,
-    "latency_ms": 8952,
+    "latency_ms": 6920,
     "svg_bytes": 1797,
     "error": ""
   },
@@ -233,8 +233,8 @@
     "objects": 12,
     "constraints": 8,
     "residual": 6.440309734030917e-31,
-    "latency_ms": 14202,
-    "svg_bytes": 2455,
+    "latency_ms": 14386,
+    "svg_bytes": 2466,
     "error": ""
   },
   {
@@ -267,9 +267,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 3652,
+    "latency_ms": 4323,
     "svg_bytes": 0,
-    "error": "DSL 仅支持几何作图（点、线段、圆、多边形及其约束），不支持函数图象绘制。"
+    "error": "暂不支持函数图像（反比例函数 y=k/x 与正比例函数 y=x）的绘制，请改用几何关系（如点、线段、角度）描述目标图形"
   },
   {
     "no": 17,
@@ -282,10 +282,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 18,
-    "constraints": 9,
-    "residual": 3.808661433220912e-15,
-    "latency_ms": 14625,
-    "svg_bytes": 3425,
+    "constraints": 11,
+    "residual": 3.884399951621203e-15,
+    "latency_ms": 17763,
+    "svg_bytes": 3849,
     "error": ""
   },
   {
@@ -298,11 +298,11 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 11,
-    "constraints": 6,
-    "residual": 3.157979824926039e-30,
-    "latency_ms": 13399,
-    "svg_bytes": 2264,
+    "objects": 10,
+    "constraints": 5,
+    "residual": 2.284706549000687e-56,
+    "latency_ms": 9524,
+    "svg_bytes": 2280,
     "error": ""
   },
   {
@@ -318,8 +318,8 @@
     "objects": 8,
     "constraints": 5,
     "residual": 3.8239688455185604e-16,
-    "latency_ms": 6274,
-    "svg_bytes": 1810,
+    "latency_ms": 6724,
+    "svg_bytes": 1721,
     "error": ""
   },
   {
@@ -335,7 +335,7 @@
     "objects": 15,
     "constraints": 9,
     "residual": 1.2376379212749172e-11,
-    "latency_ms": 13727,
+    "latency_ms": 13296,
     "svg_bytes": 2926,
     "error": ""
   },
@@ -348,12 +348,12 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 2,
-    "objects": 18,
+    "attempts": 1,
+    "objects": 23,
     "constraints": 11,
-    "residual": 2.88790422260599e-57,
-    "latency_ms": 72518,
-    "svg_bytes": 3618,
+    "residual": 8.703532829580546e-34,
+    "latency_ms": 27281,
+    "svg_bytes": 5232,
     "error": ""
   },
   {
@@ -367,10 +367,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 10,
-    "constraints": 4,
-    "residual": 1.9721522630525304e-31,
-    "latency_ms": 6483,
-    "svg_bytes": 2372,
+    "constraints": 3,
+    "residual": 3.1554436208840472e-30,
+    "latency_ms": 6745,
+    "svg_bytes": 2390,
     "error": ""
   },
   {
@@ -385,8 +385,8 @@
     "attempts": 1,
     "objects": 15,
     "constraints": 9,
-    "residual": 9.860761315262648e-31,
-    "latency_ms": 10496,
+    "residual": 5.127595883936577e-30,
+    "latency_ms": 10336,
     "svg_bytes": 3074,
     "error": ""
   },
@@ -402,9 +402,9 @@
     "attempts": 1,
     "objects": 11,
     "constraints": 5,
-    "residual": 1.232595164407831e-32,
-    "latency_ms": 10604,
-    "svg_bytes": 2177,
+    "residual": 3.0814879110195774e-33,
+    "latency_ms": 10701,
+    "svg_bytes": 2174,
     "error": ""
   },
   {
@@ -435,10 +435,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 11,
-    "constraints": 2,
-    "residual": 1.6406759579892083e-15,
-    "latency_ms": 13856,
-    "svg_bytes": 2209,
+    "constraints": 3,
+    "residual": 2.2962801642277674e-13,
+    "latency_ms": 10088,
+    "svg_bytes": 2238,
     "error": ""
   },
   {
@@ -453,9 +453,9 @@
     "attempts": 1,
     "objects": 14,
     "constraints": 9,
-    "residual": 1.4199496293978212e-29,
-    "latency_ms": 15982,
-    "svg_bytes": 3365,
+    "residual": 1.421490373353331e-29,
+    "latency_ms": 16927,
+    "svg_bytes": 3165,
     "error": ""
   },
   {
@@ -469,10 +469,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 13,
-    "constraints": 6,
-    "residual": 9.653576827250358e-16,
-    "latency_ms": 12883,
-    "svg_bytes": 3317,
+    "constraints": 7,
+    "residual": 8.38164711797325e-31,
+    "latency_ms": 19045,
+    "svg_bytes": 3134,
     "error": ""
   },
   {
@@ -488,7 +488,7 @@
     "objects": 7,
     "constraints": 3,
     "residual": 1.2938341901628289e-59,
-    "latency_ms": 6004,
+    "latency_ms": 6267,
     "svg_bytes": 1799,
     "error": ""
   },
@@ -504,9 +504,9 @@
     "attempts": 1,
     "objects": 7,
     "constraints": 4,
-    "residual": 7.200294833277722e-54,
-    "latency_ms": 5645,
-    "svg_bytes": 1764,
+    "residual": 4.040947278403438e-49,
+    "latency_ms": 6138,
+    "svg_bytes": 1779,
     "error": ""
   },
   {
@@ -521,9 +521,9 @@
     "attempts": 1,
     "objects": 18,
     "constraints": 8,
-    "residual": 8.359682160690512e-11,
-    "latency_ms": 12678,
-    "svg_bytes": 3266,
+    "residual": 1.27538013918042e-62,
+    "latency_ms": 12454,
+    "svg_bytes": 2946,
     "error": ""
   },
   {
@@ -573,9 +573,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 3762,
+    "latency_ms": 5722,
     "svg_bytes": 0,
-    "error": "暂不支持三维几何作图（四棱锥），当前 DSL 仅支持平面图形"
+    "error": "暂不支持立体几何（四棱锥）作图"
   },
   {
     "no": 35,
@@ -590,9 +590,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 4030,
+    "latency_ms": 3976,
     "svg_bytes": 0,
-    "error": "暂不支持立体图形（圆柱、圆锥等），当前 DSL 仅支持平面几何作图"
+    "error": "暂不支持立体几何（圆柱、圆锥）作图"
   },
   {
     "no": 36,
@@ -617,16 +617,16 @@
     "subject": "立体几何学",
     "difficulty": "困难",
     "description_preview": "画一个梯形，并画出过其上底所在的直线作为旋转轴，表示梯形绕该轴旋转一周",
-    "status": "ok",
+    "status": "llm_refuse",
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 10,
-    "constraints": 5,
-    "residual": 0.0,
-    "latency_ms": 9656,
-    "svg_bytes": 1833,
-    "error": ""
+    "objects": 0,
+    "constraints": 0,
+    "residual": NaN,
+    "latency_ms": 4625,
+    "svg_bytes": 0,
+    "error": "暂不支持几何变换（旋转一周生成旋转体），请改用平面图形描述，如画出梯形和旋转轴直线即可"
   },
   {
     "no": 38,
@@ -656,10 +656,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 15,
-    "constraints": 6,
-    "residual": 3.398722898086366e-14,
-    "latency_ms": 10354,
-    "svg_bytes": 2908,
+    "constraints": 9,
+    "residual": 5.122338994590455e-78,
+    "latency_ms": 18983,
+    "svg_bytes": 2883,
     "error": ""
   },
   {
@@ -674,9 +674,9 @@
     "attempts": 1,
     "objects": 14,
     "constraints": 6,
-    "residual": 9.736370085008157e-17,
-    "latency_ms": 9168,
-    "svg_bytes": 2712,
+    "residual": 5.183012917496372e-16,
+    "latency_ms": 11066,
+    "svg_bytes": 2714,
     "error": ""
   },
   {
@@ -690,10 +690,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 10,
-    "constraints": 6,
-    "residual": 1.1093356479670479e-31,
-    "latency_ms": 9150,
-    "svg_bytes": 2216,
+    "constraints": 5,
+    "residual": 1.232595164407831e-32,
+    "latency_ms": 10730,
+    "svg_bytes": 2217,
     "error": ""
   },
   {
@@ -708,9 +708,9 @@
     "attempts": 1,
     "objects": 11,
     "constraints": 4,
-    "residual": 3.3800060707151123e-13,
-    "latency_ms": 7244,
-    "svg_bytes": 2293,
+    "residual": 2.6961891116229144e-15,
+    "latency_ms": 16137,
+    "svg_bytes": 2277,
     "error": ""
   },
   {
@@ -726,7 +726,7 @@
     "objects": 11,
     "constraints": 4,
     "residual": NaN,
-    "latency_ms": 21347,
+    "latency_ms": 24419,
     "svg_bytes": 0,
     "error": "solver failed to converge (residual=2.728e-01); 约束可能不一致或欠定。"
   },
@@ -739,12 +739,12 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 2,
-    "objects": 20,
-    "constraints": 11,
-    "residual": 6.754621500954914e-30,
-    "latency_ms": 29998,
-    "svg_bytes": 4062,
+    "attempts": 1,
+    "objects": 19,
+    "constraints": 9,
+    "residual": 3.269144236049831e-30,
+    "latency_ms": 16816,
+    "svg_bytes": 3906,
     "error": ""
   },
   {
@@ -756,13 +756,13 @@
     "status": "llm_refuse",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 2,
+    "attempts": 1,
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 60931,
+    "latency_ms": 16554,
     "svg_bytes": 0,
-    "error": "三角形三条边向外各作一个正方形，共产生 6 个新顶点（每个正方形 2 个非三角形顶点），与题目所述 5 个顶点（E、F、G、M、N）数量不符；请确认是只对两条直角边作正方形，还是 6 个顶点。"
+    "error": "题意描述存在矛盾：直角三角形三边向外各作一个正方形，共会产生 6 个三角形顶点之外的新顶点，而不是 5 个；另外当前 DSL 暂不支持指定『向三角形外侧』作正方形的方向约束。请确认是 6 个点（或哪 5 个点），并考虑改用具体边长描述。"
   },
   {
     "no": 46,
@@ -775,10 +775,10 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 14,
-    "constraints": 9,
-    "residual": 2.604137292256205e-17,
-    "latency_ms": 15032,
-    "svg_bytes": 2492,
+    "constraints": 10,
+    "residual": 1.84809382703978e-20,
+    "latency_ms": 15356,
+    "svg_bytes": 2524,
     "error": ""
   },
   {
@@ -794,7 +794,7 @@
     "objects": 16,
     "constraints": 6,
     "residual": 7.966188615720502e-17,
-    "latency_ms": 9761,
+    "latency_ms": 8852,
     "svg_bytes": 3488,
     "error": ""
   },
@@ -807,12 +807,12 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 1,
+    "attempts": 2,
     "objects": 11,
-    "constraints": 4,
-    "residual": 2.8484819905267125e-14,
-    "latency_ms": 19828,
-    "svg_bytes": 2656,
+    "constraints": 6,
+    "residual": 2.1190286450673075e-62,
+    "latency_ms": 59993,
+    "svg_bytes": 2872,
     "error": ""
   },
   {
@@ -841,12 +841,12 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 1,
+    "attempts": 3,
     "objects": 24,
-    "constraints": 11,
-    "residual": 4.307198493474879e-27,
-    "latency_ms": 31459,
-    "svg_bytes": 5066,
+    "constraints": 12,
+    "residual": 3.5342074607650785e-28,
+    "latency_ms": 112586,
+    "svg_bytes": 5204,
     "error": ""
   },
   {
@@ -862,9 +862,9 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 4134,
+    "latency_ms": 4715,
     "svg_bytes": 0,
-    "error": "当前 DSL 不支持直接指定坐标或轴对称变换；请改用边长、角度等几何约束描述图形。"
+    "error": "暂不支持基于坐标 A(-3,2) 等具体坐标的描述，也暂不支持轴对称变换；请改用边长 / 角度等几何关系描述三角形，或仅画出坐标系"
   },
   {
     "no": 52,
@@ -876,11 +876,11 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 20,
+    "objects": 19,
     "constraints": 8,
     "residual": 3.591675269520342e-15,
-    "latency_ms": 24040,
-    "svg_bytes": 4898,
+    "latency_ms": 18196,
+    "svg_bytes": 4773,
     "error": ""
   },
   {
@@ -889,16 +889,16 @@
     "subject": "变换几何",
     "difficulty": "困难",
     "description_preview": "在方格纸上画正方形 ABCD 和三角形 EFG，顶点都在格点上",
-    "status": "llm_refuse",
+    "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 0,
-    "constraints": 0,
-    "residual": NaN,
-    "latency_ms": 5502,
-    "svg_bytes": 0,
-    "error": "暂不支持格点约束，请改用具体边长或坐标关系描述"
+    "objects": 18,
+    "constraints": 7,
+    "residual": 3.6396186127287606e-20,
+    "latency_ms": 8933,
+    "svg_bytes": 9633,
+    "error": ""
   },
   {
     "no": 54,
@@ -913,8 +913,8 @@
     "objects": 9,
     "constraints": 5,
     "residual": 1.7729792948629088e-59,
-    "latency_ms": 7130,
-    "svg_bytes": 2196,
+    "latency_ms": 6556,
+    "svg_bytes": 2200,
     "error": ""
   },
   {
@@ -923,16 +923,16 @@
     "subject": "变换几何",
     "difficulty": "困难",
     "description_preview": "画直角三角形 ABC，∠BAC=90°，AB=3cm，AC=4cm；将三角形 ABC 沿直线 BC 方向平移 2.5cm 得到三角形 DEF，连接 AE、AD",
-    "status": "ok",
+    "status": "llm_refuse",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 2,
-    "objects": 20,
-    "constraints": 9,
-    "residual": 1.4791141972893974e-31,
-    "latency_ms": 43117,
-    "svg_bytes": 3682,
-    "error": ""
+    "attempts": 1,
+    "objects": 0,
+    "constraints": 0,
+    "residual": NaN,
+    "latency_ms": 5680,
+    "svg_bytes": 0,
+    "error": "暂不支持平移操作，请改用几何关系（如对应点距离、平行等）描述平移后的三角形 DEF"
   },
   {
     "no": 56,
@@ -947,8 +947,8 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 8370,
+    "latency_ms": 4648,
     "svg_bytes": 0,
-    "error": "当前 DSL 不支持直接指定点的绝对坐标，也未提供位似（homothety/dilation）变换约束，无法精确表达此题；建议扩展 schema 后再作图。"
+    "error": "暂不支持基于坐标 A(-6,6) 的精确点位描述及位似变换，请改用边长 / 角度等几何关系描述四边形，或仅画出坐标系"
   }
 ]

@@ -2,11 +2,20 @@
 
 export interface GeoObject {
   id: string
-  kind: 'point' | 'segment' | 'line' | 'polygon' | 'circle'
+  kind: 'point' | 'segment' | 'line' | 'polygon' | 'circle' | 'axis'
   a?: string
   b?: string
   vertices?: string[]
   hint?: [number, number] | null
+  // axis 字段
+  origin?: string
+  x_range?: [number, number]
+  y_range?: [number, number]
+  tick_step?: number
+  show_grid?: boolean
+  show_ticks?: boolean
+  x_label?: string
+  y_label?: string
   definition?: {
     type: 'center_radius' | 'center_through' | 'incircle' | 'circumcircle'
     center?: string

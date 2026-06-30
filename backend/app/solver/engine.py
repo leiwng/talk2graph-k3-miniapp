@@ -18,6 +18,7 @@ import numpy as np
 from scipy.optimize import least_squares
 
 from ..dsl.schema import (
+    AxisObj,
     CircleDefByCenterPoint,
     CircleDefByCenterRadius,
     CircleDefCircumcircle,
@@ -131,20 +132,30 @@ def solve(dsl: DSL, *, seed: int = 0, restarts: int = 6, tol: float = 1e-9) -> S
 
     layout = _VarLayout()
 
-    # Gauge: 固定第一点在原点；若 ≥ 2 点，第二点固定在 +x 轴上单位距离（仅当未被 length 约束时也 ok，
-    # 因为它的 y=0 是一种坐标系选择；x 由后续约束决定）。
-    # 实际做法：第一点 (0,0)，第二点 y=0（x 自由）。
-    first = points[0].id
-    layout.fixed[first] = (0.0, 0.0)
+    axis = dsl.axis()
 
-    second_pid: str | None = None
-    if len(points) >= 2:
-        second_pid = points[1].id
-
-    for p in points:
-        if p.id == first:
-            continue
-        layout.alloc_point(p.id)
+    # Gauge 选择：
+    # - 无 axis：第一点固定 (0,0)；第二点 y=0（消除平移 + 旋转的 3 个自由度，
+    #   仅保留缩放/全局形状的合法变化），这是 W1 默认行为。
+    # - 有 axis：origin 点固定 (0,0)，坐标系朝向由 axis 本身定义（+x 向右、+y 向上），
+    #   不再加 second-y=0 约束；其余点全自由。
+    if axis is not None:
+        if axis.origin not in {p.id for p in points}:
+            raise SolveError(f"axis origin {axis.origin!r} 不是已声明的点")
+        layout.fixed[axis.origin] = (0.0, 0.0)
+        second_pid: str | None = None
+        for p in points:
+            if p.id == axis.origin:
+                continue
+            layout.alloc_point(p.id)
+    else:
+        first = points[0].id
+        layout.fixed[first] = (0.0, 0.0)
+        second_pid = points[1].id if len(points) >= 2 else None
+        for p in points:
+            if p.id == first:
+                continue
+            layout.alloc_point(p.id)
 
     # 派生圆变量：center_radius / center_through 不需要新变量；incircle / circumcircle 需要 (cx,cy,r)
     for c in dsl.circles():

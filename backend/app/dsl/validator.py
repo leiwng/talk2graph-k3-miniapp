@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .schema import (
+    AxisObj,
     CircleObj,
     CircleDefIncircle,
     CircleDefCircumcircle,
@@ -62,6 +63,19 @@ def validate(dsl: DSL) -> None:
                 _require(d.through, PointObj, f"circle {o.id}.through")
             elif isinstance(d, (CircleDefIncircle, CircleDefCircumcircle)):
                 _require(d.of, PolygonObj, f"circle {o.id}.of")
+        elif isinstance(o, AxisObj):
+            _require(o.origin, PointObj, f"axis {o.id}.origin")
+            if o.x_range[0] >= o.x_range[1]:
+                raise DSLValidationError(f"axis {o.id}: x_range min must < max")
+            if o.y_range[0] >= o.y_range[1]:
+                raise DSLValidationError(f"axis {o.id}: y_range min must < max")
+            if o.tick_step <= 0:
+                raise DSLValidationError(f"axis {o.id}: tick_step must be > 0")
+
+    # 2.5 axis 唯一性
+    axes = [o for o in dsl.objects if isinstance(o, AxisObj)]
+    if len(axes) > 1:
+        raise DSLValidationError("at most one axis allowed per DSL")
 
     # 3. 约束引用
     for c in dsl.constraints:

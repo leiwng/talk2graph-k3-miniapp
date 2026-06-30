@@ -6,7 +6,65 @@
 
 ---
 
-## W8 — 生产部署（当前版本）
+## W9 — V2-A 坐标系支持（当前版本）
+
+**测试状态**：89/89 通过（W8 78 + W9 11）
+
+**目标**：迈出 V2 第一步——给 DSL 加上"平面直角坐标系"对象，让老师能说「画一个坐标系，x 轴从 -5 到 5」，画板上出现带箭头/网格/刻度/数字的坐标系。函数图像、坐标值描述仍走 refuse 路径（留给 V2-B / V2-未）。
+
+### 新增
+
+**后端 — DSL 层**
+- `app/dsl/schema.py`：新增 `AxisObj{kind:"axis", origin, x_range, y_range, tick_step, show_grid, show_ticks, x_label, y_label}`；`DSL.axis()` helper（最多 1 个）
+- `app/dsl/validator.py`：
+  - `AxisObj` 校验 origin 引用 + range/tick_step 合法性
+  - axis 唯一性硬性约束（"at most one axis allowed per DSL"）
+
+**后端 — 求解器**
+- `app/solver/engine.py::solve`：gauge 选择分流
+  - 无 axis：保持 W1 行为（first 点 (0,0) + second 点 y=0）
+  - 有 axis：`axis.origin` 固定 (0,0)，坐标系朝向由 axis 本身定义（+x 向右、+y 向上），**不再加 second-y=0** —— 这是 V2-A 最关键的语义变化
+
+**后端 — 渲染**
+- `app/render/svg.py::_render_axis`：新增 ~120 LOC
+  - 渲染顺序：网格 → 主轴 → 箭头（SVG `<marker>` 复用）→ 刻度 → 刻度数字 → 单位标签 `x`/`y` → 原点 `O`
+  - 颜色分层：网格 `#e5e7eb`、主轴/刻度 `#9ca3af`、数字 `#6b7280`
+  - 原点刻度数字不画（避免与 O 重叠）
+- `app/render/svg.py::_compute_bbox`：把 axis range 纳入 bbox，确保坐标系不被裁
+
+**LLM — Prompt / few-shot**
+- `app/llm/prompts/system.txt`：
+  - 拒绝清单第 9 条删除"坐标系作图"
+  - 新增第 10 条「坐标系支持」，给出 axis 对象模板、明确"基于坐标 A(2,3) 仍不支持"
+  - DSL Schema 节选段加入 axis 类型说明
+- `app/llm/prompts/fewshots.jsonl`：追加 2 条 axis few-shot（基本坐标系 / 自定义范围与刻度）
+- `app/llm/extractor.py`：`fewshot_limit` 默认 6 → 14（确保新 axis 示例进入提示）
+
+**测试**
+- `tests/test_w9_axis.py`：新增 11 个测试，覆盖 schema、validator（5 个边界）、solver（2 个 gauge 场景 + 1 个负例）、render（含/不含 grid 两种）、refuse 文案行为
+
+**前端**
+- `frontend/src/api/types.ts`：`GeoObject.kind` 加入 `'axis'`，新增 axis 字段（`origin / x_range / y_range / tick_step / show_grid / show_ticks / x_label / y_label`）
+- `frontend/src/components/Canvas.tsx::describe`：axis 分支显示「坐标系：x∈[...], y∈[...]」
+
+### 变更
+
+- `app/api/chat.py::_make_refuse_message`：
+  - 删除原 `keywords_for_coord = ("坐标", "象限", "x 轴", "y 轴", "原点")` 分支（这些词现在都该走 axis 路径）
+  - 新增 `keywords_for_coord_value = ("A(", "B(", ..., "坐标为", "坐标是")`：**仅**对 `A(2,3)` 这类具体坐标值的描述给出引导（坐标系本身可画 + 几何关系替代）
+  - 顶部头部话术：从「主要支持平面几何作图（点、线段、圆、多边形与常见约束）」改为「主要支持平面几何作图（点、线段、圆、多边形、**坐标系**与常见约束）」
+
+### 修复
+
+- 无（V2-A 是纯新增 + 兼容变更，所有 78 个旧测试无回归）
+
+### DB Schema 升级
+
+W8 → W9：**无 schema 变更**。直接拉新代码即可。已有 DB 内不含 axis 对象，对老会话向后兼容。
+
+---
+
+## W8 — 生产部署
 
 **测试状态**：78/78 通过（W7 基础 +2 拒绝消息分类测试）
 

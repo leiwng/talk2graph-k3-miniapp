@@ -97,8 +97,28 @@ class CircleObj(_Obj):
     definition: CircleDefinition
 
 
+class AxisObj(_Obj):
+    """直角坐标系（V2-A）。
+
+    约定：
+    - 一个 DSL 最多含 **1 个** axis。
+    - 存在 axis 时，求解器以 axis.origin 为原点、x 轴方向锁定单位长度；其他点全自由。
+    - 不存在 axis 时，保持 W1 行为（第一点固定原点 + 第二点 y=0）。
+    - origin 必须引用一个 PointObj id；省略时由验证器要求添加 'O'。
+    """
+    kind: Literal["axis"] = "axis"
+    origin: str  # point id
+    x_range: tuple[float, float] = (-5.0, 5.0)
+    y_range: tuple[float, float] = (-5.0, 5.0)
+    tick_step: float = 1.0
+    show_grid: bool = True
+    show_ticks: bool = True
+    x_label: str = "x"
+    y_label: str = "y"
+
+
 GeometryObject = Annotated[
-    Union[PointObj, SegmentObj, LineObj, PolygonObj, CircleObj],
+    Union[PointObj, SegmentObj, LineObj, PolygonObj, CircleObj, AxisObj],
     Field(discriminator="kind"),
 ]
 
@@ -288,6 +308,12 @@ class DSL(BaseModel):
 
     def polygons(self) -> list[PolygonObj]:
         return [o for o in self.objects if isinstance(o, PolygonObj)]
+
+    def axis(self) -> AxisObj | None:
+        for o in self.objects:
+            if isinstance(o, AxisObj):
+                return o
+        return None
 
     def to_json_dict(self) -> dict[str, Any]:
         return self.model_dump(mode="json")

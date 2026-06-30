@@ -210,15 +210,15 @@ def _make_refuse_message(raw: str) -> str:
     keywords_for_function = ("函数图像", "函数图象", "y=", "y =", "正弦", "余弦", "三角函数", "抛物线", "椭圆", "双曲线", "圆锥曲线", "准线", "焦点")
     keywords_for_3d = ("立体", "三视图", "四棱锥", "棱锥", "棱柱", "圆柱", "圆锥", "球", "正方体")
     keywords_for_chart = ("柱状图", "饼图", "折线图", "直方图", "统计图")
-    keywords_for_coord = ("坐标", "象限", "x 轴", "y 轴", "原点")
+    keywords_for_coord_value = ("A(", "B(", "C(", "P(", "Q(", "坐标为", "坐标是")
     keywords_for_transform = ("旋转", "平移", "翻折", "翻转", "对称", "镜像", "变换", "折叠")
 
-    head = "话图当前版本主要支持平面几何作图（点、线段、圆、多边形与常见约束）。"
+    head = "话图当前版本主要支持平面几何作图（点、线段、圆、多边形、坐标系与常见约束）。"
     advice = "你可以尝试用几何语言重新描述这道题，或等待后续版本支持更多题型。"
 
     if any(k in s for k in keywords_for_function):
         head = "话图当前版本暂不支持函数图像和圆锥曲线（抛物线 / 椭圆 / 双曲线），这一类计划在 V2 中支持。"
-        advice = "你可以试试改用平面几何描述，例如「画三角形 ABC，AB=...」。"
+        advice = "你可以试试改用平面几何描述，例如「画三角形 ABC，AB=...」。如只需画坐标系，可说「画一个平面直角坐标系」。"
     elif any(k in s for k in keywords_for_3d):
         head = "话图当前版本只支持平面几何，立体几何（棱锥 / 棱柱 / 球 / 三视图）计划在 V2 中支持。"
         advice = "试试改成平面图形，例如「画一个矩形 / 圆 / 三角形」。"
@@ -233,8 +233,8 @@ def _make_refuse_message(raw: str) -> str:
             "  • 关于直线 l 轴对称：让 l 上的点为对称轴，用 `foot_of_perp` 约束描述\n"
             "  • 简单旋转：直接画出旋转后的三角形，约束对应边等长、对应角相等"
         )
-    elif any(k in s for k in keywords_for_coord):
-        head = "话图当前版本暂不支持基于坐标的描述。"
-        advice = "请改用边长、角度等几何关系描述，例如「画三角形 ABC，AB=5，BC=6，CA=7」。"
+    elif any(k in s for k in keywords_for_coord_value):
+        head = "话图当前版本支持画坐标系，但暂不支持基于具体坐标值（如 A(2,3)）的描述。"
+        advice = "请改用边长、角度等几何关系描述，例如「画三角形 ABC，AB=5，BC=6，CA=7」；或先「画一个坐标系」再独立描述图形。"
 
     return f"{head}\n\n💡 {advice}"

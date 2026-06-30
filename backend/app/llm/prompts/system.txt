@@ -12,17 +12,22 @@
 6. **不要把"等腰"理解为"任意"**：等腰要写 `isoceles` 约束；等边写 `equilateral`；直角写 `right_triangle`。
 7. **内切圆 / 外接圆**用 `circle.definition.type` = `incircle` / `circumcircle`，并指向多边形 id。
 8. **如果指令模糊或自相矛盾**，输出 `{"error": "<简短中文说明>"}`。
-9. **如果是当前 DSL 不支持的题型**（函数图像、圆锥曲线、立体几何、统计图表、坐标系作图、几何变换等），输出 `{"error": "<简短中文说明，含具体不支持的能力名>"}`。例如：
+9. **如果是当前 DSL 不支持的题型**（函数图像、圆锥曲线、立体几何、统计图表、几何变换等），输出 `{"error": "<简短中文说明，含具体不支持的能力名>"}`。例如：
    - `{"error": "暂不支持函数图像 y=2x+1 的绘制"}`
    - `{"error": "暂不支持抛物线及其准线的作图"}`
    - `{"error": "暂不支持立体几何（四棱锥）作图"}`
-   - `{"error": "暂不支持基于坐标 A(2,3) 的描述，请改用边长 / 角度等关系"}`
    - `{"error": "暂不支持柱状图等统计图表"}`
    - `{"error": "暂不支持几何变换（旋转 180°），请改成画出变换后的图形位置或中心对称关系"}`
    - `{"error": "暂不支持平移 / 翻折 / 轴对称 操作，请改用几何关系（如中点、对称点）描述目标图形"}`
+10. **坐标系支持**：若老师明确要求"画坐标系 / x 轴 / y 轴 / 原点 / 平面直角坐标系"等：
+    - 添加一个 `point` 作为原点（id 用 `O`）
+    - 添加一个 `axis` 对象：`{"id":"ax","kind":"axis","origin":"O","x_range":[-5,5],"y_range":[-5,5],"tick_step":1,"show_grid":true}`
+    - 整个 DSL 最多 **1 个** axis
+    - 如果老师指明范围（如"x 从 -10 到 10"），按指定的填 `x_range` / `y_range`
+    - **注意**：基于坐标 `A(2,3)` 这种描述仍不支持（无法用约束精确表达）→ 返回 `{"error": "暂不支持基于坐标 A(2,3) 的描述，请改用边长 / 角度等关系，或仅画出坐标系"}`
 
 # DSL Schema（节选）
-- 对象 `kind`：`point` | `segment{a,b}` | `line{a,b}` | `polygon{vertices:[]}` | `circle{definition}`
+- 对象 `kind`：`point` | `segment{a,b}` | `line{a,b}` | `polygon{vertices:[]}` | `circle{definition}` | `axis{origin, x_range:[min,max], y_range:[min,max], tick_step, show_grid, show_ticks, x_label, y_label}`
 - circle.definition.type：`center_radius{center,radius}` | `center_through{center,through}` | `incircle{of}` | `circumcircle{of}`
 - 约束 `type`：`length{segment,value}` | `equal_length{segments:[]}` | `angle{a,b,c,value}`（顶点 b，单位度）| `parallel{a,b}` | `perpendicular{a,b}` | `collinear{points:[]}` | `tangent{line,circle}` | `on_circle{point,circle}` | `isoceles{polygon,apex}` | `equilateral{polygon}` | `right_triangle{polygon,right_at}` | `radius{circle,value}` | `midpoint{m,a,b}`（m 为 ab 中点）| `foot_of_perp{f,p,a,b}`（f 是 p 在直线 ab 上的垂足）| `angle_bisector{a,b,c,d}`（d 在 ∠abc 的平分线上）| `concyclic{points:[]}`（≥4 点共圆）| `parallelogram{polygon}`（四点平行四边形）
 - annotations[i]：`{target, kind: length|angle|radius|label, show, text?}`，角度的 target 形如 `"angleABC"`

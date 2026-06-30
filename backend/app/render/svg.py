@@ -12,6 +12,7 @@ import xml.sax.saxutils as sx
 from dataclasses import dataclass
 
 from ..dsl.schema import (
+    AxisObj,
     CircleObj,
     DSL,
     LineObj,
@@ -83,6 +84,11 @@ def render_svg(
     parts.append(
         f'<rect width="100%" height="100%" fill="white"/>'
     )
+
+    # 坐标系（最底层）
+    axis = dsl.axis()
+    if axis is not None:
+        parts.extend(_render_axis(axis, dsl, sol, tx, scale, style))
 
     # 圆
     for c in dsl.circles():
@@ -199,6 +205,11 @@ def _compute_bbox(dsl: DSL, sol: Solution) -> _BBox:
         r = cinfo["radius"]
         xs.extend([cx - r, cx + r])
         ys.extend([cy - r, cy + r])
+    # axis range 纳入 bbox，确保整个坐标系不被裁
+    axis = dsl.axis()
+    if axis is not None:
+        xs.extend([axis.x_range[0], axis.x_range[1]])
+        ys.extend([axis.y_range[0], axis.y_range[1]])
     if not xs:
         return _BBox(-1, -1, 1, 1)
     return _BBox(min(xs), min(ys), max(xs), max(ys))
@@ -486,3 +497,130 @@ def _angle_arc(a, b, c, tx, style: Style, *, value: float | None = None) -> str:
         f'{large_arc} {sweep} {x2:.2f} {y2:.2f}" '
         f'fill="none" stroke="#888" stroke-width="1"/>'
     )
+
+
+# ---------------------------------------------------------------------------
+# Axis / 坐标系绘制（V2-A）
+# ---------------------------------------------------------------------------
+
+def _render_axis(axis: AxisObj, dsl: DSL, sol: Solution, tx, scale: float, style: Style) -> list[str]:
+    """绘制直角坐标系：网格 → 轴 → 箭头 → 刻度 → 数字 → 单位标签。"""
+    out: list[str] = []
+    origin = sol.coordinates.get(axis.origin)
+    if origin is None:
+        return out
+    ox, oy = origin
+    xmin, xmax = axis.x_range
+    ymin, ymax = axis.y_range
+    # 平移到 origin 所在世界坐标（origin 数学坐标恒为 (0,0)；范围相对它来定）
+    # 即坐标系覆盖 [ox+xmin, ox+xmax] × [oy+ymin, oy+ymax]
+    wx_min = ox + xmin
+    wx_max = ox + xmax
+    wy_min = oy + ymin
+    wy_max = oy + ymax
+
+    grid_stroke = "#e5e7eb"      # 浅灰网格
+    axis_stroke = "#9ca3af"      # 中灰主轴
+    tick_text_fill = "#6b7280"   # 刻度数字
+
+    # 1) 网格（最底）
+    if axis.show_grid:
+        step = axis.tick_step
+        # 垂直网格线（x = ox + k*step）
+        k = math.ceil(xmin / step)
+        while k * step <= xmax + 1e-9:
+            wx = ox + k * step
+            x1, y1 = tx(wx, wy_min)
+            x2, y2 = tx(wx, wy_max)
+            out.append(
+                f'<line x1="{x1:.2f}" y1="{y1:.2f}" x2="{x2:.2f}" y2="{y2:.2f}" '
+                f'stroke="{grid_stroke}" stroke-width="1"/>'
+            )
+            k += 1
+        # 水平网格线
+        k = math.ceil(ymin / step)
+        while k * step <= ymax + 1e-9:
+            wy = oy + k * step
+            x1, y1 = tx(wx_min, wy)
+            x2, y2 = tx(wx_max, wy)
+            out.append(
+                f'<line x1="{x1:.2f}" y1="{y1:.2f}" x2="{x2:.2f}" y2="{y2:.2f}" '
+                f'stroke="{grid_stroke}" stroke-width="1"/>'
+            )
+            k += 1
+
+    # 2) 主轴（带箭头）
+    # x 轴：从 (wx_min, oy) 到 (wx_max, oy)
+    ax1x, ax1y = tx(wx_min, oy)
+    ax2x, ax2y = tx(wx_max, oy)
+    out.append(
+        f'<line x1="{ax1x:.2f}" y1="{ax1y:.2f}" x2="{ax2x:.2f}" y2="{ax2y:.2f}" '
+        f'stroke="{axis_stroke}" stroke-width="1.4" marker-end="url(#t2g-arrow)"/>'
+    )
+    # y 轴：从 (ox, wy_min) 到 (ox, wy_max)
+    ay1x, ay1y = tx(ox, wy_min)
+    ay2x, ay2y = tx(ox, wy_max)
+    out.append(
+        f'<line x1="{ay1x:.2f}" y1="{ay1y:.2f}" x2="{ay2x:.2f}" y2="{ay2y:.2f}" '
+        f'stroke="{axis_stroke}" stroke-width="1.4" marker-end="url(#t2g-arrow)"/>'
+    )
+    # 箭头标记定义（一次性插入 defs）
+    out.append(
+        '<defs><marker id="t2g-arrow" viewBox="0 0 10 10" refX="9" refY="5" '
+        'markerUnits="strokeWidth" markerWidth="8" markerHeight="8" orient="auto">'
+        f'<path d="M0,0 L10,5 L0,10 Z" fill="{axis_stroke}"/></marker></defs>'
+    )
+
+    # 3) 刻度 + 数字
+    if axis.show_ticks:
+        step = axis.tick_step
+        tick_len = 4.0  # SVG 像素
+        # x 轴刻度
+        k = math.ceil(xmin / step)
+        while k * step <= xmax + 1e-9:
+            if k != 0:  # 原点不画刻度数字
+                wx = ox + k * step
+                cx, cy = tx(wx, oy)
+                out.append(
+                    f'<line x1="{cx:.2f}" y1="{cy - tick_len:.2f}" x2="{cx:.2f}" y2="{cy + tick_len:.2f}" '
+                    f'stroke="{axis_stroke}" stroke-width="1"/>'
+                )
+                out.append(
+                    f'<text x="{cx:.2f}" y="{cy + tick_len + 12:.2f}" text-anchor="middle" '
+                    f'fill="{tick_text_fill}" font-size="11">{_fmt_num(k * step)}</text>'
+                )
+            k += 1
+        # y 轴刻度
+        k = math.ceil(ymin / step)
+        while k * step <= ymax + 1e-9:
+            if k != 0:
+                wy = oy + k * step
+                cx, cy = tx(ox, wy)
+                out.append(
+                    f'<line x1="{cx - tick_len:.2f}" y1="{cy:.2f}" x2="{cx + tick_len:.2f}" y2="{cy:.2f}" '
+                    f'stroke="{axis_stroke}" stroke-width="1"/>'
+                )
+                out.append(
+                    f'<text x="{cx - tick_len - 4:.2f}" y="{cy + 4:.2f}" text-anchor="end" '
+                    f'fill="{tick_text_fill}" font-size="11">{_fmt_num(k * step)}</text>'
+                )
+            k += 1
+
+    # 4) 单位标签（轴末端文字）
+    out.append(
+        f'<text x="{ax2x + 10:.2f}" y="{ax2y + 4:.2f}" text-anchor="start" '
+        f'fill="{axis_stroke}" font-size="13" font-style="italic">{sx.escape(axis.x_label)}</text>'
+    )
+    out.append(
+        f'<text x="{ay2x:.2f}" y="{ay2y - 8:.2f}" text-anchor="middle" '
+        f'fill="{axis_stroke}" font-size="13" font-style="italic">{sx.escape(axis.y_label)}</text>'
+    )
+
+    # 5) 原点 O 标签
+    oxs, oys = tx(ox, oy)
+    out.append(
+        f'<text x="{oxs - 8:.2f}" y="{oys + 14:.2f}" text-anchor="end" '
+        f'fill="{tick_text_fill}" font-size="11">O</text>'
+    )
+
+    return out
