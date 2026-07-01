@@ -1,6 +1,7 @@
 """DSL 语义校验：确保 id 引用闭合、类型匹配等。"""
 from __future__ import annotations
 
+from .safe_expr import UnsafeExpressionError, compile_expr
 from .schema import (
     AxisObj,
     CircleObj,
@@ -9,6 +10,7 @@ from .schema import (
     CircleDefByCenterRadius,
     CircleDefByCenterPoint,
     DSL,
+    FunctionCurveObj,
     LineObj,
     PointObj,
     PolygonObj,
@@ -138,6 +140,22 @@ def validate(dsl: DSL) -> None:
                         f"collides with existing object"
                     )
             _validate_transform_refs(o.transform, obj_map, f"transformed_polygon {o.id}")
+        elif isinstance(o, FunctionCurveObj):
+            # V2-B：函数曲线必须在含 axis 的 DSL 中；且 expr 必须过安全沙箱
+            if not any(isinstance(x, AxisObj) for x in dsl.objects):
+                raise DSLValidationError(
+                    f"curve {o.id}: requires an axis (coordinate system) in the DSL"
+                )
+            if o.samples < 10:
+                raise DSLValidationError(f"curve {o.id}: samples must be >= 10")
+            if o.domain is not None and o.domain[0] >= o.domain[1]:
+                raise DSLValidationError(f"curve {o.id}: domain min must < max")
+            try:
+                compile_expr(o.expr, var=o.var)
+            except (UnsafeExpressionError, SyntaxError) as e:
+                raise DSLValidationError(
+                    f"curve {o.id}: unsafe or invalid expression {o.expr!r}: {e}"
+                )
 
     # 2.5 axis 唯一性
     axes = [o for o in dsl.objects if isinstance(o, AxisObj)]

@@ -2,7 +2,7 @@
 
 export interface GeoObject {
   id: string
-  kind: 'point' | 'segment' | 'line' | 'polygon' | 'circle' | 'axis' | 'transformed_point' | 'transformed_polygon'
+  kind: 'point' | 'segment' | 'line' | 'polygon' | 'circle' | 'axis' | 'transformed_point' | 'transformed_polygon' | 'curve'
   a?: string
   b?: string
   vertices?: string[]
@@ -27,6 +27,13 @@ export interface GeoObject {
     line?: string
   }
   vertex_suffix?: string
+  // V2-B curve 字段
+  expr?: string
+  var?: 'x' | 'y'
+  domain?: [number, number]
+  samples?: number
+  color?: string
+  dash?: string
   definition?: {
     type: 'center_radius' | 'center_through' | 'incircle' | 'circumcircle'
     center?: string

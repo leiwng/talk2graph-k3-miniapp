@@ -174,10 +174,25 @@ class TransformedPolygonObj(_Obj):
     vertex_suffix: str = "p"
 
 
+class FunctionCurveObj(_Obj):
+    """函数曲线 (V2-B)。y = f(x) 或 x = g(y)。
+
+    必须在含 axis 的 DSL 中出现。求解器不处理此对象，渲染时采样绘制。
+    """
+    kind: Literal["curve"] = "curve"
+    expr: str                                    # 表达式，如 "x**2" / "sin(x)"
+    var: Literal["x", "y"] = "x"                 # 自变量
+    domain: tuple[float, float] | None = None    # 采样域；None → 用 axis 对应 range
+    samples: int = 300
+    color: str = "#0d6efd"                       # 曲线颜色（默认蓝，与几何黑色区分）
+    dash: str | None = None                      # 可选虚线
+
+
 GeometryObject = Annotated[
     Union[
         PointObj, SegmentObj, LineObj, PolygonObj, CircleObj, AxisObj,
         TransformedPointObj, TransformedPolygonObj,
+        FunctionCurveObj,
     ],
     Field(discriminator="kind"),
 ]
@@ -400,6 +415,9 @@ class DSL(BaseModel):
 
     def transformed_points(self) -> list[TransformedPointObj]:
         return [o for o in self.objects if isinstance(o, TransformedPointObj)]
+
+    def curves(self) -> list[FunctionCurveObj]:
+        return [o for o in self.objects if isinstance(o, FunctionCurveObj)]
 
     def to_json_dict(self) -> dict[str, Any]:
         return self.model_dump(mode="json")

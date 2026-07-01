@@ -11,10 +11,12 @@ import math
 import xml.sax.saxutils as sx
 from dataclasses import dataclass
 
+from ..dsl.safe_expr import compile_expr
 from ..dsl.schema import (
     AxisObj,
     CircleObj,
     DSL,
+    FunctionCurveObj,
     LineObj,
     PointObj,
     PolygonObj,
@@ -89,6 +91,10 @@ def render_svg(
     axis = dsl.axis()
     if axis is not None:
         parts.extend(_render_axis(axis, dsl, sol, tx, scale, style))
+
+    # V2-B：函数曲线（在坐标系之上、几何图形之下）
+    for curve in dsl.curves():
+        parts.extend(_render_curve(curve, dsl, sol, tx, style))
 
     # 圆
     for c in dsl.circles():
@@ -278,6 +284,13 @@ def _compute_bbox(dsl: DSL, sol: Solution) -> _BBox:
     if axis is not None:
         xs.extend([axis.x_range[0], axis.x_range[1]])
         ys.extend([axis.y_range[0], axis.y_range[1]])
+    # V2-B：曲线的 domain 也纳入 bbox
+    for curve in dsl.curves():
+        if curve.domain is not None:
+            if curve.var == "x":
+                xs.extend([curve.domain[0], curve.domain[1]])
+            else:
+                ys.extend([curve.domain[0], curve.domain[1]])
     if not xs:
         return _BBox(-1, -1, 1, 1)
     return _BBox(min(xs), min(ys), max(xs), max(ys))
@@ -723,3 +736,75 @@ def _render_axis(axis: AxisObj, dsl: DSL, sol: Solution, tx, scale: float, style
     )
 
     return out
+
+
+# ---------------------------------------------------------------------------
+# V2-B · 函数曲线绘制
+# ---------------------------------------------------------------------------
+
+_CURVE_CLIP_MAG = 1000.0  # 值绝对值超过此阈值切段（防止 1/x 在断点附近乱画）
+
+
+def _render_curve(
+    curve: FunctionCurveObj, dsl: DSL, sol: Solution, tx, style: Style
+) -> list[str]:
+    """采样 curve.expr 并输出一或多段 <polyline>（用断点切段）。"""
+    axis = dsl.axis()
+    if axis is None:
+        return []  # validator 已阻止；此处兜底
+
+    # 确定采样域
+    if curve.domain is not None:
+        dmin, dmax = curve.domain
+    elif curve.var == "x":
+        dmin, dmax = axis.x_range
+    else:
+        dmin, dmax = axis.y_range
+
+    if dmin >= dmax or curve.samples < 2:
+        return []
+
+    # 编译表达式（validator 已经保证合法）
+    try:
+        f = compile_expr(curve.expr, var=curve.var)
+    except Exception:
+        return []
+
+    # 等距采样
+    N = curve.samples
+    step = (dmax - dmin) / (N - 1)
+
+    # segments: 累积每一段连续可绘制的点，遇到不可用（nan/inf/|y|>阈值）就断开
+    segments: list[list[tuple[float, float]]] = [[]]
+    for i in range(N):
+        v = dmin + i * step
+        y = f(v)
+        if not _is_finite(y) or abs(y) > _CURVE_CLIP_MAG:
+            # 结束当前段，开启新段（若上一段非空）
+            if segments[-1]:
+                segments.append([])
+            continue
+        # 变量映射：var=x 时 (v, y)，var=y 时 (y, v)
+        if curve.var == "x":
+            pt = (v, y)
+        else:
+            pt = (y, v)
+        segments[-1].append(pt)
+
+    dash_attr = f' stroke-dasharray="{curve.dash}"' if curve.dash else ""
+
+    out: list[str] = []
+    for seg in segments:
+        if len(seg) < 2:
+            continue
+        pts_svg = " ".join(f"{sx_:.2f},{sy_:.2f}" for sx_, sy_ in (tx(*p) for p in seg))
+        out.append(
+            f'<polyline data-id="{curve.id}" class="t2g-obj t2g-curve" '
+            f'points="{pts_svg}" fill="none" '
+            f'stroke="{curve.color}" stroke-width="1.6"{dash_attr}/>'
+        )
+    return out
+
+
+def _is_finite(v: float) -> bool:
+    return v == v and v != float("inf") and v != float("-inf")

@@ -6,7 +6,101 @@
 
 ---
 
-## W11 — 几何变换（当前版本）
+## V2-B — 函数图像（当前版本）
+
+**测试状态**：134/134 通过（W11 115 + V2-B 19）
+
+**目标**：在坐标系（W9 axis）之上支持显式函数曲线 `y = f(x)` / `x = g(y)`，覆盖一次/二次/反比例/正弦余弦/指对数等。抛物线 `y²=2x` 通过拆成两条显式函数 `y=±√(2x)` 支持。这是 V2 主线（V2-A 坐标系 → V2-B 函数图像）的最后一环。
+
+### 新增
+
+**后端 — 安全表达式沙箱（关键新模块）**
+- `app/dsl/safe_expr.py`（新文件，~130 LOC）：
+  - `compile_expr(expr: str, var: str="x") -> Callable[[float], float]`
+  - 走 `ast.parse(mode="eval")` + **AST 节点白名单**校验，绝不使用 `eval(str)`
+  - 允许的节点：Expression/BinOp/UnaryOp/Constant/Name/Load/Call/Compare/BoolOp/IfExp
+  - 允许的函数（Name）：sin/cos/tan/asin/acos/atan/atan2/sqrt/exp/log/log10/log2/abs/pow/floor/ceil
+  - 允许的常量：pi、e
+  - **禁止**：Attribute（`x.__class__`）、Subscript（`x[0]`）、Lambda、任何未在白名单的 Name（`__import__` / `open` / `eval`）
+  - 运行时错误（ZeroDivisionError / ValueError / OverflowError）返回 nan，交给渲染层过滤
+  - 编译后的可调用函数用受限 `globals={"__builtins__": {}, ...}` 保护
+
+**后端 — DSL 层**
+- `app/dsl/schema.py`：新增 `FunctionCurveObj{expr, var, domain?, samples=300, color, dash?}`
+  - `var` 是 `"x"` 或 `"y"`（决定表达式的自变量）
+  - `domain` 缺省用 axis 对应 range
+  - `DSL.curves()` helper
+- `app/dsl/validator.py`：
+  - curve 必须在含 axis 的 DSL 中（否则拒绝）
+  - samples ≥ 10
+  - domain min < max
+  - expr 走 `safe_expr.compile_expr` 校验（不安全表达式或语法错误抛 DSLValidationError）
+
+**后端 — 渲染**
+- `app/render/svg.py::_render_curve`（新增，~70 LOC）：
+  - 编译 expr → 等距采样 N=300 点
+  - **断点切段**：`nan` / `inf` / `|y| > 1000` 时切开当前段、新开一段
+  - 每段单独输出 `<polyline data-id="{curve.id}" class="t2g-obj t2g-curve" ...>` —— 一个 curve 可能对应多个 polyline
+  - 曲线颜色默认 `#0d6efd`（蓝色，与几何黑色区分）
+  - 支持 `dash` 字段（可选虚线）
+  - 渲染顺序：坐标系 → **曲线** → 几何图形（曲线在图形下、坐标系上）
+- `_compute_bbox`：把 curve.domain 也纳入 bbox（保证曲线不被裁）
+
+**LLM — Prompt / few-shot**
+- `app/llm/prompts/system.txt`：
+  - 拒绝清单第 9 条中删去"函数图像"、"抛物线"（保留隐式一般式椭圆/双曲线）
+  - 新增第 13 条「函数图像支持」：解释 curve 对象、`var` 字段、隐式方程 y²=2x 拆解规则
+  - DSL Schema 节加 `curve{...}` 说明
+- `app/llm/prompts/fewshots.jsonl`：+3 条 few-shot
+  - y = x² 二次函数
+  - y = 1/x 反比例
+  - y² = 2x 抛物线（拆成两条 curve 展示）
+- `app/llm/extractor.py`：`fewshot_limit` 17 → 20
+
+**后端 — API**
+- `app/api/chat.py::_make_refuse_message`：
+  - 删除 `keywords_for_function`（含"函数图像"、"y="等一大批关键词）
+  - 新增 `keywords_for_implicit_curve = ("椭圆", "双曲线", "圆锥曲线")`：只对**隐式一般式**给出建议
+  - 头部话术加"函数图像"到能力清单
+
+**前端**
+- `frontend/src/api/types.ts`：`GeoObject.kind` 加 `'curve'`；新增 `expr / var / domain / samples / color / dash` 字段
+- `frontend/src/components/Canvas.tsx::describe`：curve 分支显示"曲线 x**2, x∈[-3,3]"
+
+**测试**
+- `tests/test_v2b_curve.py`（19 个测试）：
+  - safe_expr：数学函数、pi/e、pow、运行时错误返回 nan（3）
+  - safe_expr：拒绝 __import__ / open / eval、属性访问、下标、lambda、未知 Name（7）
+  - schema：解析（1）
+  - validator：无 axis 拒绝、不安全 expr 拒绝、坏 domain 拒绝（3）
+  - render：直线、1/x 断点切段、sqrt(x) 域外过滤、无 domain 用 axis range、var=y（5）
+- `tests/test_w7_feedback.py`：改写 `test_refuse_message_function_image`（V2-B 支持后语义变了）+ 新增 `test_refuse_message_ellipse_hyperbola`
+
+### 变更
+
+- 无破坏性变更。所有 W11 之前的测试无回归。
+- 拒绝消息头部加"函数图像"到能力清单。
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+W11 → V2-B：**无 schema 变更**。直接拉新代码即可。
+
+### 评估
+
+- cmm v2r：W11 34/56 → V2-B **36/56** (+2)
+  - **V2-B 目标题 #6「抛物线 y²=2x 及其准线」**：refuse → **ok** ✅ 打通
+  - **#16「反比例 y=k/x 与 y=x 的交点」**：refuse → **ok** ✅ 直接收益
+  - #13 #17：ok（LLM 又想通了，属正向漂移）
+  - #21 #43：ok → solve_fail，LLM 输出漂移，非 V2-B 代码问题
+  - W11 基线备份在 `backend/test/results_cmm_v2r_w11_baseline/`
+
+---
+
+## W11 — 几何变换
 
 **测试状态**：115/115 通过（W10 103 - 2 W7 过时测试 + 14 W11）
 

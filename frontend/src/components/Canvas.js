@@ -179,6 +179,12 @@ function describe(id, dsl, sol) {
             const t = obj.transform?.type ?? '?';
             return `${obj.source} 经 ${t} 得到的图形`;
         }
+        case 'curve': {
+            const d = obj.domain;
+            if (d)
+                return `曲线 ${obj.expr}, x∈[${d[0]},${d[1]}]`;
+            return `曲线 ${obj.expr}`;
+        }
         default:
             return `${obj.kind} ${id}`;
     }

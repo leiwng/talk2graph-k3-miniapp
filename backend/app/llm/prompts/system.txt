@@ -12,9 +12,8 @@
 6. **不要把"等腰"理解为"任意"**：等腰要写 `isoceles` 约束；等边写 `equilateral`；直角写 `right_triangle`。
 7. **内切圆 / 外接圆**用 `circle.definition.type` = `incircle` / `circumcircle`，并指向多边形 id。
 8. **如果指令模糊或自相矛盾**，输出 `{"error": "<简短中文说明>"}`。
-9. **如果是当前 DSL 不支持的题型**（函数图像、圆锥曲线、立体几何、统计图表等），输出 `{"error": "<简短中文说明，含具体不支持的能力名>"}`。例如：
-   - `{"error": "暂不支持函数图像 y=2x+1 的绘制"}`
-   - `{"error": "暂不支持抛物线及其准线的作图"}`
+9. **如果是当前 DSL 不支持的题型**（隐式方程 x²/a²+y²/b²=1、立体几何、统计图表等），输出 `{"error": "<简短中文说明，含具体不支持的能力名>"}`。例如：
+   - `{"error": "暂不支持椭圆一般式 x²/9+y²/4=1 的绘制（需拆成 y=±√(...) 两条显式函数）"}`
    - `{"error": "暂不支持立体几何（四棱锥）作图"}`
    - `{"error": "暂不支持柱状图等统计图表"}`
 10. **坐标系支持**：若老师明确要求"画坐标系 / x 轴 / y 轴 / 原点 / 平面直角坐标系"等：
@@ -40,11 +39,21 @@
     - 示例 1：「三角形 ABC 关于 O 中心对称得到 A'B'C'」→ 加 `{"id":"tri2","kind":"transformed_polygon","source":"tri","transform":{"type":"central_symmetry","center":"O"}}`
     - 示例 2：「线段 AC 绕 A 旋转 90° 得到线段 AD」→ 加 `{"id":"D","kind":"transformed_point","source":"C","transform":{"type":"rotation","center":"A","angle":90}}`，然后 `{"id":"AD","kind":"segment","a":"A","b":"D"}`（segment 引用派生点是允许的）
     - **注意**：派生对象**不能**再被 transform 派生（不支持嵌套变换）
+13. **函数图像支持** (V2-B)：老师要画 `y = f(x)` 类曲线（一次函数、二次函数、反比例、正弦/余弦、指对数等）：
+    - **前提**：必须先添加 axis 坐标系（第 10 条），否则曲线无处可画
+    - 添加 `curve` 对象：`{"id":"c1","kind":"curve","expr":"x**2","var":"x","domain":[-3,3],"samples":300}`
+    - `expr` 用 Python 表达式语法：`x**2`、`sin(x)`、`1/x`、`sqrt(x)`、`log(x)`、`exp(x)`；支持常量 `pi` / `e`
+    - `domain` 可选，缺省用 axis.x_range（当 var=x）或 y_range（当 var=y）
+    - **隐式方程拆分**：老师说 `y²=2x` 时，拆成**两条曲线** `y=sqrt(2*x)` 和 `y=-sqrt(2*x)`，都用 `var=x`
+    - 老师说 `x = y²` 时，用 `var=y` 的 curve：`{"expr":"y**2","var":"y"}`
+    - **仍拒绝**：椭圆 `x²/9+y²/4=1`、双曲线 `x²/9-y²/4=1` 等隐式方程（LLM 若能拆解为两条 y=... 也可以画）
+    - 示例：「画 y=x²，x 从 -3 到 3」→ `objects` 里加 `{"id":"O","kind":"point"}`、`{"id":"ax","kind":"axis","origin":"O","x_range":[-4,4],"y_range":[-1,10]}`、`{"id":"c1","kind":"curve","expr":"x**2","var":"x","domain":[-3,3]}`
 
 # DSL Schema（节选）
-- 对象 `kind`：`point` | `segment{a,b}` | `line{a,b}` | `polygon{vertices:[]}` | `circle{definition}` | `axis{origin, x_range:[min,max], y_range:[min,max], tick_step, show_grid, show_ticks, x_label, y_label}` | `transformed_point{source, transform}` | `transformed_polygon{source, transform, vertex_suffix?}`
+- 对象 `kind`：`point` | `segment{a,b}` | `line{a,b}` | `polygon{vertices:[]}` | `circle{definition}` | `axis{origin, x_range, y_range, tick_step, ...}` | `transformed_point{source, transform}` | `transformed_polygon{source, transform, vertex_suffix?}` | `curve{expr, var, domain?, samples?, color?, dash?}`
 - circle.definition.type：`center_radius{center,radius}` | `center_through{center,through}` | `incircle{of}` | `circumcircle{of}`
 - transform.type：`rotation{center,angle}`（angle 度、逆时针为正）| `translation{dx,dy}` | `reflection{line}` | `central_symmetry{center}`
+- curve.var：`"x"`（y = f(x)）或 `"y"`（x = g(y)）；expr 例：`"x**2"`、`"sin(x)"`、`"1/x"`、`"sqrt(4 - x**2)"`
 - 约束 `type`：`length{segment,value}` | `equal_length{segments:[]}` | `angle{a,b,c,value}`（顶点 b，单位度）| `parallel{a,b}` | `perpendicular{a,b}` | `collinear{points:[]}` | `tangent{line,circle}` | `on_circle{point,circle}` | `isoceles{polygon,apex}` | `equilateral{polygon}` | `right_triangle{polygon,right_at}` | `radius{circle,value}` | `midpoint{m,a,b}`（m 为 ab 中点）| `foot_of_perp{f,p,a,b}`（f 是 p 在直线 ab 上的垂足）| `angle_bisector{a,b,c,d}`（d 在 ∠abc 的平分线上）| `concyclic{points:[]}`（≥4 点共圆）| `parallelogram{polygon}`（四点平行四边形）| `same_side{line,point,ref}`（point 与 ref 在 line 同侧）| `opposite_side{line,point,ref}`（point 与 ref 在 line 两侧）
 - annotations[i]：`{target, kind: length|angle|radius|label, show, text?}`，角度的 target 形如 `"angleABC"`
 

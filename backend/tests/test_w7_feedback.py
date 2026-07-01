@@ -225,18 +225,22 @@ async def test_feedback_jsonl_export(client):
 # ---------------------------------------------------------------------------
 
 def test_refuse_message_function_image():
+    """V2-B 起函数图像已支持。若 LLM 出于其它原因给出 refuse，
+    _make_refuse_message 会走通用头部（含"函数图像"能力描述）。"""
     from app.api.chat import _make_refuse_message
 
-    s = _make_refuse_message("暂不支持函数图像 y=2x+1 的绘制")
+    s = _make_refuse_message("这个题描述太复杂，暂不支持")
+    # 通用头部应当声明我们支持函数图像
     assert "函数图像" in s
     assert "💡" in s
 
 
-def test_refuse_message_parabola():
+def test_refuse_message_ellipse_hyperbola():
+    """V2-B：椭圆 / 双曲线 一般式（隐式）仍拒。"""
     from app.api.chat import _make_refuse_message
 
-    s = _make_refuse_message("暂不支持抛物线及其准线的作图")
-    assert "抛物线" in s or "圆锥曲线" in s
+    s = _make_refuse_message("暂不支持椭圆 x²/9+y²/4=1 的绘制")
+    assert "椭圆" in s or "双曲线" in s or "隐式" in s
 
 
 def test_refuse_message_3d():
