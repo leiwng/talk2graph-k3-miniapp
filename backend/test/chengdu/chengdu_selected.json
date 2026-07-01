@@ -1,0 +1,142 @@
+[
+  {
+    "id": "zk_easy_01",
+    "source": "2021 中考·基础",
+    "type": "平面几何·垂直",
+    "expected": "ok",
+    "nl": "画直线 AB，点 O 在直线 AB 上，OC 垂直 OD。已知 ∠AOC=120°，标出 ∠BOD。"
+  },
+  {
+    "id": "zk_easy_02",
+    "source": "2021 中考·基础",
+    "type": "圆·切线",
+    "expected": "ok",
+    "nl": "画圆 O，PA、PB 是圆 O 的两条切线，A、B 是切点，∠APB=50°。"
+  },
+  {
+    "id": "zk_easy_03",
+    "source": "2021 中考·基础",
+    "type": "四边形·菱形",
+    "expected": "ok",
+    "nl": "画矩形 ABCD，点 E 在 BC 上，点 F 在 AD 上，AF=EC，连接 AE、CF。"
+  },
+  {
+    "id": "zk_easy_04",
+    "source": "2021 中考·基础",
+    "type": "四边形·平行四边形",
+    "expected": "ok",
+    "nl": "画四边形 ABCD，其中 ∠ACB=∠DAC，∠ACD=∠BAC。"
+  },
+  {
+    "id": "zk_easy_05",
+    "source": "2021 中考·基础",
+    "type": "圆·外接圆·直径",
+    "expected": "ok",
+    "nl": "画三角形 ABC 及其外接圆 O，AD 是圆 O 的直径，AD 垂直 BC 于点 E。"
+  },
+  {
+    "id": "zk_easy_06",
+    "source": "2021 中考·基础",
+    "type": "等腰三角形·顶角",
+    "expected": "ok",
+    "nl": "画等腰三角形 ABC，AB=AC=5，∠BAC=40°。"
+  },
+  {
+    "id": "zk_easy_07",
+    "source": "2021 中考·基础",
+    "type": "圆·直径·内接角",
+    "expected": "ok",
+    "nl": "画圆 O，AB 是圆 O 的直径，点 C 为圆上一点，AC=3，作 ∠ABC 的平分线交 AC 于 D。"
+  },
+  {
+    "id": "zk_med_01",
+    "source": "2021 中考·中等",
+    "type": "等腰直角三角形·圆弧",
+    "expected": "ok",
+    "nl": "画等腰直角三角形 ABC，∠A=90°，BC=4。"
+  },
+  {
+    "id": "zk_med_02",
+    "source": "2021 中考·中等",
+    "type": "角平分线·垂直平分线",
+    "expected": "ok",
+    "nl": "画角 ∠BAC=60°，AD 是这个角的平分线，AD=10，作 AD 的垂直平分线交 AC 于点 F，过 D 作 DE 垂直 AC 于点 E。"
+  },
+  {
+    "id": "zk_med_03",
+    "source": "2021 中考·中等",
+    "type": "反比例函数·坐标·旋转",
+    "expected": "partial",
+    "nl": "在坐标系中画反比例函数 y=6/x 的图像，A、B 两点都在函数图像上，直线 AB 经过原点。"
+  },
+  {
+    "id": "zk_med_04",
+    "source": "2021 中考·中等",
+    "type": "直角三角形·垂直平分线",
+    "expected": "ok",
+    "nl": "画直角三角形 ABC，∠A=90°，作 BC 的垂直平分线交 AC 于点 D。"
+  },
+  {
+    "id": "zk_med_05",
+    "source": "2021 中考·中等",
+    "type": "平行四边形·正弦",
+    "expected": "ok",
+    "nl": "画平行四边形 ABCD，AD=5，AB=12。过点 D 作 DE 垂直 AB，垂足为 E。"
+  },
+  {
+    "id": "zk_med_06",
+    "source": "2021 中考·中等",
+    "type": "正方形·中点",
+    "expected": "ok",
+    "nl": "画正方形 ABCD，边长为 1，E 是 AD 的中点，连接 BE。"
+  },
+  {
+    "id": "zk_hard_01",
+    "source": "2021 中考·较难",
+    "type": "四边形·梯形·平行·中点·翻折",
+    "expected": "partial",
+    "nl": "画四边形 ABCD，AB 平行 CD，AB≠CD，∠ABC=90°，E 是 AB 中点，F 是 CD 中点，连接 EF。"
+  },
+  {
+    "id": "zk_hard_02",
+    "source": "2021 中考·较难",
+    "type": "圆·弦·垂直",
+    "expected": "ok",
+    "nl": "画圆 O，AB 是圆的弦，D、C 为圆上另两点，连接 OD、OC。"
+  },
+  {
+    "id": "zk_hard_03",
+    "source": "2021 中考·较难",
+    "type": "正方形·等腰直角三角形嵌入",
+    "expected": "ok",
+    "nl": "画正方形 ABCD 和等腰直角三角形 AEF，其中 ∠AFE=90°，AE=AF，H 是 CE 的中点，连接 FH。"
+  },
+  {
+    "id": "gk_hard_01",
+    "source": "2025 高考·较难",
+    "type": "抛物线·焦点·准线",
+    "expected": "ok",
+    "nl": "画抛物线 y²=4x，标出焦点 F，画出准线，取点 A 在抛物线上，过 A 作准线的垂线，垂足为 B。"
+  },
+  {
+    "id": "gk_hard_02",
+    "source": "2025 高考·较难",
+    "type": "椭圆·长轴·弦",
+    "expected": "partial",
+    "nl": "画椭圆 x²/4 + y²/2 = 1，过点(0, -2)画直线 l 与椭圆交于 A、B 两点，O 为原点，连接 OA、OB。"
+  },
+  {
+    "id": "gk_hard_03",
+    "source": "2025 高考·较难",
+    "type": "立体几何",
+    "expected": "refuse",
+    "nl": "画四棱锥 S-ABCD，底面 ABCD 为正方形，SD 垂直于底面 ABCD。"
+  },
+  {
+    "id": "gk_hard_04",
+    "source": "2025 高考·较难",
+    "type": "圆柱·内接球",
+    "expected": "refuse",
+    "nl": "画一个底面半径为 4，高为 9 的圆柱形容器，容器内有两个半径相等的铁球。"
+  }
+]
