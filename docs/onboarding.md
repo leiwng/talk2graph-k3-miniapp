@@ -98,21 +98,36 @@ rm backend/data/talk2graph.db
 
 ## 当前里程碑（手动更新此值，每次 W 完成后改）
 
+**W11 — 几何变换**（2026-07-01 完成、v0.11.0 已 tag）
+
+- 测试：115/115 通过（W10 103 - 2 W7 过时 + 14 W11）
+- 新增能力：4 种变换（rotation / translation / reflection / central_symmetry）+ 派生对象机制
+  - 派生对象不占求解自由变量，坐标由 `_apply_derived_objects` 后处理注入
+  - Renderer 派生多边形虚线 + 派生顶点自动加撇（`A_p` → `A'`）
+  - Validator 放宽：允许 segment/polygon 引用派生点
+- LLM：火山方舟 GLM-5.2（`.env` 默认）
+- cmm v2r：34/56（vs W10 35/56）
+  - **W11 目标题 #10「线段 AC 绕点 A 旋转 90°」refuse → ok**（打通）
+  - #43 solve_fail → ok（附带提升）
+  - #13 #17 #21 ok → refuse，均为 LLM 判断更严谨（面积约束/字母参数/复合图形），非代码回归
+- 无 DB schema 变更
+- 下一步候选：V2-B 函数图像 / SSE 流式 / 历史会话侧抽屉 / 老师试用反馈迭代
+
+---
+
+## 历史里程碑
+
 **W10 — 半平面约束 + patch fallback + DB 自动迁移**（2026-07-01 完成、腾讯云已上线）
 
 - 测试：103/103 通过（W9 89 + W10 14）
 - 部署：v0.10.0 已合入腾讯云 `49.233.15.73:8080`，本地 + 生产 3 句手测全过
-- LLM：火山方舟 GLM-5.2（`.env` 默认）
 - 新增能力：
   - 「C 在 AB 上方」类方位描述稳定输出（same_side / opposite_side 约束）
   - patch 不合法时自动 fallback 重画，前端灰色提示"已重新理解为重画"
   - DB schema 变更零运维（`ensure_schema()` 启动自动 ALTER TABLE 加列）
 - 评估：cmm v2r 35/56（vs W9 36/56，仅 #48 LLM 拒绝更严谨，非回归）
-- 下一步候选：W11 几何变换 / V2-B 函数图像 / 老师试用反馈收集
 
 ---
-
-## 历史里程碑
 
 **W9 — V2-A 坐标系支持**（2026-06-30 完成）
 
