@@ -336,6 +336,18 @@ class OppositeSideC(_C):
     ref: str
 
 
+class OnCurveC(_C):
+    """点 point 在函数曲线 curve 上（V2-B 后处理 W12 增强）。
+
+    - curve 必须是 kind=curve 的对象
+    - 若 curve.var == "x"：约束 point.y == f(point.x)
+    - 若 curve.var == "y"：约束 point.x == g(point.y)
+    """
+    type: Literal["on_curve"]
+    point: str
+    curve: str
+
+
 Constraint = Annotated[
     Union[
         LengthC, EqualLengthC, AngleC,
@@ -345,6 +357,7 @@ Constraint = Annotated[
         RadiusC,
         MidpointC, FootOfPerpC, AngleBisectorC, ConcyclicC, ParallelogramC,
         SameSideC, OppositeSideC,
+        OnCurveC,
     ],
     Field(discriminator="type"),
 ]

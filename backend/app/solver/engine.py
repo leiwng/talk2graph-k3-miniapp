@@ -17,6 +17,7 @@ from typing import Callable
 import numpy as np
 from scipy.optimize import least_squares
 
+from ..dsl.safe_expr import compile_expr
 from ..dsl.schema import (
     AxisObj,
     CentralSymSpec,
@@ -26,6 +27,7 @@ from ..dsl.schema import (
     CircleDefIncircle,
     CircleObj,
     DSL,
+    FunctionCurveObj,
     LineObj,
     PointObj,
     PolygonObj,
@@ -194,7 +196,9 @@ def solve(dsl: DSL, *, seed: int = 0, restarts: int = 6, tol: float = 1e-9) -> S
             residual_fns.append(_build_circumcircle_residual(circle, d.of, layout, dsl))
 
     # ---- hint 软约束（用户拖动产生的目标位置，低权重） ----
+    # W12: 独立记录 hint 残差数量，用于分离 "硬约束是否收敛" 与 "软 hint 偏差"
     HINT_WEIGHT = 0.05
+    hint_residual_count = 0
     for p in points:
         if p.hint is None or p.id not in layout.point_idx:
             continue
@@ -203,6 +207,7 @@ def solve(dsl: DSL, *, seed: int = 0, restarts: int = 6, tol: float = 1e-9) -> S
         def _hint(x: np.ndarray, _i: int = idx, _hx: float = hx, _hy: float = hy) -> list[float]:
             return [HINT_WEIGHT * (x[_i] - _hx), HINT_WEIGHT * (x[_i + 1] - _hy)]
         residual_fns.append(_hint)
+        hint_residual_count += 2
 
     def residual_vec(x: np.ndarray) -> np.ndarray:
         out: list[float] = []
@@ -245,7 +250,13 @@ def solve(dsl: DSL, *, seed: int = 0, restarts: int = 6, tol: float = 1e-9) -> S
             result = least_squares(
                 residual_vec, x0, method="trf", xtol=1e-12, ftol=1e-12, max_nfev=2000
             )
-        cost = float(2 * result.cost)  # least_squares.cost = 0.5 * sum(r^2)
+        # W12：把 hint 软残差从判定 cost 中扣除，避免"hint 距离远导致误报未收敛"
+        full_res = residual_vec(result.x)
+        if hint_residual_count > 0 and len(full_res) >= hint_residual_count:
+            hard_res = full_res[: len(full_res) - hint_residual_count]
+        else:
+            hard_res = full_res
+        cost = float((hard_res ** 2).sum())
         if best is None or cost < best[0]:
             best = (cost, result.x, int(result.nfev))
         if cost < tol:
@@ -515,6 +526,34 @@ def _build_constraint_residual(c, dsl: DSL, L: _VarLayout) -> Callable:
             # 若违反（product < margin），输出非零残差；否则 0
             violation = margin - product
             return [max(0.0, violation) * weight]
+        return f
+
+    if t == "on_curve":
+        # 点在函数曲线上：curve.var == "x" 时约束 y - f(x) = 0；var == "y" 时约束 x - g(y) = 0
+        # W12：权重放大 10x，压制 hint 软约束的 0.05 拉扯，让点精确落到曲线上
+        curve = obj_map[c.curve]
+        assert isinstance(curve, FunctionCurveObj)
+        var = curve.var
+        try:
+            fn = compile_expr(curve.expr, var=var)
+        except Exception:
+            # validator 已保证合法；此处兜底返回无残差
+            return lambda x: []
+        weight = 10.0
+
+        def f(x: np.ndarray) -> list[float]:
+            px, py = L.get_point(x, c.point)
+            if var == "x":
+                y_pred = fn(px)
+                if y_pred != y_pred or y_pred == float("inf") or y_pred == float("-inf"):
+                    # 表达式无定义（如 log(-1) 或 1/0）→ 大残差把点推离
+                    return [1e3]
+                return [(py - y_pred) * weight]
+            else:
+                x_pred = fn(py)
+                if x_pred != x_pred or x_pred == float("inf") or x_pred == float("-inf"):
+                    return [1e3]
+                return [(px - x_pred) * weight]
         return f
 
     raise NotImplementedError(f"constraint type {t}")

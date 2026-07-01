@@ -6,7 +6,72 @@
 
 ---
 
-## V2-B — 函数图像（当前版本）
+## W12 — on_curve 硬约束 + 求解器 hint 残差分离（当前版本）
+
+**测试状态**：141/141 通过（V2-B 134 + W12 7）
+
+**目标**：解决成都真题测试中发现的两个问题——
+1. hint 只是坐标近似，不能保证点严格在函数曲线上（如反比例题里 A、B 可能偏离 y=6/x）
+2. 加了 on_curve 硬约束后，硬约束残差会与 hint 软残差冲突，误报"未收敛"
+
+### 新增
+
+**后端 — DSL**
+- `app/dsl/schema.py`：新增 `OnCurveC{point, curve}` 约束
+  - `point` 是 PointObj，`curve` 是 FunctionCurveObj
+  - `curve.var == "x"` 时约束 `point.y == f(point.x)`；`var == "y"` 时约束 `point.x == g(point.y)`
+
+**后端 — Validator**
+- `app/dsl/validator.py`：on_curve 分支 —— point 引用 PointObj、curve 引用 FunctionCurveObj
+
+**后端 — Solver**
+- `app/solver/engine.py::_build_constraint_residual`：新增 on_curve 残差 builder
+  - 编译 curve.expr 得到 f(v)
+  - 返回残差 `(py - f(px)) * weight`，权重 10（压制 hint 软约束的 0.05 拉扯）
+  - 表达式返回 nan/inf 时给 1e3 大残差把点推离
+- `app/solver/engine.py::solve`：**hint 残差分离**（关键修复）
+  - 计数 hint_residual_count，跑完求解后**扣掉 hint 残差再判定 cost < 1e-4**
+  - 避免"hint 距离目标较远导致误报 SolveError"
+  - 这是 W12 前老代码里潜在的一个 bug（V2-B 抛物线题 A hint=(1,2) 时残差被 hint 抬到 1e-3 但求解实际收敛）
+
+**LLM — Prompt / few-shot**
+- `app/llm/prompts/system.txt`：
+  - 约束列表加 `on_curve{point, curve}`
+  - 第 13 条函数图像说明加"**点在曲线上（W12 新增）**"段：强调用 on_curve 而不是只靠 hint
+- `app/llm/prompts/fewshots.jsonl`：+1 条 few-shot（反比例函数 A、B 在曲线上，用 on_curve 硬约束）
+- `app/llm/extractor.py`：`fewshot_limit` 20 → 21
+
+**测试**
+- `tests/test_w12_on_curve.py`（7 个测试）：
+  - schema：解析（1）
+  - validator：未知 point、curve 类型错（2）
+  - solver：hint 远离真解时 on_curve 把 A 拉到抛物线 / 反比例 / var=y 曲线上（3）
+  - solver：两点在 y=6/x 上 + 共线过原点，几何不变量满足（1）
+
+### 变更
+
+- 无破坏性变更。V2-B 及以前的 134 测试全部无回归。
+- **求解器 cost 判定语义**：之前 `cost = 2 * result.cost` 包含 hint 残差；现在只算硬约束残差。这是**修复**而非破坏。
+
+### 修复
+
+- Solver hint 与硬约束冲突导致误报 SolveError（尤其在 V2-B 曲线场景）
+
+### DB Schema 升级
+
+V2-B → W12：**无 schema 变更**。
+
+### 评估
+
+- **成都真题精选** cmm v2r 变化：
+  - V2-B 17/20 (85%) → **W12 18/20 (90%)** (+1)
+  - **gk_hard_02 椭圆题 refuse → ok**：LLM 学会用两条 curve + on_curve 硬约束拆解椭圆，残差 7e-7
+  - zk_med_03 反比例题：DSL 输出升级为含 on_curve 硬约束（虽然原状态已 ok，但图形几何精度提升）
+  - 所有 20 题**符合预期率 100%**
+
+---
+
+## V2-B — 函数图像
 
 **测试状态**：134/134 通过（W11 115 + V2-B 19）
 

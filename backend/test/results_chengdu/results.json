@@ -11,11 +11,12 @@
     "attempts": 1,
     "objects": 8,
     "constraints": 5,
-    "residual": 4.456257998281723e-15,
-    "latency_ms": 10262,
-    "svg_bytes": 1992,
+    "residual": 8.276154104776532e-16,
+    "latency_ms": 11169,
+    "svg_bytes": 1989,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"O\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"line\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"OC\", \"kind\": \"segment\", \"a\": \"O\", \"b\": \"C\"}, {\"id\": \"OD\", \"kind\": \"segment\", \"a\": \"O\", \"b\": \"D\"}], \"constraints\": [{\"type\": \"collinear\", \"points\": [\"A\", \"O\", \"B\"]}, {\"type\": \"length\", \"segment\": \"OC\", \"value\": 4.0}, {\"type\": \"length\", \"segment\": \"OD\", \"value\": 4.0}, {\"type\": \"angle\", \"a\": \"A\", \"b\": \"O\", \"c\": \"C\", \"value\": 120.0}, {\"type\": \"perpendicular\", \"a\": \"OC\", \"b\": \"OD\"}], \"annotations\": [{\"target\": \"angleAOC\", \"kind\": \"angle\", \"show\": true, \"text\": null}, {\"target\": \"angleBOD\", \"kind\": \"angle\", \"show\": true, \"text\": null}], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"O\": \"O\", \"C\": \"C\", \"D\": \"D\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_easy_02",
@@ -29,11 +30,12 @@
     "attempts": 1,
     "objects": 9,
     "constraints": 5,
-    "residual": 1.6561313355879248e-32,
-    "latency_ms": 9472,
-    "svg_bytes": 2111,
+    "residual": 2.465190328815662e-31,
+    "latency_ms": 6726,
+    "svg_bytes": 1900,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"O\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"P\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"PA\", \"kind\": \"segment\", \"a\": \"P\", \"b\": \"A\"}, {\"id\": \"PB\", \"kind\": \"segment\", \"a\": \"P\", \"b\": \"B\"}, {\"id\": \"OA\", \"kind\": \"segment\", \"a\": \"O\", \"b\": \"A\"}, {\"id\": \"OB\", \"kind\": \"segment\", \"a\": \"O\", \"b\": \"B\"}, {\"id\": \"circ\", \"kind\": \"circle\", \"definition\": {\"type\": \"center_radius\", \"center\": \"O\", \"radius\": 2.0}}], \"constraints\": [{\"type\": \"on_circle\", \"point\": \"A\", \"circle\": \"circ\"}, {\"type\": \"on_circle\", \"point\": \"B\", \"circle\": \"circ\"}, {\"type\": \"tangent\", \"line\": \"PA\", \"circle\": \"circ\"}, {\"type\": \"tangent\", \"line\": \"PB\", \"circle\": \"circ\"}, {\"type\": \"angle\", \"a\": \"A\", \"b\": \"P\", \"c\": \"B\", \"value\": 50.0}], \"annotations\": [{\"target\": \"angleAPB\", \"kind\": \"angle\", \"show\": true, \"text\": null}], \"labels\": {\"O\": \"O\", \"P\": \"P\", \"A\": \"A\", \"B\": \"B\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_easy_03",
@@ -48,10 +50,11 @@
     "objects": 15,
     "constraints": 9,
     "residual": 9.30099860162278e-49,
-    "latency_ms": 12951,
+    "latency_ms": 9619,
     "svg_bytes": 2988,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"E\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"F\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CD\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"D\"}, {\"id\": \"DA\", \"kind\": \"segment\", \"a\": \"D\", \"b\": \"A\"}, {\"id\": \"AE\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"E\"}, {\"id\": \"CF\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"F\"}, {\"id\": \"AF\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"F\"}, {\"id\": \"EC\", \"kind\": \"segment\", \"a\": \"E\", \"b\": \"C\"}, {\"id\": \"rect\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\", \"D\"]}], \"constraints\": [{\"type\": \"perpendicular\", \"a\": \"AB\", \"b\": \"BC\"}, {\"type\": \"perpendicular\", \"a\": \"BC\", \"b\": \"CD\"}, {\"type\": \"perpendicular\", \"a\": \"CD\", \"b\": \"DA\"}, {\"type\": \"length\", \"segment\": \"AB\", \"value\": 6.0}, {\"type\": \"length\", \"segment\": \"BC\", \"value\": 4.0}, {\"type\": \"collinear\", \"points\": [\"B\", \"E\", \"C\"]}, {\"type\": \"collinear\", \"points\": [\"A\", \"F\", \"D\"]}, {\"type\": \"equal_length\", \"segments\": [\"AF\", \"EC\"]}, {\"type\": \"length\", \"segment\": \"AF\", \"value\": 2.0}], \"annotations\": [], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\", \"E\": \"E\", \"F\": \"F\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_easy_04",
@@ -62,14 +65,15 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 1,
+    "attempts": 2,
     "objects": 10,
     "constraints": 5,
-    "residual": 2.465190328815662e-32,
-    "latency_ms": 12447,
-    "svg_bytes": 2604,
+    "residual": 3.0814879110195774e-33,
+    "latency_ms": 23609,
+    "svg_bytes": 1963,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CD\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"D\"}, {\"id\": \"DA\", \"kind\": \"segment\", \"a\": \"D\", \"b\": \"A\"}, {\"id\": \"AC\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"C\"}, {\"id\": \"quad\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\", \"D\"]}], \"constraints\": [{\"type\": \"parallel\", \"a\": \"DA\", \"b\": \"BC\"}, {\"type\": \"parallel\", \"a\": \"AB\", \"b\": \"CD\"}, {\"type\": \"length\", \"segment\": \"AB\", \"value\": 6.0}, {\"type\": \"length\", \"segment\": \"BC\", \"value\": 4.0}, {\"type\": \"angle\", \"a\": \"D\", \"b\": \"A\", \"c\": \"B\", \"value\": 70.0}], \"annotations\": [], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_easy_05",
@@ -80,14 +84,15 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 2,
+    "attempts": 1,
     "objects": 12,
-    "constraints": 9,
-    "residual": 1.9721522630525295e-31,
-    "latency_ms": 37794,
-    "svg_bytes": 2313,
+    "constraints": 7,
+    "residual": 1.6219645003497168e-16,
+    "latency_ms": 18181,
+    "svg_bytes": 2159,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"E\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"O\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CA\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"A\"}, {\"id\": \"AD\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"D\"}, {\"id\": \"tri\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\"]}, {\"id\": \"circ\", \"kind\": \"circle\", \"definition\": {\"type\": \"circumcircle\", \"of\": \"tri\"}}], \"constraints\": [{\"type\": \"length\", \"segment\": \"AB\", \"value\": 5.0}, {\"type\": \"length\", \"segment\": \"BC\", \"value\": 7.0}, {\"type\": \"length\", \"segment\": \"CA\", \"value\": 6.0}, {\"type\": \"on_circle\", \"point\": \"D\", \"circle\": \"circ\"}, {\"type\": \"collinear\", \"points\": [\"A\", \"O\", \"D\"]}, {\"type\": \"perpendicular\", \"a\": \"AD\", \"b\": \"BC\"}, {\"type\": \"foot_of_perp\", \"f\": \"E\", \"p\": \"A\", \"a\": \"B\", \"b\": \"C\"}], \"annotations\": [], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\", \"E\": \"E\", \"O\": \"O\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_easy_06",
@@ -102,10 +107,11 @@
     "objects": 7,
     "constraints": 3,
     "residual": 1.232595164407831e-32,
-    "latency_ms": 7147,
+    "latency_ms": 11120,
     "svg_bytes": 1955,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CA\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"A\"}, {\"id\": \"tri\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\"]}], \"constraints\": [{\"type\": \"isoceles\", \"polygon\": \"tri\", \"apex\": \"A\"}, {\"type\": \"length\", \"segment\": \"AB\", \"value\": 5.0}, {\"type\": \"angle\", \"a\": \"B\", \"b\": \"A\", \"c\": \"C\", \"value\": 40.0}], \"annotations\": [{\"target\": \"AB\", \"kind\": \"length\", \"show\": true, \"text\": null}, {\"target\": \"CA\", \"kind\": \"length\", \"show\": true, \"text\": null}, {\"target\": \"angleBAC\", \"kind\": \"angle\", \"show\": true, \"text\": null}], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_easy_07",
@@ -120,10 +126,11 @@
     "objects": 10,
     "constraints": 7,
     "residual": 1.2369910164166123e-10,
-    "latency_ms": 12704,
+    "latency_ms": 13872,
     "svg_bytes": 1956,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"O\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"AC\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"C\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"BD\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"D\"}, {\"id\": \"circ\", \"kind\": \"circle\", \"definition\": {\"type\": \"center_radius\", \"center\": \"O\", \"radius\": 2.5}}], \"constraints\": [{\"type\": \"on_circle\", \"point\": \"A\", \"circle\": \"circ\"}, {\"type\": \"on_circle\", \"point\": \"B\", \"circle\": \"circ\"}, {\"type\": \"on_circle\", \"point\": \"C\", \"circle\": \"circ\"}, {\"type\": \"collinear\", \"points\": [\"A\", \"O\", \"B\"]}, {\"type\": \"length\", \"segment\": \"AC\", \"value\": 3.0}, {\"type\": \"collinear\", \"points\": [\"A\", \"D\", \"C\"]}, {\"type\": \"angle_bisector\", \"a\": \"A\", \"b\": \"B\", \"c\": \"C\", \"d\": \"D\"}], \"annotations\": [{\"target\": \"AC\", \"kind\": \"length\", \"show\": true, \"text\": null}], \"labels\": {\"O\": \"O\", \"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_med_01",
@@ -138,10 +145,11 @@
     "objects": 7,
     "constraints": 3,
     "residual": 2.1542659143592852e-72,
-    "latency_ms": 5645,
+    "latency_ms": 5532,
     "svg_bytes": 1789,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CA\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"A\"}, {\"id\": \"tri\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\"]}], \"constraints\": [{\"type\": \"right_triangle\", \"polygon\": \"tri\", \"right_at\": \"A\"}, {\"type\": \"equal_length\", \"segments\": [\"AB\", \"CA\"]}, {\"type\": \"length\", \"segment\": \"BC\", \"value\": 4.0}], \"annotations\": [{\"target\": \"BC\", \"kind\": \"length\", \"show\": true, \"text\": null}], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_med_02",
@@ -152,14 +160,15 @@
     "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 1,
+    "attempts": 2,
     "objects": 14,
-    "constraints": 9,
-    "residual": 4.302167266975192e-62,
-    "latency_ms": 19042,
-    "svg_bytes": 2868,
+    "constraints": 10,
+    "residual": 5.446548125135536e-29,
+    "latency_ms": 31960,
+    "svg_bytes": 2883,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"E\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"F\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"M\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"AC\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"C\"}, {\"id\": \"AD\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"D\"}, {\"id\": \"AF\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"F\"}, {\"id\": \"DE\", \"kind\": \"segment\", \"a\": \"D\", \"b\": \"E\"}, {\"id\": \"DF\", \"kind\": \"segment\", \"a\": \"D\", \"b\": \"F\"}, {\"id\": \"MF\", \"kind\": \"segment\", \"a\": \"M\", \"b\": \"F\"}], \"constraints\": [{\"type\": \"angle\", \"a\": \"B\", \"b\": \"A\", \"c\": \"C\", \"value\": 60.0}, {\"type\": \"length\", \"segment\": \"AB\", \"value\": 8.0}, {\"type\": \"length\", \"segment\": \"AC\", \"value\": 12.0}, {\"type\": \"angle_bisector\", \"a\": \"B\", \"b\": \"A\", \"c\": \"C\", \"d\": \"D\"}, {\"type\": \"length\", \"segment\": \"AD\", \"value\": 10.0}, {\"type\": \"foot_of_perp\", \"f\": \"E\", \"p\": \"D\", \"a\": \"A\", \"b\": \"C\"}, {\"type\": \"collinear\", \"points\": [\"A\", \"F\", \"C\"]}, {\"type\": \"midpoint\", \"m\": \"M\", \"a\": \"A\", \"b\": \"D\"}, {\"type\": \"equal_length\", \"segments\": [\"AF\", \"DF\"]}, {\"type\": \"perpendicular\", \"a\": \"MF\", \"b\": \"AD\"}], \"annotations\": [{\"target\": \"AD\", \"kind\": \"length\", \"show\": true, \"text\": null}, {\"target\": \"angleBAC\", \"kind\": \"angle\", \"show\": true, \"text\": null}], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\", \"E\": \"E\", \"F\": \"F\", \"M\": \"M\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_med_03",
@@ -171,13 +180,14 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 7,
-    "constraints": 1,
+    "objects": 6,
+    "constraints": 3,
     "residual": 0.0,
-    "latency_ms": 10060,
-    "svg_bytes": 16764,
+    "latency_ms": 5704,
+    "svg_bytes": 13899,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"O\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"ax\", \"kind\": \"axis\", \"origin\": \"O\", \"x_range\": [-6.0, 6.0], \"y_range\": [-6.0, 6.0], \"tick_step\": 1.0, \"show_grid\": true, \"show_ticks\": true, \"x_label\": \"x\", \"y_label\": \"y\"}, {\"id\": \"c1\", \"kind\": \"curve\", \"expr\": \"6/x\", \"var\": \"x\", \"domain\": [-6.0, 6.0], \"samples\": 400, \"color\": \"#0d6efd\", \"dash\": null}, {\"id\": \"A\", \"kind\": \"point\", \"hint\": [2.0, 3.0]}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": [-2.0, -3.0]}, {\"id\": \"AB\", \"kind\": \"line\", \"a\": \"A\", \"b\": \"B\"}], \"constraints\": [{\"type\": \"on_curve\", \"point\": \"A\", \"curve\": \"c1\"}, {\"type\": \"on_curve\", \"point\": \"B\", \"curve\": \"c1\"}, {\"type\": \"collinear\", \"points\": [\"A\", \"O\", \"B\"]}], \"annotations\": [], \"labels\": {\"O\": \"O\", \"A\": \"A\", \"B\": \"B\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_med_04",
@@ -189,13 +199,14 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 2,
-    "objects": 10,
-    "constraints": 5,
-    "residual": 6.183056553539712e-79,
-    "latency_ms": 15201,
-    "svg_bytes": 2181,
+    "objects": 12,
+    "constraints": 6,
+    "residual": 1.262256644922308e-60,
+    "latency_ms": 19080,
+    "svg_bytes": 2428,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"M\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CA\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"A\"}, {\"id\": \"BD\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"D\"}, {\"id\": \"CD\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"D\"}, {\"id\": \"MD\", \"kind\": \"line\", \"a\": \"M\", \"b\": \"D\"}, {\"id\": \"tri\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\"]}], \"constraints\": [{\"type\": \"right_triangle\", \"polygon\": \"tri\", \"right_at\": \"A\"}, {\"type\": \"length\", \"segment\": \"AB\", \"value\": 3.0}, {\"type\": \"length\", \"segment\": \"CA\", \"value\": 5.0}, {\"type\": \"midpoint\", \"m\": \"M\", \"a\": \"B\", \"b\": \"C\"}, {\"type\": \"collinear\", \"points\": [\"A\", \"D\", \"C\"]}, {\"type\": \"equal_length\", \"segments\": [\"BD\", \"CD\"]}], \"annotations\": [{\"target\": \"angleBAC\", \"kind\": \"angle\", \"show\": true, \"text\": null}], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\", \"M\": \"M\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_med_05",
@@ -210,10 +221,11 @@
     "objects": 11,
     "constraints": 5,
     "residual": 4.930380657631324e-31,
-    "latency_ms": 9289,
-    "svg_bytes": 2121,
+    "latency_ms": 9059,
+    "svg_bytes": 2300,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"E\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CD\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"D\"}, {\"id\": \"DA\", \"kind\": \"segment\", \"a\": \"D\", \"b\": \"A\"}, {\"id\": \"DE\", \"kind\": \"segment\", \"a\": \"D\", \"b\": \"E\"}, {\"id\": \"p\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\", \"D\"]}], \"constraints\": [{\"type\": \"parallelogram\", \"polygon\": \"p\"}, {\"type\": \"length\", \"segment\": \"AB\", \"value\": 12.0}, {\"type\": \"length\", \"segment\": \"DA\", \"value\": 5.0}, {\"type\": \"angle\", \"a\": \"D\", \"b\": \"A\", \"c\": \"B\", \"value\": 70.0}, {\"type\": \"foot_of_perp\", \"f\": \"E\", \"p\": \"D\", \"a\": \"A\", \"b\": \"B\"}], \"annotations\": [{\"target\": \"AB\", \"kind\": \"length\", \"show\": true, \"text\": null}, {\"target\": \"DA\", \"kind\": \"length\", \"show\": true, \"text\": null}], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\", \"E\": \"E\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_med_06",
@@ -228,10 +240,11 @@
     "objects": 11,
     "constraints": 5,
     "residual": 1.232595164407831e-32,
-    "latency_ms": 9937,
+    "latency_ms": 8656,
     "svg_bytes": 2543,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"E\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CD\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"D\"}, {\"id\": \"DA\", \"kind\": \"segment\", \"a\": \"D\", \"b\": \"A\"}, {\"id\": \"BE\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"E\"}, {\"id\": \"sq\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\", \"D\"]}], \"constraints\": [{\"type\": \"equal_length\", \"segments\": [\"AB\", \"BC\", \"CD\", \"DA\"]}, {\"type\": \"perpendicular\", \"a\": \"AB\", \"b\": \"BC\"}, {\"type\": \"perpendicular\", \"a\": \"BC\", \"b\": \"CD\"}, {\"type\": \"length\", \"segment\": \"AB\", \"value\": 1.0}, {\"type\": \"midpoint\", \"m\": \"E\", \"a\": \"A\", \"b\": \"D\"}], \"annotations\": [], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\", \"E\": \"E\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_hard_01",
@@ -246,10 +259,11 @@
     "objects": 12,
     "constraints": 7,
     "residual": 2.146692026891748e-87,
-    "latency_ms": 9811,
+    "latency_ms": 10525,
     "svg_bytes": 2251,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"E\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"F\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CD\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"D\"}, {\"id\": \"DA\", \"kind\": \"segment\", \"a\": \"D\", \"b\": \"A\"}, {\"id\": \"EF\", \"kind\": \"segment\", \"a\": \"E\", \"b\": \"F\"}, {\"id\": \"quad\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\", \"D\"]}], \"constraints\": [{\"type\": \"parallel\", \"a\": \"AB\", \"b\": \"CD\"}, {\"type\": \"perpendicular\", \"a\": \"AB\", \"b\": \"BC\"}, {\"type\": \"length\", \"segment\": \"AB\", \"value\": 6.0}, {\"type\": \"length\", \"segment\": \"CD\", \"value\": 3.0}, {\"type\": \"length\", \"segment\": \"BC\", \"value\": 4.0}, {\"type\": \"midpoint\", \"m\": \"E\", \"a\": \"A\", \"b\": \"B\"}, {\"type\": \"midpoint\", \"m\": \"F\", \"a\": \"C\", \"b\": \"D\"}], \"annotations\": [], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\", \"E\": \"E\", \"F\": \"F\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_hard_02",
@@ -264,10 +278,11 @@
     "objects": 9,
     "constraints": 4,
     "residual": 8.476458152952756e-17,
-    "latency_ms": 6962,
+    "latency_ms": 6208,
     "svg_bytes": 1739,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"O\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"OC\", \"kind\": \"segment\", \"a\": \"O\", \"b\": \"C\"}, {\"id\": \"OD\", \"kind\": \"segment\", \"a\": \"O\", \"b\": \"D\"}, {\"id\": \"circ\", \"kind\": \"circle\", \"definition\": {\"type\": \"center_radius\", \"center\": \"O\", \"radius\": 4.0}}], \"constraints\": [{\"type\": \"on_circle\", \"point\": \"A\", \"circle\": \"circ\"}, {\"type\": \"on_circle\", \"point\": \"B\", \"circle\": \"circ\"}, {\"type\": \"on_circle\", \"point\": \"C\", \"circle\": \"circ\"}, {\"type\": \"on_circle\", \"point\": \"D\", \"circle\": \"circ\"}], \"annotations\": [], \"labels\": {\"O\": \"O\", \"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "zk_hard_03",
@@ -279,13 +294,14 @@
     "provider": "volcengine",
     "model": "glm-5.2",
     "attempts": 1,
-    "objects": 17,
-    "constraints": 7,
-    "residual": 5.823155447041146e-17,
-    "latency_ms": 24617,
-    "svg_bytes": 3873,
+    "objects": 18,
+    "constraints": 8,
+    "residual": 3.8956094084988235e-32,
+    "latency_ms": 23667,
+    "svg_bytes": 4004,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"A\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"C\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"D\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"E\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"F\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"H\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"BC\", \"kind\": \"segment\", \"a\": \"B\", \"b\": \"C\"}, {\"id\": \"CD\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"D\"}, {\"id\": \"DA\", \"kind\": \"segment\", \"a\": \"D\", \"b\": \"A\"}, {\"id\": \"AE\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"E\"}, {\"id\": \"EF\", \"kind\": \"segment\", \"a\": \"E\", \"b\": \"F\"}, {\"id\": \"FA\", \"kind\": \"segment\", \"a\": \"F\", \"b\": \"A\"}, {\"id\": \"CE\", \"kind\": \"segment\", \"a\": \"C\", \"b\": \"E\"}, {\"id\": \"FH\", \"kind\": \"segment\", \"a\": \"F\", \"b\": \"H\"}, {\"id\": \"sq\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"B\", \"C\", \"D\"]}, {\"id\": \"tri\", \"kind\": \"polygon\", \"vertices\": [\"A\", \"E\", \"F\"]}], \"constraints\": [{\"type\": \"equal_length\", \"segments\": [\"AB\", \"BC\", \"CD\", \"DA\"]}, {\"type\": \"perpendicular\", \"a\": \"AB\", \"b\": \"BC\"}, {\"type\": \"perpendicular\", \"a\": \"BC\", \"b\": \"CD\"}, {\"type\": \"length\", \"segment\": \"AB\", \"value\": 4.0}, {\"type\": \"right_triangle\", \"polygon\": \"tri\", \"right_at\": \"F\"}, {\"type\": \"equal_length\", \"segments\": [\"FA\", \"EF\"]}, {\"type\": \"length\", \"segment\": \"FA\", \"value\": 3.0}, {\"type\": \"midpoint\", \"m\": \"H\", \"a\": \"C\", \"b\": \"E\"}], \"annotations\": [], \"labels\": {\"A\": \"A\", \"B\": \"B\", \"C\": \"C\", \"D\": \"D\", \"E\": \"E\", \"F\": \"F\", \"H\": \"H\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "gk_hard_01",
@@ -298,12 +314,13 @@
     "model": "glm-5.2",
     "attempts": 1,
     "objects": 11,
-    "constraints": 1,
-    "residual": 0.0,
-    "latency_ms": 12978,
-    "svg_bytes": 15374,
+    "constraints": 2,
+    "residual": 2.1868167984968745e-13,
+    "latency_ms": 19322,
+    "svg_bytes": 15358,
     "llm_reason": "",
-    "error": ""
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"O\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"ax\", \"kind\": \"axis\", \"origin\": \"O\", \"x_range\": [-3.0, 6.0], \"y_range\": [-4.0, 4.0], \"tick_step\": 1.0, \"show_grid\": true, \"show_ticks\": true, \"x_label\": \"x\", \"y_label\": \"y\"}, {\"id\": \"c_upper\", \"kind\": \"curve\", \"expr\": \"2*sqrt(x)\", \"var\": \"x\", \"domain\": [0.0, 6.0], \"samples\": 300, \"color\": \"#0d6efd\", \"dash\": null}, {\"id\": \"c_lower\", \"kind\": \"curve\", \"expr\": \"-2*sqrt(x)\", \"var\": \"x\", \"domain\": [0.0, 6.0], \"samples\": 300, \"color\": \"#0d6efd\", \"dash\": null}, {\"id\": \"F\", \"kind\": \"point\", \"hint\": [1.0, 0.0]}, {\"id\": \"D1\", \"kind\": \"point\", \"hint\": [-1.0, 4.0]}, {\"id\": \"D2\", \"kind\": \"point\", \"hint\": [-1.0, -4.0]}, {\"id\": \"directrix\", \"kind\": \"line\", \"a\": \"D1\", \"b\": \"D2\"}, {\"id\": \"A\", \"kind\": \"point\", \"hint\": [2.0, 2.828]}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": [-1.0, 2.828]}, {\"id\": \"AB\", \"kind\": \"segment\", \"a\": \"A\", \"b\": \"B\"}], \"constraints\": [{\"type\": \"on_curve\", \"point\": \"A\", \"curve\": \"c_upper\"}, {\"type\": \"foot_of_perp\", \"f\": \"B\", \"p\": \"A\", \"a\": \"D1\", \"b\": \"D2\"}], \"annotations\": [], \"labels\": {\"O\": \"O\", \"F\": \"F\", \"A\": \"A\", \"B\": \"B\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "gk_hard_02",
@@ -311,17 +328,18 @@
     "type": "椭圆·长轴·弦",
     "expected": "partial",
     "nl": "画椭圆 x²/4 + y²/2 = 1，过点(0, -2)画直线 l 与椭圆交于 A、B 两点，O 为原点，连接 OA、OB。",
-    "status": "llm_refuse",
+    "status": "ok",
     "provider": "volcengine",
     "model": "glm-5.2",
-    "attempts": 1,
-    "objects": 0,
-    "constraints": 0,
-    "residual": NaN,
-    "latency_ms": 13867,
-    "svg_bytes": 0,
-    "llm_reason": "暂不支持基于坐标 (0,-2) 定位点，以及直线与椭圆曲线交点的精确求解（曲线仅用于显示，无法参与约束）。可改为：仅绘制椭圆（拆成 y=±√(2-x²/2) 两条曲线）与坐标系，直线和交点用文字描述",
-    "error": ""
+    "attempts": 2,
+    "objects": 10,
+    "constraints": 3,
+    "residual": 6.967475512492666e-07,
+    "latency_ms": 50697,
+    "svg_bytes": 10889,
+    "llm_reason": "",
+    "error": "",
+    "dsl_json": "{\"version\": \"0.1\", \"objects\": [{\"id\": \"O\", \"kind\": \"point\", \"hint\": null}, {\"id\": \"ax\", \"kind\": \"axis\", \"origin\": \"O\", \"x_range\": [-3.0, 3.0], \"y_range\": [-3.0, 2.0], \"tick_step\": 1.0, \"show_grid\": true, \"show_ticks\": true, \"x_label\": \"x\", \"y_label\": \"y\"}, {\"id\": \"c_upper\", \"kind\": \"curve\", \"expr\": \"sqrt(2 - x**2/2)\", \"var\": \"x\", \"domain\": [-2.0, 2.0], \"samples\": 200, \"color\": \"#0d6efd\", \"dash\": null}, {\"id\": \"c_lower\", \"kind\": \"curve\", \"expr\": \"-sqrt(2 - x**2/2)\", \"var\": \"x\", \"domain\": [-2.0, 2.0], \"samples\": 200, \"color\": \"#0d6efd\", \"dash\": null}, {\"id\": \"P\", \"kind\": \"point\", \"hint\": [0.0, -2.0]}, {\"id\": \"A\", \"kind\": \"point\", \"hint\": [1.6, 0.87]}, {\"id\": \"B\", \"kind\": \"point\", \"hint\": [-1.6, -0.87]}, {\"id\": \"l\", \"kind\": \"line\", \"a\": \"A\", \"b\": \"B\"}, {\"id\": \"OA\", \"kind\": \"segment\", \"a\": \"O\", \"b\": \"A\"}, {\"id\": \"OB\", \"kind\": \"segment\", \"a\": \"O\", \"b\": \"B\"}], \"constraints\": [{\"type\": \"on_curve\", \"point\": \"A\", \"curve\": \"c_upper\"}, {\"type\": \"on_curve\", \"point\": \"B\", \"curve\": \"c_lower\"}, {\"type\": \"collinear\", \"points\": [\"P\", \"A\", \"B\"]}], \"annotations\": [], \"labels\": {\"O\": \"O\", \"A\": \"A\", \"B\": \"B\", \"P\": \"P\"}, \"style\": {\"theme\": \"classroom\", \"stroke\": \"#222\", \"stroke_width\": 1.6, \"point_radius\": 3.0, \"aux_dash\": \"5 4\", \"font_size\": 14.0, \"font_family\": \"PingFang SC, Source Han Sans SC, Noto Sans CJK SC, sans-serif\"}}"
   },
   {
     "id": "gk_hard_03",
@@ -336,10 +354,11 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 6902,
+    "latency_ms": 4832,
     "svg_bytes": 0,
     "llm_reason": "暂不支持立体几何（四棱锥）作图",
-    "error": ""
+    "error": "",
+    "dsl_json": ""
   },
   {
     "id": "gk_hard_04",
@@ -354,9 +373,10 @@
     "objects": 0,
     "constraints": 0,
     "residual": NaN,
-    "latency_ms": 4907,
+    "latency_ms": 4165,
     "svg_bytes": 0,
-    "llm_reason": "暂不支持立体几何（圆柱、球等三维对象）的作图",
-    "error": ""
+    "llm_reason": "暂不支持立体几何（圆柱、球）作图",
+    "error": "",
+    "dsl_json": ""
   }
 ]

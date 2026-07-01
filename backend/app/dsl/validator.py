@@ -242,6 +242,9 @@ def validate(dsl: DSL) -> None:
             _require(c.ref, PointObj, f"{t}.ref")
             if c.point == c.ref:
                 raise DSLValidationError(f"{t}: point and ref are the same")
+        elif t == "on_curve":
+            _require(c.point, PointObj, "on_curve.point")
+            _require(c.curve, FunctionCurveObj, "on_curve.curve")
 
     # 4. label key must point to existing object
     for k in dsl.labels:

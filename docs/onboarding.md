@@ -24,7 +24,7 @@ cd backend
 .venv/bin/pytest -q
 ```
 
-预期：与 CHANGELOG 顶部记录的测试数一致（V2-B = 134 个）。如不一致：
+预期：与 CHANGELOG 顶部记录的测试数一致（W12 = 141 个）。如不一致：
 - 测试**失败** → 报告失败项，**不要随意修复**，等用户指示
 - 测试**数变少** → 可能新代码丢了测试，对照 CHANGELOG 排查
 - 测试**数变多** → 上次对话有人忘了更新 CHANGELOG
@@ -98,6 +98,24 @@ rm backend/data/talk2graph.db
 
 ## 当前里程碑（手动更新此值，每次 W 完成后改）
 
+**W12 — on_curve 硬约束 + 求解器 hint 残差分离**（2026-07-01 完成、v0.12.1 已 tag）
+
+- 测试：141/141 通过（V2-B 134 + W12 7）
+- 新增能力：`on_curve{point, curve}` 硬约束
+  - LLM 可用 on_curve 强制点在函数曲线上，而不是只靠 hint 近似
+  - 求解器权重 10，压制 hint 软约束的 0.05 拉扯
+  - Solver hint 残差与硬约束残差分离，修复"hint 距离远误报未收敛"的潜在 bug
+- LLM：火山方舟 GLM-5.2
+- 成都真题评估：17/20 → **18/20 (90%)**
+  - 椭圆题 gk_hard_02 refuse → ok：LLM 学会拆椭圆为两条 curve + on_curve
+  - 反比例题 zk_med_03 DSL 输出升级，几何精度提升到 1e-7
+- 无 DB schema 变更
+- 下一步候选：老师试用反馈 / SSE 流式 / 历史会话侧抽屉 / PPT outline
+
+---
+
+## 历史里程碑
+
 **V2-B — 函数图像**（2026-07-01 完成、v0.12.0 已 tag）
 
 - 测试：134/134 通过（W11 115 + V2-B 19）
@@ -113,7 +131,7 @@ rm backend/data/talk2graph.db
   - #13 #17 LLM 又想通了，正向漂移
   - #21 #43 solve_fail、#53 refuse，LLM 输出漂移，非 V2-B 代码
 - 无 DB schema 变更
-- V2 主线完成，下一步候选：老师试用反馈 / PPT 字体 outline / SSE 流式 / 历史会话侧抽屉
+- V2 主线完成
 
 ---
 

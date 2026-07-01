@@ -44,6 +44,7 @@ class Result:
     svg_bytes: int = 0
     llm_reason: str = ""
     error: str = ""
+    dsl_json: str = ""    # 新增：完整 DSL 便于人工检视
 
 
 async def run_one(provider, item: dict, save_dir: Path) -> Result:
@@ -82,6 +83,7 @@ async def run_one(provider, item: dict, save_dir: Path) -> Result:
     dsl = ext.dsl
     r.objects = len(dsl.objects)
     r.constraints = len(dsl.constraints)
+    r.dsl_json = json.dumps(dsl.to_json_dict(), ensure_ascii=False)
 
     try:
         sol = solve(dsl, seed=7, restarts=20)
