@@ -24,7 +24,7 @@ cd backend
 .venv/bin/pytest -q
 ```
 
-预期：与 CHANGELOG 顶部记录的测试数一致（W8 = 76 个）。如不一致：
+预期：与 CHANGELOG 顶部记录的测试数一致（W10 = 103 个）。如不一致：
 - 测试**失败** → 报告失败项，**不要随意修复**，等用户指示
 - 测试**数变少** → 可能新代码丢了测试，对照 CHANGELOG 排查
 - 测试**数变多** → 上次对话有人忘了更新 CHANGELOG
@@ -98,18 +98,40 @@ rm backend/data/talk2graph.db
 
 ## 当前里程碑（手动更新此值，每次 W 完成后改）
 
-**W8 — 生产部署**（2026-06-26 启动，待 SSH 落地）
+**W10 — 半平面约束 + patch fallback + DB 自动迁移**（2026-07-01 完成、腾讯云已上线）
 
-- 测试：76/76 通过（无后端逻辑改动）
-- 部署：腾讯云轻量服务器 2C4G + Docker Compose；对外 `:8080`（避开 ICP 备案）
-- LLM：火山方舟 GLM-5.2 单 Provider
-- 备份：COS `talk2graph-1259138134` (ap-guangzhou) 每日 3:00
-- 新增文档：`deploy/firewall.md` / `docs/operations.md`
-- 下一步候选：实际 SSH 落地 → 老师试用 → SSE 流式 → 历史会话抽屉
+- 测试：103/103 通过（W9 89 + W10 14）
+- 部署：v0.10.0 已合入腾讯云 `49.233.15.73:8080`，本地 + 生产 3 句手测全过
+- LLM：火山方舟 GLM-5.2（`.env` 默认）
+- 新增能力：
+  - 「C 在 AB 上方」类方位描述稳定输出（same_side / opposite_side 约束）
+  - patch 不合法时自动 fallback 重画，前端灰色提示"已重新理解为重画"
+  - DB schema 变更零运维（`ensure_schema()` 启动自动 ALTER TABLE 加列）
+- 评估：cmm v2r 35/56（vs W9 36/56，仅 #48 LLM 拒绝更严谨，非回归）
+- 下一步候选：W11 几何变换 / V2-B 函数图像 / 老师试用反馈收集
 
 ---
 
 ## 历史里程碑
+
+**W9 — V2-A 坐标系支持**（2026-06-30 完成）
+
+- 测试：89/89 通过
+- DSL：新增 `AxisObj`，DSL 最多 1 个 axis
+- Solver：有 axis 时 gauge 改为 "origin 固定 (0,0)、其他点全自由"
+- Render：绘制网格 / 主轴 / 箭头 / 刻度 / 单位标签
+- 拒绝改写：删 `keywords_for_coord`，新增 `keywords_for_coord_value`（仅 A(2,3) 类拒绝）
+
+---
+
+**W8 — 生产部署**（2026-06-26 完成）
+
+- 测试：78/78 通过
+- 部署：腾讯云轻量服务器 2C4G + Docker Compose；对外 `:8080`
+- LLM：火山方舟 GLM-5.2 单 Provider
+- 备份：COS `talk2graph-1259138134` (ap-guangzhou) 每日 3:00
+
+---
 
 **W7 — 试用前发布打磨**（2026-06-26 完成）
 

@@ -85,8 +85,14 @@ docker compose down
 
 ## 5. DB Schema 变更（生产）
 
-**当前未上 Alembic**，每次涉及 `app/db/models.py` 的变更要走以下流程：
+**W10 起：自动迁移**。`app/db/migrations.py::ensure_schema()` 会在 `init_db()` 之后自动检测 `REQUIRED_COLUMNS` 里声明的列，缺失则 ALTER TABLE 添加（幂等）。
 
+**新增可空列的开发流程**（无需运维介入）：
+1. `app/db/models.py` 加新列（可空 / 有默认值）
+2. `app/db/migrations.py::REQUIRED_COLUMNS` 加一行 `(col_name, "SQL_TYPE")`
+3. 部署即可，启动自动迁移
+
+**新增非空列 / 索引 / 表结构大改**（仍需运维介入）：
 1. 通知所有使用者预定停机窗口（建议夜间）
 2. 备份现有 DB
    ```bash
