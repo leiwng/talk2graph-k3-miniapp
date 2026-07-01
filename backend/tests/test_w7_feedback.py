@@ -260,16 +260,5 @@ def test_refuse_message_coord():
     assert "坐标" in s
 
 
-def test_refuse_message_transform_rotate():
-    from app.api.chat import _make_refuse_message
-
-    s = _make_refuse_message("暂不支持几何变换（旋转 180°）")
-    assert "几何变换" in s
-    assert "中心对称" in s or "对称点" in s
-
-
-def test_refuse_message_transform_reflect():
-    from app.api.chat import _make_refuse_message
-
-    s = _make_refuse_message("暂不支持轴对称 / 翻折 操作")
-    assert "几何变换" in s
+# W11: 几何变换已支持，原本的 transform_rotate/transform_reflect 拒绝测试已删除。
+# 变换现在走正常 DSL 路径（transformed_polygon / transformed_point），不再触发 refuse。

@@ -241,9 +241,8 @@ def _make_refuse_message(raw: str) -> str:
     keywords_for_3d = ("立体", "三视图", "四棱锥", "棱锥", "棱柱", "圆柱", "圆锥", "球", "正方体")
     keywords_for_chart = ("柱状图", "饼图", "折线图", "直方图", "统计图")
     keywords_for_coord_value = ("A(", "B(", "C(", "P(", "Q(", "坐标为", "坐标是")
-    keywords_for_transform = ("旋转", "平移", "翻折", "翻转", "对称", "镜像", "变换", "折叠")
 
-    head = "话图当前版本主要支持平面几何作图（点、线段、圆、多边形、坐标系与常见约束）。"
+    head = "话图当前版本主要支持平面几何作图（点、线段、圆、多边形、坐标系、几何变换与常见约束）。"
     advice = "你可以尝试用几何语言重新描述这道题，或等待后续版本支持更多题型。"
 
     if any(k in s for k in keywords_for_function):
@@ -255,14 +254,6 @@ def _make_refuse_message(raw: str) -> str:
     elif any(k in s for k in keywords_for_chart):
         head = "话图当前版本不支持统计图表（柱状图 / 饼图 / 折线图）。"
         advice = "如果你想画的是几何图形，请用「画三角形 ABC」「画圆 O」这类描述。"
-    elif any(k in s for k in keywords_for_transform):
-        head = "话图当前版本暂不支持几何变换（旋转 / 平移 / 翻折 / 轴对称），这一类计划在 V2 中支持。"
-        advice = (
-            "可以试试把变换后的目标图形直接描述出来——\n"
-            "  • 关于点 O 中心对称：用「O 是 AA' 的中点、O 是 BB' 的中点……」描述对称点\n"
-            "  • 关于直线 l 轴对称：让 l 上的点为对称轴，用 `foot_of_perp` 约束描述\n"
-            "  • 简单旋转：直接画出旋转后的三角形，约束对应边等长、对应角相等"
-        )
     elif any(k in s for k in keywords_for_coord_value):
         head = "话图当前版本支持画坐标系，但暂不支持基于具体坐标值（如 A(2,3)）的描述。"
         advice = "请改用边长、角度等几何关系描述，例如「画三角形 ABC，AB=5，BC=6，CA=7」；或先「画一个坐标系」再独立描述图形。"

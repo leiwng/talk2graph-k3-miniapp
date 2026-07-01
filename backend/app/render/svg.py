@@ -118,6 +118,70 @@ def render_svg(
                 f'stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
             )
 
+    # W11：派生多边形（变换后）— 虚线 + 略浅色
+    for tpoly in dsl.transformed_polygons():
+        src = dsl.object_map().get(tpoly.source)
+        if not isinstance(src, PolygonObj):
+            continue
+        pts = []
+        for v in src.vertices:
+            derived_id = f"{v}_{tpoly.vertex_suffix}"
+            if derived_id in sol.coordinates:
+                sx_, sy_ = tx(*sol.coordinates[derived_id])
+                pts.append(f"{sx_:.2f},{sy_:.2f}")
+        if pts:
+            parts.append(
+                f'<polygon data-id="{tpoly.id}" class="t2g-obj t2g-poly t2g-derived" '
+                f'points="{" ".join(pts)}" fill="none" '
+                f'stroke="{style.stroke}" stroke-width="{style.stroke_width}" '
+                f'stroke-dasharray="{style.aux_dash}"/>'
+            )
+        # 每个派生顶点作为独立点画出 + 加撇 label
+        for v in src.vertices:
+            derived_id = f"{v}_{tpoly.vertex_suffix}"
+            if derived_id not in sol.coordinates:
+                continue
+            dx, dy = tx(*sol.coordinates[derived_id])
+            parts.append(
+                f'<circle data-id="{derived_id}" class="t2g-obj t2g-point t2g-derived-point" '
+                f'cx="{dx:.2f}" cy="{dy:.2f}" r="{style.point_radius}" '
+                f'fill="{style.stroke}"/>'
+            )
+            label = dsl.labels.get(derived_id) or f"{v}'"
+            cx0, cy0 = _figure_center(sol)
+            sx0, sy0 = tx(cx0, cy0)
+            ldx, ldy = dx - sx0, dy - sy0
+            ln = math.hypot(ldx, ldy) or 1
+            lx = dx + ldx / ln * 12
+            ly = dy + ldy / ln * 12 + 4
+            parts.append(
+                f'<text x="{lx:.2f}" y="{ly:.2f}" text-anchor="middle" '
+                f'fill="{style.stroke}">{sx.escape(label)}</text>'
+            )
+
+    # W11：独立派生点（不隶属派生多边形）
+    for tp in dsl.transformed_points():
+        if tp.id not in sol.coordinates:
+            continue
+        dx, dy = tx(*sol.coordinates[tp.id])
+        parts.append(
+            f'<circle data-id="{tp.id}" class="t2g-obj t2g-point t2g-derived-point" '
+            f'cx="{dx:.2f}" cy="{dy:.2f}" r="{style.point_radius}" '
+            f'fill="{style.stroke}"/>'
+        )
+        # label：优先用 dsl.labels，否则用 source_id 加撇
+        label = dsl.labels.get(tp.id) or f"{tp.source}'"
+        cx0, cy0 = _figure_center(sol)
+        sx0, sy0 = tx(cx0, cy0)
+        ldx, ldy = dx - sx0, dy - sy0
+        ln = math.hypot(ldx, ldy) or 1
+        lx = dx + ldx / ln * 12
+        ly = dy + ldy / ln * 12 + 4
+        parts.append(
+            f'<text x="{lx:.2f}" y="{ly:.2f}" text-anchor="middle" '
+            f'fill="{style.stroke}">{sx.escape(label)}</text>'
+        )
+
     # 线段
     for seg in dsl.segments():
         if seg.a not in sol.coordinates or seg.b not in sol.coordinates:
@@ -247,6 +311,9 @@ def _isolated_aux_points(dsl: DSL) -> set[str]:
                 referenced.add(d.through)
         elif isinstance(o, AxisObj):
             referenced.add(o.origin)
+        elif hasattr(o, "source") and hasattr(o, "transform"):
+            # W11：派生对象的 source 也算被引用（源点/源多边形不能算孤立）
+            referenced.add(o.source)
 
     aux: set[str] = set()
     for p in dsl.points():

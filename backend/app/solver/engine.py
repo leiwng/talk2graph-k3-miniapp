@@ -19,16 +19,22 @@ from scipy.optimize import least_squares
 
 from ..dsl.schema import (
     AxisObj,
+    CentralSymSpec,
     CircleDefByCenterPoint,
     CircleDefByCenterRadius,
     CircleDefCircumcircle,
     CircleDefIncircle,
     CircleObj,
     DSL,
+    LineObj,
     PointObj,
     PolygonObj,
+    ReflectionSpec,
+    RotationSpec,
     SegmentObj,
-    LineObj,
+    TranslationSpec,
+    TransformedPointObj,
+    TransformedPolygonObj,
 )
 
 
@@ -585,4 +591,88 @@ def _build_solution(
     for c in dsl.circles():
         cx, cy, r = _circle_geometry(c, x, L, dsl)
         circles[c.id] = {"center": (cx, cy), "radius": r}
+
+    # W11：派生对象坐标 = 源坐标经变换（后处理，不参与求解）
+    _apply_derived_objects(dsl, coords)
     return Solution(coords, circles, residual, "numeric", iterations)
+
+
+# ---------------------------------------------------------------------------
+# W11 · 几何变换：数学函数 + 派生对象后处理
+# ---------------------------------------------------------------------------
+
+def apply_transform(
+    transform,
+    p: tuple[float, float],
+    *,
+    coords: dict[str, tuple[float, float]] | None = None,
+    line_endpoints: tuple[tuple[float, float], tuple[float, float]] | None = None,
+) -> tuple[float, float]:
+    """把点 p 经 transform 变换后的坐标返回。
+
+    - rotation / central_symmetry：需要 coords 里能查到 transform.center
+    - reflection：需要显式传入 line_endpoints=((ax, ay), (bx, by))
+    - translation：无需外部依赖
+    """
+    if isinstance(transform, RotationSpec):
+        if coords is None or transform.center not in coords:
+            raise ValueError(f"rotation: center {transform.center!r} not in coords")
+        cx, cy = coords[transform.center]
+        theta = math.radians(transform.angle)
+        cos_t = math.cos(theta); sin_t = math.sin(theta)
+        dx, dy = p[0] - cx, p[1] - cy
+        return (cx + cos_t * dx - sin_t * dy, cy + sin_t * dx + cos_t * dy)
+    if isinstance(transform, TranslationSpec):
+        return (p[0] + transform.dx, p[1] + transform.dy)
+    if isinstance(transform, CentralSymSpec):
+        if coords is None or transform.center not in coords:
+            raise ValueError(f"central_symmetry: center {transform.center!r} not in coords")
+        cx, cy = coords[transform.center]
+        return (2 * cx - p[0], 2 * cy - p[1])
+    if isinstance(transform, ReflectionSpec):
+        if line_endpoints is None:
+            raise ValueError("reflection: line_endpoints must be provided")
+        (ax, ay), (bx, by) = line_endpoints
+        dx, dy = bx - ax, by - ay
+        Ld = math.hypot(dx, dy)
+        if Ld < 1e-12:
+            return p
+        ux, uy = dx / Ld, dy / Ld
+        nx, ny = -uy, ux
+        d = (p[0] - ax) * nx + (p[1] - ay) * ny
+        return (p[0] - 2 * d * nx, p[1] - 2 * d * ny)
+    raise NotImplementedError(f"unknown transform: {type(transform).__name__}")
+
+
+def _apply_derived_objects(dsl: DSL, coords: dict[str, tuple[float, float]]) -> None:
+    """把 TransformedPointObj / TransformedPolygonObj 的坐标算出并注入 coords。"""
+
+    def line_endpoints(line_id: str):
+        obj = dsl.object_map().get(line_id)
+        if isinstance(obj, (SegmentObj, LineObj)):
+            if obj.a in coords and obj.b in coords:
+                return coords[obj.a], coords[obj.b]
+        return None
+
+    def _apply(transform, p):
+        ep = None
+        if isinstance(transform, ReflectionSpec):
+            ep = line_endpoints(transform.line)
+            if ep is None:
+                return p  # 静默降级：line 未就绪
+        return apply_transform(transform, p, coords=coords, line_endpoints=ep)
+
+    obj_map = dsl.object_map()
+    for o in dsl.transformed_points():
+        src = obj_map.get(o.source)
+        if isinstance(src, PointObj) and src.id in coords:
+            coords[o.id] = _apply(o.transform, coords[src.id])
+
+    for o in dsl.transformed_polygons():
+        src = obj_map.get(o.source)
+        if not isinstance(src, PolygonObj):
+            continue
+        for v in src.vertices:
+            if v in coords:
+                derived_id = f"{v}_{o.vertex_suffix}"
+                coords[derived_id] = _apply(o.transform, coords[v])

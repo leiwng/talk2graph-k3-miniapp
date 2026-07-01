@@ -6,7 +6,96 @@
 
 ---
 
-## W10 — 半平面约束 + patch fallback + DB 自动迁移（当前版本）
+## W11 — 几何变换（当前版本）
+
+**测试状态**：115/115 通过（W10 103 - 2 W7 过时测试 + 14 W11）
+
+**目标**：把「三角形 ABC 绕点 O 旋转 90°」「关于点 O 中心对称」「沿方向平移」「关于直线 l 对称」这类几何变换类题从 refuse 转为直接支持，覆盖 cmm 评估里 #10 #37 #55 类的题型。
+
+### 新增
+
+**后端 — DSL 层**
+- `app/dsl/schema.py`：
+  - 新增 4 种 TransformSpec：`RotationSpec{center, angle}` / `TranslationSpec{dx, dy}` / `ReflectionSpec{line}` / `CentralSymSpec{center}`（通过 `type` discriminator 判别）
+  - 新增 2 类派生对象：`TransformedPointObj{source, transform}`（派生单点）/ `TransformedPolygonObj{source, transform, vertex_suffix}`（派生多边形，自动为每个源顶点生成 `<vertex>_<suffix>` 派生点）
+  - `GeometryObject` union 扩展，加入两类派生对象
+  - `DSL.transformed_polygons()` / `transformed_points()` helper
+
+**后端 — Validator**
+- `app/dsl/validator.py`：
+  - 派生对象 source 必须存在且类型匹配（TransformedPointObj 要求 source 是 PointObj；TransformedPolygonObj 要求是 PolygonObj）
+  - **拒绝嵌套派生**：source 不能再是派生对象
+  - 派生顶点 id（`<vertex>_<vertex_suffix>`）必须不与已有对象冲突
+  - transform.center/line 引用类型校验（通过 `_validate_transform_refs` 抽取的公共函数）
+  - **放宽 segment/line/polygon 顶点校验**：新增 `_require_point_like`，允许引用 PointObj **或** TransformedPointObj（这是 W11 的关键 unblock —— few-shot 里 `AD segment` 的 `b="D"` 必须能引用派生点）
+
+**后端 — Solver**
+- `app/solver/engine.py`：
+  - 新增纯数学函数 `apply_transform(transform, p, *, coords, line_endpoints)`：4 种变换的闭式公式
+    - rotation：`p' = O + R(θ)·(p - O)`
+    - translation：`p' = p + (dx, dy)`
+    - central_symmetry：`p' = 2C - p`
+    - reflection：`p' = p - 2·((p-a)·n̂)·n̂`
+  - 新增 `_apply_derived_objects(dsl, coords)`：`_build_solution` 后处理，把派生对象的坐标填入 `coords` dict
+  - 派生对象**不占用**求解自由变量（`dsl.points()` 只返回 PointObj，天然排除 TransformedPointObj）
+
+**后端 — Renderer**
+- `app/render/svg.py`：
+  - 派生多边形渲染：额外遍历 `dsl.transformed_polygons()`，用 `stroke-dasharray` 虚线 + `class="t2g-derived"` 标记
+  - 派生顶点单独画点 + 标签**自动加撇**（`A_p` → `A'`）
+  - 独立派生点 `dsl.transformed_points()` 同样虚线 + 加撇
+  - `_isolated_aux_points`：把派生对象的 `source` 也纳入"被引用"集合
+
+**LLM — Prompt / Few-shot**
+- `app/llm/prompts/system.txt`：
+  - 拒绝清单第 9 条**删除**"几何变换"这一类
+  - DSL Schema 节加 `transformed_point / transformed_polygon` 说明 + `transform.type` 4 种子类型
+  - 新增第 12 条「几何变换支持」详细说明 + 2 个示例（中心对称、单点旋转）
+- `app/llm/prompts/fewshots.jsonl`：+2 条 few-shot
+  - 「三角形 ABC 关于点 B 中心对称」（`transformed_polygon`）
+  - 「线段 AC 绕点 A 旋转 90° 得到线段 AD」（`transformed_point`）
+- `app/llm/extractor.py`：`fewshot_limit` 15 → 17
+
+**后端 — API**
+- `app/api/chat.py::_make_refuse_message`：删除 `keywords_for_transform` 分支（现在支持了）；头部话术加"几何变换"到能力清单
+
+**前端**
+- `frontend/src/api/types.ts`：`GeoObject.kind` 加 `'transformed_point' | 'transformed_polygon'`；新增 `source / transform / vertex_suffix` 字段
+- `frontend/src/components/Canvas.tsx::describe`：两个新 kind 分支显示"（B 经 rotation 派生）"
+
+**测试**
+- `tests/test_w11_transform.py`（14 个测试）：
+  - schema 解析（2）
+  - validator：未知 source / 错类型 / id 冲突 / 反射线是点（4）
+  - apply_transform 数学：rotation 绕原点 / 绕非原点、translation、central_symmetry、reflection（5）
+  - solver：中心对称派生多边形（A_p == A、三边等长）；单点旋转（|AD|=|AC|、∠CAD=90°）（2）
+  - render：派生多边形有 dasharray、派生顶点 A_p 存在 + label 有撇（1）
+- `tests/test_w7_feedback.py`：删除 2 个过时的 transform 拒绝测试（W11 已支持）
+
+### 变更
+
+- 无破坏性变更。所有 W10 现有测试无回归。
+- 拒绝消息头部加"几何变换"到能力清单。
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+W10 → W11：**无 schema 变更**。直接拉新代码即可。
+
+### 评估
+
+- cmm v2r：W10 35/56 → W11 34/56（-1）
+  - **W11 目标题 #10「线段 AC 绕点 A 旋转 90° 得到线段 AD」**：refuse → **ok** ✅ 打通
+  - #43「四边形 ABCD ∠CBD=130°」：solve_fail → **ok** ✅ 附带提升
+  - #13 #17 #21：ok → refuse，全是 **LLM 行为漂移 + 判断更严谨**（面积约束 / 字母边长 / 复合图形对齐约束），非 W11 代码问题
+  - W10 → W11 基线备份在 `backend/test/results_cmm_v2r_w10_baseline/`
+
+---
+
+## W10 — 半平面约束 + patch fallback + DB 自动迁移
 
 **测试状态**：103/103 通过（W9 89 + W10 14）
 

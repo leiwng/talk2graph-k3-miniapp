@@ -117,8 +117,68 @@ class AxisObj(_Obj):
     y_label: str = "y"
 
 
+# ---------------------------------------------------------------------------
+# Transforms (W11 · 几何变换)
+# ---------------------------------------------------------------------------
+
+class RotationSpec(BaseModel):
+    """绕 center 逆时针旋转 angle 度。"""
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["rotation"]
+    center: str
+    angle: float
+
+
+class TranslationSpec(BaseModel):
+    """平移向量 (dx, dy)。"""
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["translation"]
+    dx: float
+    dy: float
+
+
+class ReflectionSpec(BaseModel):
+    """关于直线（segment / line id）对称。"""
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["reflection"]
+    line: str
+
+
+class CentralSymSpec(BaseModel):
+    """关于 center 点中心对称（等价于 rotation angle=180）。"""
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["central_symmetry"]
+    center: str
+
+
+TransformSpec = Annotated[
+    Union[RotationSpec, TranslationSpec, ReflectionSpec, CentralSymSpec],
+    Field(discriminator="type"),
+]
+
+
+class TransformedPointObj(_Obj):
+    """派生点：源点经变换后的位置。不引入新自由变量，坐标由求解器后处理算出。"""
+    kind: Literal["transformed_point"] = "transformed_point"
+    source: str        # source point id
+    transform: TransformSpec
+
+
+class TransformedPolygonObj(_Obj):
+    """派生多边形：源 polygon 所有顶点经变换后组成的新 polygon。
+    自动为每个源顶点生成派生点，id 规则：`<vertex>_<suffix>`（如 A_p / B_p / C_p）。
+    """
+    kind: Literal["transformed_polygon"] = "transformed_polygon"
+    source: str        # source polygon id
+    transform: TransformSpec
+    vertex_suffix: str = "p"
+
+
 GeometryObject = Annotated[
-    Union[PointObj, SegmentObj, LineObj, PolygonObj, CircleObj, AxisObj],
+    Union[
+        PointObj, SegmentObj, LineObj, PolygonObj, CircleObj, AxisObj,
+        TransformedPointObj, TransformedPolygonObj,
+    ],
     Field(discriminator="kind"),
 ]
 
@@ -334,6 +394,12 @@ class DSL(BaseModel):
             if isinstance(o, AxisObj):
                 return o
         return None
+
+    def transformed_polygons(self) -> list[TransformedPolygonObj]:
+        return [o for o in self.objects if isinstance(o, TransformedPolygonObj)]
+
+    def transformed_points(self) -> list[TransformedPointObj]:
+        return [o for o in self.objects if isinstance(o, TransformedPointObj)]
 
     def to_json_dict(self) -> dict[str, Any]:
         return self.model_dump(mode="json")

@@ -2,7 +2,7 @@
 
 export interface GeoObject {
   id: string
-  kind: 'point' | 'segment' | 'line' | 'polygon' | 'circle' | 'axis'
+  kind: 'point' | 'segment' | 'line' | 'polygon' | 'circle' | 'axis' | 'transformed_point' | 'transformed_polygon'
   a?: string
   b?: string
   vertices?: string[]
@@ -16,6 +16,17 @@ export interface GeoObject {
   show_ticks?: boolean
   x_label?: string
   y_label?: string
+  // W11 派生对象字段
+  source?: string
+  transform?: {
+    type: 'rotation' | 'translation' | 'reflection' | 'central_symmetry'
+    center?: string
+    angle?: number
+    dx?: number
+    dy?: number
+    line?: string
+  }
+  vertex_suffix?: string
   definition?: {
     type: 'center_radius' | 'center_through' | 'incircle' | 'circumcircle'
     center?: string

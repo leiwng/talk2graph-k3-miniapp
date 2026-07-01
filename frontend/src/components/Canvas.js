@@ -171,6 +171,14 @@ function describe(id, dsl, sol) {
                 return `坐标系：x∈[${xr[0]},${xr[1]}], y∈[${yr[0]},${yr[1]}]`;
             return '坐标系';
         }
+        case 'transformed_point': {
+            const t = obj.transform?.type ?? '?';
+            return `${obj.source}' (${t} 派生)`;
+        }
+        case 'transformed_polygon': {
+            const t = obj.transform?.type ?? '?';
+            return `${obj.source} 经 ${t} 得到的图形`;
+        }
         default:
             return `${obj.kind} ${id}`;
     }
