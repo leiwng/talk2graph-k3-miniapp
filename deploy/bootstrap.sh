@@ -46,18 +46,29 @@ fetch_with_fallback() {
     if git fetch origin main 2>&1; then
         return 0
     fi
-    if [ -n "${T2G_GIT_MIRROR:-}" ]; then
-        local cur
-        cur="$(git remote get-url origin)"
-        echo "[T2G] ⚠ 主 origin fetch 失败，自动切镜像 $T2G_GIT_MIRROR 重试"
-        git remote set-url origin "$T2G_GIT_MIRROR"
-        if git fetch origin main 2>&1; then
-            echo "[T2G] 镜像 fetch 成功；保留为当前 origin"
+    # 内置一批常用国内镜像（按顺序尝试，任一成功即返回）
+    local mirrors=(
+        "${T2G_GIT_MIRROR:-}"
+        "https://gitclone.com/github.com/leiwng/talk2graph-glm.git"
+        "https://ghproxy.com/https://github.com/leiwng/talk2graph-glm.git"
+        "https://kkgithub.com/leiwng/talk2graph-glm.git"
+        "https://hub.fastgit.xyz/leiwng/talk2graph-glm.git"
+    )
+    local cur
+    cur="$(git remote get-url origin)"
+    for m in "${mirrors[@]}"; do
+        if [ -z "$m" ]; then
+            continue
+        fi
+        echo "[T2G] ⚠ 尝试镜像：$m"
+        git remote set-url origin "$m"
+        if timeout 30 git fetch origin main 2>&1; then
+            echo "[T2G] ✓ 镜像 fetch 成功：$m"
             return 0
         fi
-        echo "[T2G] 镜像也失败，恢复原 origin"
-        git remote set-url origin "$cur"
-    fi
+    done
+    echo "[T2G] 所有镜像失败，恢复原 origin"
+    git remote set-url origin "$cur"
     return 1
 }
 
