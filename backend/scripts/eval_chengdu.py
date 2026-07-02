@@ -132,8 +132,23 @@ def _write_report(results: list[Result], provider, out_dir: Path) -> None:
             if r.status in ("ok", "llm_refuse"):
                 hits += 1
 
+    # 性能统计
+    ok_results = [r for r in results if r.status == "ok"]
+    latencies = sorted(r.latency_ms for r in results)
+    residuals = [r.residual for r in ok_results if r.residual == r.residual]  # 排除 nan
+
+    def _p(lst, pct):
+        if not lst:
+            return 0
+        return lst[int(len(lst) * pct / 100)]
+
+    p50 = _p(latencies, 50)
+    p95 = _p(latencies, 95)
+    avg_lat = sum(latencies) / len(latencies) if latencies else 0
+    avg_res = sum(residuals) / len(residuals) if residuals else 0
+
     lines = []
-    lines.append("# 成都近 5 年真题精选测试报告")
+    lines.append("# 成都近 5 年真题测试报告 · v0.12.1")
     lines.append("")
     lines.append(f"- **Provider**：{provider.name} / {provider.model}")
     lines.append(f"- **题目总数**：{total}")
@@ -143,6 +158,106 @@ def _write_report(results: list[Result], provider, out_dir: Path) -> None:
     lines.append(f"- **其它/异常**：{other}")
     lines.append(f"- **符合预期**：{hits} / {total} ({hits * 100.0 / total:.1f}%)")
     lines.append("")
+    lines.append("## 性能指标")
+    lines.append("")
+    lines.append(f"- **平均延迟**：{avg_lat / 1000:.1f}s")
+    lines.append(f"- **p50 延迟**：{p50 / 1000:.1f}s")
+    lines.append(f"- **p95 延迟**：{p95 / 1000:.1f}s")
+    lines.append(f"- **平均残差（ok 题）**：{avg_res:.2e}")
+    lines.append("")
+
+    # 表 1 · 按类型分组
+    lines.append("## 按题型分组")
+    lines.append("")
+    lines.append("| 类型 | 总数 | ok | refuse | solve_fail | 符合预期 |")
+    lines.append("|---|---|---|---|---|---|")
+    types = sorted({r.type for r in results})
+    for t in types:
+        subset = [r for r in results if r.type == t]
+        n_ok = sum(1 for r in subset if r.status == "ok")
+        n_refuse = sum(1 for r in subset if r.status == "llm_refuse")
+        n_fail = sum(1 for r in subset if r.status == "solve_fail")
+        n_hits = 0
+        for r in subset:
+            if r.expected == "ok" and r.status == "ok":
+                n_hits += 1
+            elif r.expected == "refuse" and r.status == "llm_refuse":
+                n_hits += 1
+            elif r.expected == "partial" and r.status in ("ok", "llm_refuse"):
+                n_hits += 1
+        pct = n_hits * 100.0 / len(subset) if subset else 0
+        lines.append(f"| {t} | {len(subset)} | {n_ok} | {n_refuse} | {n_fail} | {n_hits} ({pct:.0f}%) |")
+
+    # 表 2 · 按来源分组
+    lines.append("")
+    lines.append("## 按来源分组")
+    lines.append("")
+    lines.append("| 来源 | 总数 | ok | refuse | solve_fail | 符合预期 |")
+    lines.append("|---|---|---|---|---|---|")
+    sources = sorted({r.source for r in results})
+    for s in sources:
+        subset = [r for r in results if r.source == s]
+        n_ok = sum(1 for r in subset if r.status == "ok")
+        n_refuse = sum(1 for r in subset if r.status == "llm_refuse")
+        n_fail = sum(1 for r in subset if r.status == "solve_fail")
+        n_hits = 0
+        for r in subset:
+            if r.expected == "ok" and r.status == "ok":
+                n_hits += 1
+            elif r.expected == "refuse" and r.status == "llm_refuse":
+                n_hits += 1
+            elif r.expected == "partial" and r.status in ("ok", "llm_refuse"):
+                n_hits += 1
+        pct = n_hits * 100.0 / len(subset) if subset else 0
+        lines.append(f"| {s} | {len(subset)} | {n_ok} | {n_refuse} | {n_fail} | {n_hits} ({pct:.0f}%) |")
+
+    # 表 3 · 失败题详情
+    lines.append("")
+    lines.append("## 失败题详情")
+    lines.append("")
+
+    solve_fails = [r for r in results if r.status == "solve_fail"]
+    if solve_fails:
+        lines.append(f"### solve_fail（{len(solve_fails)} 题）")
+        lines.append("")
+        for r in solve_fails:
+            lines.append(f"- **{r.id}** [{r.type}] {r.nl[:80]}")
+            lines.append(f"  - 期望：`{r.expected}` | obj={r.objects} con={r.constraints}")
+            lines.append(f"  - 错误：{r.error[:150]}")
+        lines.append("")
+
+    # LLM 拒绝：区分"合理拒绝"（expected 就是 refuse）和"意外拒绝"（expected 是 ok 但被拒了）
+    unexpected_refuse = [r for r in results
+                        if r.status == "llm_refuse" and r.expected == "ok"]
+    expected_refuse = [r for r in results
+                      if r.status == "llm_refuse" and r.expected == "refuse"]
+    partial_refuse = [r for r in results
+                     if r.status == "llm_refuse" and r.expected == "partial"]
+
+    if unexpected_refuse:
+        lines.append(f"### 意外拒绝（{len(unexpected_refuse)} 题 - 期望 ok 但 LLM 拒绝了）")
+        lines.append("")
+        for r in unexpected_refuse:
+            lines.append(f"- **{r.id}** [{r.type}] {r.nl[:80]}")
+            lines.append(f"  - LLM 理由：{r.llm_reason[:120]}")
+        lines.append("")
+
+    if partial_refuse:
+        lines.append(f"### partial 类拒绝（{len(partial_refuse)} 题 - 期望 partial，LLM 选择拒绝）")
+        lines.append("")
+        for r in partial_refuse:
+            lines.append(f"- **{r.id}** [{r.type}] {r.nl[:80]}")
+            lines.append(f"  - LLM 理由：{r.llm_reason[:120]}")
+        lines.append("")
+
+    if expected_refuse:
+        lines.append(f"### 合理拒绝（{len(expected_refuse)} 题 - 期望和实际均为 refuse）")
+        lines.append("")
+        for r in expected_refuse:
+            lines.append(f"- **{r.id}** [{r.type}] {r.nl[:60]}")
+        lines.append("")
+
+    # 表 4 · 逐题结果
     lines.append("## 逐题结果")
     lines.append("")
     lines.append("| ID | 来源 | 类型 | 期望 | 实际 | obj | con | 残差 | 延迟 |")
@@ -158,8 +273,10 @@ def _write_report(results: list[Result], provider, out_dir: Path) -> None:
         else:
             mark = "❌"
         residual = f"{r.residual:.0e}" if r.status == "ok" else "-"
+        # source 太长会挤爆列，取简称
+        src_short = r.source.replace("2021 中考·", "zk21").replace("2025 高考·新课标II", "gk25新II")
         lines.append(
-            f"| {r.id} | {r.source} | {r.type} | {r.expected} | {mark} {r.status} | "
+            f"| {r.id} | {src_short} | {r.type} | {r.expected} | {mark} {r.status} | "
             f"{r.objects} | {r.constraints} | {residual} | {r.latency_ms}ms |"
         )
 
@@ -184,21 +301,28 @@ async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--concurrency", type=int, default=3)
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--dataset", default=str(DATASET),
+                    help="数据集 JSON 路径（默认 chengdu_selected.json）")
+    ap.add_argument("--out", default=str(RESULT_DIR),
+                    help="输出目录（默认 test/results_chengdu）")
     args = ap.parse_args()
 
-    data = json.loads(DATASET.read_text(encoding="utf-8"))
+    dataset_path = Path(args.dataset)
+    out_dir = Path(args.out)
+
+    data = json.loads(dataset_path.read_text(encoding="utf-8"))
     if args.limit:
         data = data[: args.limit]
 
     router = LLMRouter()
     provider = router.get()
 
-    print(f"数据集：{DATASET.name} ({len(data)} 题)")
+    print(f"数据集：{dataset_path.name} ({len(data)} 题)")
     print(f"Provider：{provider.name} / {provider.model}")
-    print(f"输出：{RESULT_DIR}")
+    print(f"输出：{out_dir}")
     print("-" * 70)
 
-    svg_dir = RESULT_DIR / "svgs"
+    svg_dir = out_dir / "svgs"
     sem = asyncio.Semaphore(args.concurrency)
 
     async def _one(item):
@@ -214,8 +338,8 @@ async def main():
 
     print(f"\n完成 {len(results)} 题，耗时 {elapsed:.1f}s")
 
-    _write_report(results, provider, RESULT_DIR)
-    print(f"报告：{RESULT_DIR / 'report.md'}")
+    _write_report(results, provider, out_dir)
+    print(f"报告：{out_dir / 'report.md'}")
 
 
 if __name__ == "__main__":

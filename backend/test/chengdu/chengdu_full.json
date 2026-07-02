@@ -1,0 +1,682 @@
+[
+  {
+    "id": "zk_001",
+    "source": "2021 中考",
+    "q_num": "3",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画直线 AB，点 O 在 AB 上，过 O 作射线 OC 和 OD，使 OC⊥OD，且 ∠AOC=120°",
+    "notes": "求角部分不入 DSL，只画图"
+  },
+  {
+    "id": "zk_002",
+    "source": "2021 中考",
+    "q_num": "5",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画两条平行线 AB 与 CD，直线 EF 与 AB 交于 G，与 CD 交于 H，标出 ∠AGE=100°",
+    "notes": "选择题求角度，只画图形部分"
+  },
+  {
+    "id": "zk_003",
+    "source": "2021 中考",
+    "q_num": "6",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画圆 O，点 A、B、C 在圆 O 上，连接 OB、OC、AB、AC，标注 ∠BAC=54°",
+    "notes": "圆周角与圆心角关系，能画"
+  },
+  {
+    "id": "zk_004",
+    "source": "2021 中考",
+    "q_num": "6",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画长方形 ABCD，AB=4，AD=3，以 B 为圆心作半径为 1 的圆，以 A 为圆心作与圆 B 内切的圆",
+    "notes": "选择题判断C、D与圆A位置关系，只画图不入选项"
+  },
+  {
+    "id": "zk_005",
+    "source": "2021 中考",
+    "q_num": "7",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画圆 O，AB 为直径，C 为圆上一点，AC=3，作∠ABC 的平分线交 AC 于 D，CD=1",
+    "notes": ""
+  },
+  {
+    "id": "zk_006",
+    "source": "2021 中考",
+    "q_num": "9",
+    "type": "几何变换",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画平行四边形 ABCD，将△ABC 沿 AC 折叠得到△AB'C，B'C 交 AD 于 E，连接 B'D，其中 ∠B=60°，∠ACB=45°，AC=6",
+    "notes": "涉及反射变换与平行四边形，话图支持；求 B'D 长度部分不入 DSL"
+  },
+  {
+    "id": "zk_007",
+    "source": "2021 中考",
+    "q_num": "10",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画正方形 ABCD，AB=2，E 是 BC 中点，在 BC 延长线上取点 F 使 EF=ED，过 F 作 FG⊥ED，交 ED 于 M，交 AB 于 G，交 CD 于 N",
+    "notes": "选择题的作图部分，只画图不判断结论"
+  },
+  {
+    "id": "zk_008",
+    "source": "2021 中考",
+    "q_num": "10",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画正六边形 ABCDEF，连接对角线 FD，在 FD 上取一点 O，连接 AO、CO",
+    "notes": "求面积部分不入 DSL，只画图"
+  },
+  {
+    "id": "zk_009",
+    "source": "2021 中考",
+    "q_num": "11",
+    "type": "坐标系",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "在平面直角坐标系中画三角形 AOB，标出 AO 的中点 C 和 AB 的中点 D",
+    "notes": "坐标系与三角形可画，但题目依赖中点横坐标的具体数值约束，话图难以精确表达"
+  },
+  {
+    "id": "zk_010",
+    "source": "2021 中考",
+    "q_num": "12",
+    "type": "几何变换",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画两条相交于点 O 的直线 l 和 m，取直线外一点 P，OP=2.8，作 P 关于 l 的对称点 P1 和关于 m 的对称点 P2",
+    "notes": "轴对称变换，话图支持反射；选项判断不入图"
+  },
+  {
+    "id": "zk_011",
+    "source": "2021 中考",
+    "q_num": "12",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画圆 O，弦 AB 长为 4，圆心 O 到弦 AB 的距离为 2",
+    "notes": "题目中出现 C 点但文字未说明，可能依赖原图；仅画圆和弦 AB 及其垂距"
+  },
+  {
+    "id": "zk_012",
+    "source": "2021 中考",
+    "q_num": "12",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画圆 O，AB 是弦，C 是弧 AB 的中点，OC 交 AB 于点 D，AB=8，CD=2",
+    "notes": "求半径部分不入 DSL"
+  },
+  {
+    "id": "zk_013",
+    "source": "2021 中考",
+    "q_num": "13",
+    "type": "函数图像",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "画正比例函数 y=kx 与反比例函数 y=k/x 的图象，交于 A、B 两点，过 B 作 BC 平行于 x 轴，过 A 作 AC 平行于 y 轴，交于点 C",
+    "notes": "反比例函数具体表达式因 OCR 缺失不完整，且求三角形面积部分不入 DSL"
+  },
+  {
+    "id": "zk_014",
+    "source": "2021 中考",
+    "q_num": "13",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画圆 O，PA、PB 是圆 O 的两条切线，A、B 是切点，标出 ∠P=50°",
+    "notes": "切线+切点结构，话图可画"
+  },
+  {
+    "id": "zk_015",
+    "source": "2021 中考",
+    "q_num": "13",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画∠BAC=60°，AD是∠BAC的角平分线且AD=10，作AD的垂直平分线交AC于F，过D作DE⊥AC于E",
+    "notes": "求周长部分不入DSL，只画图"
+  },
+  {
+    "id": "zk_016",
+    "source": "2021 中考",
+    "q_num": "13",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画等腰直角三角形 ABC，∠A=90°，BC=4，分别以 B、C 为圆心，BC 的一半为半径作圆弧，交 AB、BC、AC 于 D、E、F",
+    "notes": "阴影面积求解不入 DSL，只画图"
+  },
+  {
+    "id": "zk_017",
+    "source": "2021 中考",
+    "q_num": "13",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画菱形 ABCD，对角线 AC、BD 相交于点 O，E 是 AB 的中点，连接 OE",
+    "notes": ""
+  },
+  {
+    "id": "zk_018",
+    "source": "2021 中考",
+    "q_num": "14",
+    "type": "几何变换",
+    "expected": "refuse",
+    "confidence": "high",
+    "nl": "画反比例函数图像过 A、B 两点，A 坐标为 (2,3)，直线 AB 过原点交反比例函数于 A、B，将线段 AB 绕点 B 顺时针旋转 90° 得线段 BC",
+    "notes": "涉及具体坐标点 A(2,3) 和反比例函数隐式图像，不在话图能力范围"
+  },
+  {
+    "id": "zk_019",
+    "source": "2021 中考",
+    "q_num": "14",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画矩形 ABCD，点 E 在 BC 上，点 F 在 AD 上，AF=EC，连接 AE、CF 得到四边形 AECF",
+    "notes": ""
+  },
+  {
+    "id": "zk_020",
+    "source": "2021 中考",
+    "q_num": "14",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画一条自西向东的射线 BC，BC=12，在 B 点北偏东 60° 方向、C 点北偏东 30° 方向确定小岛 A，作 A 到 BC 的垂线段",
+    "notes": "方位角作图，求距离部分不入 DSL"
+  },
+  {
+    "id": "zk_021",
+    "source": "2021 中考",
+    "q_num": "14",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画五边形 ABCDE 及其外接圆，FA、GB、HC、ID、JE 分别是过 A、B、C、D、E 的切线",
+    "notes": "圆的内接五边形加五条切线，求角度和部分不入 DSL"
+  },
+  {
+    "id": "zk_022",
+    "source": "2021 中考",
+    "q_num": "15",
+    "type": "几何变换",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画三角形 ABC，D、E 分别在 BC、AC 上，将三角形 CDE 沿 DE 翻折得到三角形 FDE，连接 BF、CF，∠BFC=90°，EF∥AB",
+    "notes": "折叠属于反射变换，话图支持；求 AE 长度部分不入 DSL"
+  },
+  {
+    "id": "zk_023",
+    "source": "2021 中考",
+    "q_num": "15",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画直角三角形 ABC，∠C=90°，AD 平分 ∠BAC 交 BC 于 D，过 D 作 DE⊥AB 于 E",
+    "notes": ""
+  },
+  {
+    "id": "zk_024",
+    "source": "2021 中考",
+    "q_num": "15",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画四边形 ABCD，其中 AB=BD=BC，∠ABC=α",
+    "notes": "题干OCR有误，推测条件为 AB=BD=BC，求角 ADC"
+  },
+  {
+    "id": "zk_025",
+    "source": "2021 中考",
+    "q_num": "16",
+    "type": "几何变换",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画平行四边形 ABCD，AB=3，BC=4，将其绕点 A 逆时针旋转得到平行四边形 A'B'C'D'，使 B' 落在 BC 上且 BB'=1，B'C' 与 CD 交于点 E",
+    "notes": "旋转变换生成虚线派生四边形，需标出交点 E"
+  },
+  {
+    "id": "zk_026",
+    "source": "2021 中考",
+    "q_num": "16",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画平行四边形 ABCD，AD=5，AB=12，过点 D 作 DE⊥AB 于 E，连接 CE",
+    "notes": "求 sin∠BCE 部分不入 DSL，只画图"
+  },
+  {
+    "id": "zk_027",
+    "source": "2021 中考",
+    "q_num": "16",
+    "type": "平面几何",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "画等腰三角形 AOB，顶角∠AOB=40°，以 O 为圆心 OA 为半径作圆，在圆上取一点 P，连接 AP，作 AB 的垂直平分线交圆于 M、N，作 AP 的垂直平分线交圆于 E、F，顺次连接 M、E、N、F",
+    "notes": "圆、等腰三角形、垂直平分线均可画，但 P 为圆上任取点，需人为指定位置；垂直平分线与圆的交点需构造"
+  },
+  {
+    "id": "zk_028",
+    "source": "2021 中考",
+    "q_num": "16",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画梯形 ABCD，AD∥BC，对角线 AC 与 BD 交于点 O",
+    "notes": "题目文字有残缺，但可从梯形+对角线交点推断图形"
+  },
+  {
+    "id": "zk_029",
+    "source": "2021 中考",
+    "q_num": "17",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画菱形 ABCD，∠ABC=70°，延长 BC 到 E，在 ∠DCE 内作射线 CM 使 ∠ECM=15°，过 D 作 DF⊥CM 于 F，DF=5，连接对角线 BD",
+    "notes": "求 BD 长度部分不入 DSL"
+  },
+  {
+    "id": "zk_030",
+    "source": "2021 中考",
+    "q_num": "17",
+    "type": "平面几何",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "画六个含30度角的直角三角板拼成的正六边形，其中直角三角板的最短边为1",
+    "notes": "六个直角三角板围成大正六边形，中间形成小正六边形，拼接结构较复杂，话图可画基本正六边形但拼接细节可能不到位"
+  },
+  {
+    "id": "zk_031",
+    "source": "2021 中考",
+    "q_num": "18",
+    "type": "几何变换",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "画互相垂直的射线 OM、ON，在 OM 上取点 A 使 OA=8，作 OA 的垂直平分线 l，在 l 上（OM 上方）取点 B 使 AB=5，将线段 AB 绕点 O 逆时针旋转得到 A'B'，使 B' 落在射线 ON 上",
+    "notes": "旋转变换和垂直平分线可画，但 B' 落在 ON 上的旋转角需要计算求解"
+  },
+  {
+    "id": "zk_032",
+    "source": "2021 中考",
+    "q_num": "18",
+    "type": "坐标系",
+    "expected": "refuse",
+    "confidence": "medium",
+    "nl": "画大、小两个正方形，中心均与平面直角坐标系原点O重合，边与坐标轴平行，反比例函数 y=k/x 的图象与大正方形的一边交于点A(1,2)，且经过小正方形的顶点B",
+    "notes": "含具体坐标值A(1,2)，且需在坐标系中绘制正方形并与反比例函数图像联动，超出v0.12.1能力"
+  },
+  {
+    "id": "zk_033",
+    "source": "2021 中考",
+    "q_num": "18",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画 AB∥CD，∠B=∠D，直线 EF 分别交 AD、BC 的延长线于点 E、F",
+    "notes": "求证部分不入 DSL"
+  },
+  {
+    "id": "zk_034",
+    "source": "2021 中考",
+    "q_num": "19",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画圆 O 及其弦 AB，D、C 为弧 ACB 的三等分点，连接 AC、BC、BE，AC∥BE",
+    "notes": "圆内三等分弧点和平行弦，能画；求证和求长度部分不入 DSL"
+  },
+  {
+    "id": "zk_035",
+    "source": "2021 中考",
+    "q_num": "19",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画测量点 A 与佛像底部 D 在同一水平线上，佛像 BD 垂直于地面，头部为 BC=4m，从 A 观测 B 的仰角为 45°，观测 C 的仰角为 37.5°",
+    "notes": "求高度部分不入 DSL，只画图"
+  },
+  {
+    "id": "zk_036",
+    "source": "2021 中考",
+    "q_num": "19",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画三角形 ABC，再作三角形 A'B'C' 使其与三角形 ABC 全等（B'C'=BC，A'B'=AB，A'C'=AC）",
+    "notes": "尺规作图题，画两个全等三角形即可"
+  },
+  {
+    "id": "zk_037",
+    "source": "2021 中考",
+    "q_num": "20",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "已知点 A、B、C，AB=BC=10，用尺规作 CA 的中点 D，连接 DB",
+    "notes": "尺规作中点，等腰三角形三线合一"
+  },
+  {
+    "id": "zk_038",
+    "source": "2021 中考",
+    "q_num": "20",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画直角三角形 ABC，∠A=90°，作 BC 的垂直平分线交 AC 于点 D，延长 AC 至点 E，使 CE=AB",
+    "notes": ""
+  },
+  {
+    "id": "zk_039",
+    "source": "2021 中考",
+    "q_num": "20",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画⊙O，两条互相垂直的射线 OM、ON，点 P 在⊙O 上，A 在射线 OM 上，B 在射线 ON 上，连接 AP、BP，AP 与⊙O 相切于 P，B 在⊙O 上",
+    "notes": "圆 + 切线 + 两条垂直射线 + 圆上点，话图可画"
+  },
+  {
+    "id": "zk_040",
+    "source": "2021 中考",
+    "q_num": "20",
+    "type": "平面几何",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "在5×7网格中画矩形ABCD，在AB上取点E使AE=2BE，过E画直线EF平分矩形面积；再画△BCD中BD边上的高CG，在AB上取点H使BH=DH",
+    "notes": "矩形与高、中点等可画，但网格格点约束和'仅用直尺'构造过程无法在DSL中体现"
+  },
+  {
+    "id": "zk_041",
+    "source": "2021 中考",
+    "q_num": "20",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画 AC 与 BD 交于点 O，OA=OD，∠ABO=∠DCO，E 为 BC 延长线上一点，过 E 作 EF∥CD 交 BD 的延长线于 F",
+    "notes": "求证与求长部分不入 DSL"
+  },
+  {
+    "id": "zk_042",
+    "source": "2021 中考",
+    "q_num": "21",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画圆 O，AB 为直径，C、D 是圆上两点且 C 是弧 BD 的中点，过 C 作 AD 的垂线，垂足为 E，连接 AC 交 BD 于 F",
+    "notes": "求证切线和求余弦值不入 DSL"
+  },
+  {
+    "id": "zk_043",
+    "source": "2021 中考",
+    "q_num": "21",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画三角形 ABD，AC⊥BD 于 C，BC=8，CD=4，BF 为 AD 边上的中线（F 为 AD 中点）",
+    "notes": ""
+  },
+  {
+    "id": "zk_044",
+    "source": "2021 中考",
+    "q_num": "22",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画四边形 ABCD，∠ACB=90°，∠CAD=∠AEB（AE∥DC），点 E 在 BC 上，过 E 作 EF⊥AB 于 F",
+    "notes": "证明和求值部分不入 DSL，只画图；AE∥DC 与 ∠CAD=∠AEC 是等价条件"
+  },
+  {
+    "id": "zk_045",
+    "source": "2021 中考",
+    "q_num": "22",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画正方形 ABCD 和等腰直角三角形 AEF（∠AFE=90°），H 为 CE 中点，连接 BH、BF、HF，再连接 AC 交 BD 于 O，连接 OH",
+    "notes": "只提取第(1)问作图部分，第(2)问依赖图2无法从文字重建"
+  },
+  {
+    "id": "zk_046",
+    "source": "2021 中考",
+    "q_num": "22",
+    "type": "统计图表",
+    "expected": "refuse",
+    "confidence": "high",
+    "nl": "补全条形统计图并标注数据",
+    "notes": "统计图表不在话图能力范围"
+  },
+  {
+    "id": "zk_047",
+    "source": "2021 中考",
+    "q_num": "23",
+    "type": "几何变换",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画边长为1的正方形ABCD，E为AD中点，连接BE，将△ABE沿BE翻折得到△FBE，BF交对角线AC于G",
+    "notes": "含轴对称翻折，话图支持反射变换"
+  },
+  {
+    "id": "zk_048",
+    "source": "2021 中考",
+    "q_num": "23",
+    "type": "坐标系",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "在坐标系中画 2 号机的飞行路径：从原点 O 沿 45° 方向上升到 A(4,4)，再水平飞行 1 分钟到 B(7,4)，然后沿直线降到 C(10,3)",
+    "notes": "分段折线可用线段拼接；求解部分不入 DSL"
+  },
+  {
+    "id": "zk_049",
+    "source": "2021 中考",
+    "q_num": "23",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画△ABC 和△DEC，∠ACB=∠DCE=90°，BC=AC，EC=DC，点 E 在△ABC 内部，直线 AD 与 BE 交于点 F",
+    "notes": "证明部分不入 DSL，只画一般情形图"
+  },
+  {
+    "id": "zk_050",
+    "source": "2021 中考",
+    "q_num": "23",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画三角形 ABC，AD⊥BC 于 D，BD=CD，延长 BC 至 E 使 CE=CA，连接 AE",
+    "notes": ""
+  },
+  {
+    "id": "zk_051",
+    "source": "2021 中考",
+    "q_num": "23",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画四边形 ABCD，CD=80，∠ACD=90°，∠BCD=45°，∠ADC=19°17′，∠BDC=56°19′",
+    "notes": "求距离部分不入 DSL，只画几何关系"
+  },
+  {
+    "id": "zk_052",
+    "source": "2021 中考",
+    "q_num": "23",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画圆 O，作两条相等的弦 AB 和 CD 相交于点 P，E、F 分别为 AB、CD 的中点，连接 OP、EF、AF、AC、CE，其中 AF∥OP",
+    "notes": "证明部分不入 DSL，只画图"
+  },
+  {
+    "id": "zk_053",
+    "source": "2021 中考",
+    "q_num": "24",
+    "type": "函数图像",
+    "expected": "refuse",
+    "confidence": "medium",
+    "nl": "画抛物线 y=ax²+c 过点 P(3,0)、Q(1,4)，点 A 在直线 PQ 上，过 A 作 AB⊥x 轴于 B，以 AB 为斜边在其左侧作等腰直角三角形 ABC",
+    "notes": "含具体坐标点 P(3,0)、Q(1,4)，属于硬编码点位，不支持"
+  },
+  {
+    "id": "zk_054",
+    "source": "2021 中考",
+    "q_num": "24",
+    "type": "坐标系",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "在平面直角坐标系中画矩形 OABC，C 在 x 轴正半轴，A 在 y 轴正半轴，D 为 AB 的中点，画一次函数 y=-3x+k 经过 C、D，画反比例函数 y=k/x（x>0）经过 B",
+    "notes": "含坐标系、矩形和函数图像，但 k 未知需求解，具体点位坐标依赖 k 值"
+  },
+  {
+    "id": "zk_055",
+    "source": "2021 中考",
+    "q_num": "24",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画 △ABC 及其外接圆 ⊙O，AD 为 ⊙O 的直径，AD⊥BC 于点 E，连接 BO 并延长交 AC 于点 F，交 ⊙O 于点 G，连接 GC",
+    "notes": "外接圆、直径、垂径关系及辅助线均可绘制"
+  },
+  {
+    "id": "zk_056",
+    "source": "2021 中考",
+    "q_num": "24",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画四边形 ABCD，AB//CD，AB≠CD，∠ABC=90°，点 E、F 分别在 BC、AD 上，EF//CD，AB=AF，CD=DF",
+    "notes": "第2问涉及以 AD 为直径的圆与 BC 相切，可作为附加图形；求证/求面积部分不入图"
+  },
+  {
+    "id": "zk_057",
+    "source": "2021 中考",
+    "q_num": "24",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画圆 O，半径为 6，将圆周 12 等分，等分点为 A1 到 A12，过 A7 作圆 O 的切线交 A1A11 的延长线于点 P，连接 A7A11",
+    "notes": "圆的十二等分点加切线加弦，均在能力范围内"
+  },
+  {
+    "id": "zk_058",
+    "source": "2021 中考",
+    "q_num": "25",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画以 AB 为直径的半圆，圆心为 O，M、N 在 AB 上，四边形 MNPQ 为内接正方形（P、Q 在半圆上），点 C 在弧 PQ 上，连接 BC 并延长交 MQ 延长线于 D，连接 AC 交 MQ 于 E，连接 OQ",
+    "notes": "半圆内接正方形+弧上动点，几何关系可画，动点 C 取一个示意位置"
+  },
+  {
+    "id": "zk_059",
+    "source": "2021 中考",
+    "q_num": "25",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "已知圆O外一点P，过点P作圆O的一条切线",
+    "notes": "尺规作图题，画圆O和外点P及切线即可"
+  },
+  {
+    "id": "zk_060",
+    "source": "2021 中考",
+    "q_num": "25",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画圆 O 及其内接四边形 ABCD，∠1=∠2（即∠ABD=∠DBC 或对应等角），延长 BC 到点 E 使 CE=AB，连接 ED",
+    "notes": "圆的内接四边形+延长线+等角标注，话图可画；具体∠1∠2位置需结合图，默认理解为BD平分∠ABC"
+  },
+  {
+    "id": "zk_061",
+    "source": "2021 中考",
+    "q_num": "25",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "high",
+    "nl": "画四边形 ABCD，AD∥BC，∠ABC=90°，AD=CD，O 为对角线 AC 的中点，连接 BO 并延长交 CD 于点 E",
+    "notes": "只画图不求值"
+  },
+  {
+    "id": "zk_062",
+    "source": "2021 中考",
+    "q_num": "26",
+    "type": "函数图像",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "画二次函数 y=x²-(m+1)x+m 的图象，与 x 轴交于 A、B 两点，对称轴与 x 轴交于 C，D 在对称轴上第一象限内且 OD⊥BD，E 在 x 轴正半轴上且 OC=EC，连接 ED 并延长交 y 轴于 F，连接 AF",
+    "notes": "抛物线可画，但含参数 m 且需满足多个几何约束（垂直、对称轴上点），话图难以精确处理带参数的复合约束"
+  },
+  {
+    "id": "zk_063",
+    "source": "2021 中考",
+    "q_num": "26",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画四边形 ABCD，AB=20，BC=CD=DA=10，AD∥BC，AB 与 CD 交于点 O",
+    "notes": "只提取论证部分的图1作图任务，其余为求值/探究"
+  },
+  {
+    "id": "zk_064",
+    "source": "2021 中考",
+    "q_num": "27",
+    "type": "几何变换",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "画等腰三角形 ABC，AB=AC，∠BAC=α，M 为 BC 中点，D 在 MC 上，将线段 AD 以 A 为中心顺时针旋转 α 得到 AE，连接 BE、DE，过 M 作 AB 的垂线交 DE 于 N",
+    "notes": "旋转变换与等腰三角形可画，但 α 为参数需具体化，且 N 为交点依赖精确构造"
+  },
+  {
+    "id": "zk_065",
+    "source": "2021 中考",
+    "q_num": "27",
+    "type": "立体几何",
+    "expected": "refuse",
+    "confidence": "medium",
+    "nl": "在圆锥侧面展开图（扇形）中画出从A到母线OC中点B的最短路径线段",
+    "notes": "涉及圆锥/圆柱侧面展开图，属立体几何展开图范畴，不在话图 v0.12.1 能力范围"
+  },
+  {
+    "id": "zk_066",
+    "source": "2021 中考",
+    "q_num": "28",
+    "type": "平面几何",
+    "expected": "ok",
+    "confidence": "medium",
+    "nl": "画矩形 ABCD，EF 平行于 AD，GH 平行于 AB，EF 与 GH 交于点 P，在 PF 上取 P1 使 PP1=PG，在 PH 上取 P2 使 PP2=PE，连接 P1H 与 P2F 交于点 Q，其中 AG:GD=AE:EB=1:2",
+    "notes": "矩形内部平行线和点的构造，几何关系明确"
+  },
+  {
+    "id": "gk_001",
+    "source": "2025 高考·新课标II",
+    "q_num": "6",
+    "type": "函数图像",
+    "expected": "partial",
+    "confidence": "medium",
+    "nl": "画抛物线 y²=4x 及其焦点 F 和准线，点 A 在抛物线上，过 A 作准线的垂线，垂足为 B，连接 BF",
+    "notes": "抛物线 y²=4x 需拆成 y=±2√x 两条显式曲线，准线为竖直线 x=-1，可画；具体点位需由条件推出"
+  },
+  {
+    "id": "gk_002",
+    "source": "2025 高考·新课标II",
+    "q_num": "11",
+    "type": "平面几何",
+    "expected": "refuse",
+    "confidence": "high",
+    "nl": "画双曲线及其左右焦点 F1、F2，左右顶点 A1、A2，以 F1F2 为直径的圆与一条渐近线交于 M、N 两点",
+    "notes": "双曲线属隐式二次曲线，话图 v0.12.1 不支持"
+  }
+]
