@@ -50,7 +50,10 @@ class Solution:
 
 
 class SolveError(RuntimeError):
-    pass
+    """求解失败异常。W13-B 起可附带 residual / worst_constraint 供上层诊断。"""
+
+    residual: float = float("nan")
+    worst_constraint: str = ""
 
 
 @dataclass
@@ -313,11 +316,55 @@ def solve(
     assert best is not None
     cost, x_sol, nit = best
     if cost > 1e-4:
-        raise SolveError(
+        # W13-B：诊断最难满足的约束
+        diagnosis = _diagnose_worst_constraint(x_sol, dsl, layout, hint_residual_count)
+        err = SolveError(
             f"solver failed to converge (residual={cost:.3e}); "
-            "约束可能不一致或欠定。"
+            f"约束可能不一致或欠定。{diagnosis}"
         )
+        # 把机器可读的诊断挂到 exception 上供 chat.py 使用
+        err.residual = cost
+        err.worst_constraint = diagnosis
+        raise err
     return _build_solution(x_sol, dsl, layout, residual=cost, iterations=nit)
+
+
+def _diagnose_worst_constraint(
+    x: np.ndarray, dsl: DSL, L: _VarLayout, hint_count: int
+) -> str:
+    """W13-B：找出贡献残差最大的一条约束，返回可读字符串。"""
+    obj_map = dsl.object_map()
+    worst_idx = -1
+    worst_val = 0.0
+    worst_constraint = None
+    try:
+        for i, c in enumerate(dsl.constraints):
+            fn = _build_constraint_residual(c, dsl, L)
+            r = fn(x)
+            if not r:
+                continue
+            magnitude = sum(v * v for v in r)
+            if magnitude > worst_val:
+                worst_val = magnitude
+                worst_idx = i
+                worst_constraint = c
+    except Exception:
+        return ""
+
+    if worst_idx < 0 or worst_constraint is None:
+        return ""
+
+    # 简化描述
+    ct = worst_constraint.type
+    desc_parts = [f"{ct}"]
+    for k in ("segment", "polygon", "a", "b", "c", "point", "ref", "line", "circle", "value"):
+        if hasattr(worst_constraint, k):
+            v = getattr(worst_constraint, k)
+            if v is not None:
+                desc_parts.append(f"{k}={v!r}")
+    return (
+        f" 最难满足的约束是第 {worst_idx + 1} 条：{'{'}{', '.join(desc_parts)}{'}'}（残差²={worst_val:.2e}）"
+    )
 
 
 # ---------------------------------------------------------------------------

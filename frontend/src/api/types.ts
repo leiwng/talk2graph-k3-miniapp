@@ -109,6 +109,8 @@ export interface ChatResult {
   raw_reason?: string
   fallback?: boolean
   fallback_reason?: string | null
+  solve_repaired?: boolean
+  solve_repair_reason?: string | null
 }
 
 export interface ProviderInfo {

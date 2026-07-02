@@ -134,17 +134,65 @@ async def chat(
         patch_for_log = None
 
     # 5. 求解
+    solve_repaired = False
+    solve_repair_reason: str | None = None
     try:
-        sol = solve(new_dsl, seed=0, restarts=20)
+        sol = solve(new_dsl, seed=0, restarts=20, restarts_extra=40)
     except SolveError as e:
-        fe = classify(e)
-        await repo_mod.add_message(
-            db, sid, role="assistant", content=fe.message,
-            dsl_patch_json=patch_for_log,
-            llm_provider=result.provider,
-            error_kind="solve",
-        )
-        raise HTTPException(422, detail=to_dict(fe))
+        # W13-B：若残差 > 1e-2，说明约束真的病态；把诊断发给 LLM 让它修正 DSL
+        original_err = e
+        residual = getattr(e, "residual", float("nan"))
+        diagnosis = getattr(e, "worst_constraint", "")
+
+        should_repair = residual == residual and residual > 1e-2   # 排除 nan
+        if should_repair:
+            try:
+                repair_dsl = await _repair_solve_with_llm(
+                    provider, req.nl, residual, diagnosis
+                )
+            except Exception:
+                repair_dsl = None
+
+            if repair_dsl is not None:
+                try:
+                    sol = solve(repair_dsl, seed=0, restarts=20, restarts_extra=40)
+                    new_dsl = repair_dsl
+                    patch_for_log = None
+                    solve_repaired = True
+                    solve_repair_reason = f"原残差 {residual:.2e}，{diagnosis[:100]}"
+                except SolveError:
+                    # 修复也失败，用原错误
+                    fe = classify(original_err)
+                    if fe.detail:
+                        fe.detail = f"{fe.detail}\n[solve_repair 也失败]"
+                    else:
+                        fe.detail = "[solve_repair 也失败]"
+                    await repo_mod.add_message(
+                        db, sid, role="assistant", content=fe.message,
+                        dsl_patch_json=patch_for_log,
+                        llm_provider=result.provider,
+                        error_kind="solve",
+                    )
+                    raise HTTPException(422, detail=to_dict(fe))
+            else:
+                # LLM 修复调用失败
+                fe = classify(original_err)
+                await repo_mod.add_message(
+                    db, sid, role="assistant", content=fe.message,
+                    dsl_patch_json=patch_for_log,
+                    llm_provider=result.provider,
+                    error_kind="solve",
+                )
+                raise HTTPException(422, detail=to_dict(fe))
+        else:
+            fe = classify(original_err)
+            await repo_mod.add_message(
+                db, sid, role="assistant", content=fe.message,
+                dsl_patch_json=patch_for_log,
+                llm_provider=result.provider,
+                error_kind="solve",
+            )
+            raise HTTPException(422, detail=to_dict(fe))
 
     # 6. 渲染 SVG
     svg = render_svg(new_dsl, sol)
@@ -179,6 +227,8 @@ async def chat(
         "error_kind": None,
         "fallback": fallback_used,
         "fallback_reason": fallback_reason if fallback_used else None,
+        "solve_repaired": solve_repaired,
+        "solve_repair_reason": solve_repair_reason if solve_repaired else None,
     }
 
 
@@ -202,7 +252,7 @@ async def apply_dsl_patch(
     except DSLPatchError as e:
         raise HTTPException(422, detail=to_dict(classify(e)))
     try:
-        sol = solve(new_dsl, seed=0, restarts=20)
+        sol = solve(new_dsl, seed=0, restarts=20, restarts_extra=40)
     except SolveError as e:
         raise HTTPException(422, detail=to_dict(classify(e)))
 
@@ -224,6 +274,46 @@ async def apply_dsl_patch(
         "solution": sol_dict,
         "svg": svg,
     }
+
+
+# ---------------------------------------------------------------------------
+# W13-B · Solve repair 回路：把 solver 诊断发给 LLM 让它修正 DSL
+# ---------------------------------------------------------------------------
+
+async def _repair_solve_with_llm(
+    provider: LLMProvider, nl: str, residual: float, diagnosis: str
+) -> DSL | None:
+    """求解失败时让 LLM 基于诊断修正 DSL。返回修正后的 DSL 或 None。"""
+    from pathlib import Path
+    from ..dsl import DSLValidationError, validate
+    from ..llm.base import ChatMessage, parse_json_response
+
+    prompt_path = Path(__file__).parent.parent / "llm" / "prompts" / "repair_solve.txt"
+    if not prompt_path.exists():
+        return None
+
+    template = prompt_path.read_text(encoding="utf-8")
+    user_msg = template.format(residual=f"{residual:.3e}", diagnosis=diagnosis, nl=nl)
+
+    # 加载 system + few-shots 作上下文（与 extract_dsl 一致）
+    from ..llm.extractor import build_messages
+    messages = build_messages(nl=user_msg, current_dsl=None)
+
+    resp = await provider.chat(messages, json_mode=True, temperature=0.1)
+    try:
+        parsed = parse_json_response(resp.content)
+    except ValueError:
+        return None
+
+    if not isinstance(parsed, dict) or "objects" not in parsed:
+        return None
+
+    try:
+        dsl = DSL.model_validate(parsed)
+        validate(dsl)
+    except (DSLValidationError, ValueError, TypeError):
+        return None
+    return dsl
 
 
 # ---------------------------------------------------------------------------

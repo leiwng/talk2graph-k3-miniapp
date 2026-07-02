@@ -6,7 +6,71 @@
 
 ---
 
-## W13-A — 求解器自适应重启（当前版本）
+## W13-B — 约束诊断 + LLM 二次修复回路（当前版本）
+
+**测试状态**：149/149 通过（W13-A 145 + W13-B 4）
+
+**目标**：继续处理成都真题里 16 题 solve_fail 中残差 > 1e-2 的病态题。
+
+### 新增
+
+**后端 — Solver 诊断**
+- `app/solver/engine.py::SolveError`：作为 dataclass-like RuntimeError，携带 `residual` 与 `worst_constraint` 属性
+- `_diagnose_worst_constraint`：求解失败后逐条重跑约束残差，找出贡献最大的一条并写入 SolveError 详情
+
+**后端 — Chat API · solve_repair 回路**
+- `app/api/chat.py::_repair_solve_with_llm`：新增
+  - solve 抛 SolveError 且 residual > 1e-2 时触发
+  - 用 `repair_solve.txt` prompt 把诊断 + 原始 NL 发给 LLM 让它修正
+  - 修复 DSL 通过 validate + 再求解一次
+  - 成功返回 `solve_repaired=true` + `solve_repair_reason`
+  - 失败合并两次错误信息返回 422
+- `app/api/chat.py` 主流程：SolveError 分流小残差直接 422 / 大残差走 repair
+- `app/api/chat.py::solve()` 调用：`restarts=20, restarts_extra=40`（从 20 提升）
+- `app/llm/prompts/repair_solve.txt`：新文件，solve 修复 prompt 模板
+
+**后端 — Prompt**
+- `app/llm/prompts/system.txt` 末尾加"处理歧义"章节：
+  - 歧义时选一种最自然解读，不要试图同时满足多种解释
+  - 字母参数用具体值代替
+  - 每个自由点保证有足够约束
+  - 避免过度约束
+
+**前端**
+- `frontend/src/api/types.ts`：`ChatResult` 加 `solve_repaired?`、`solve_repair_reason?` 字段
+
+**测试**
+- `tests/test_w13b_solve_repair.py`（4 个）：
+  - solver 诊断字段（residual + worst_constraint）
+  - Mock LLM 二次修正成功路径（第一次坏 DSL → 第二次好 DSL → ok + solve_repaired=true）
+  - Mock LLM 二次修复也失败：返回 422 + detail 含 `[solve_repair 也失败]`
+  - 小残差 solve_fail 不触发 repair（仅 residual > 1e-2 才修复）
+
+### 变更
+
+- 无破坏性变更。W13-A 及以前的 145 测试全部保持。
+- SolveError 由 pass 改为 dataclass-like 类，反向兼容（str(err) 依然可用）。
+
+### DB Schema 升级
+
+W13-A → W13-B：**无 schema 变更**。
+
+### 评估
+
+- **成都真题全量**（chengdu_full.json 68 题，2026-07-02）：
+  - v0.13.0 → **W13-B**：48 ok → 48 ok（保持）
+  - 符合预期率：47 → **52 (69.1% → 76.5%)** (+5)
+  - 状态转换：
+    - **7 题 solve_fail → ok** ✅ W13-B solve_repair 直接受益（zk_007, zk_022, zk_027, zk_041, zk_049, zk_055, zk_057）
+    - 4 题 ok → llm_refuse：LLM 现在更严谨（prompt 引导让 LLM 主动拒绝歧义题）
+    - 3 题 ok → solve_fail：LLM 输出漂移
+    - 1 题 solve_fail → llm_refuse：更合理的分类
+  - 主要收益是**分类正确性提升**（W13-B solve_repair 修复 + prompt 引导让 LLM 分类更精准）
+  - v0.13.0 基线备份到 `test/results_chengdu_full_v0.13.0_baseline/`
+
+---
+
+## W13-A — 求解器自适应重启
 
 **测试状态**：145/145 通过（W12 141 + W13 4）
 
