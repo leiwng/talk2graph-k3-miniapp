@@ -133,7 +133,22 @@ def _signed_point_line_distance(
 # Main solver
 # ---------------------------------------------------------------------------
 
-def solve(dsl: DSL, *, seed: int = 0, restarts: int = 6, tol: float = 1e-9) -> Solution:
+def solve(
+    dsl: DSL,
+    *,
+    seed: int = 0,
+    restarts: int = 6,
+    restarts_extra: int = 20,
+    tol: float = 1e-9,
+) -> Solution:
+    """求解 DSL 的所有约束。
+
+    参数说明：
+    - restarts：主循环重启次数（默认 6，API 层通常传 20）
+    - restarts_extra：W13-A 自适应抢救阶段的额外重启次数（默认 20）
+        当阶段 1 完成后，若最佳 cost ∈ (tol, 1e-2)，说明接近可行解但初值不佳，
+        启动阶段 2 用多样化初值策略再抢救 restarts_extra 次。
+    """
     points = dsl.points()
     if not points:
         return Solution({}, {}, 0.0, "trivial", 0)
@@ -222,45 +237,78 @@ def solve(dsl: DSL, *, seed: int = 0, restarts: int = 6, tol: float = 1e-9) -> S
     rng = random.Random(seed)
     best: tuple[float, np.ndarray, int] | None = None  # (cost, x, nit)
 
-    def _initial_guess() -> np.ndarray:
+    def _initial_guess(strategy: str = "default") -> np.ndarray:
+        """初值生成。strategy：
+        - "default"：所有点 (-5, 5) 均匀，hint 覆盖
+        - "narrow"：所有点 (-2, 2) 小范围
+        - "wide"：所有点 (-15, 15) 大范围
+        - "perturb_hint"：hint 附近扰动 ±2
+        """
         x0 = np.zeros(layout.n)
-        # 给所有 point 随机初值 (-5..5)
+        if strategy == "narrow":
+            lo, hi = -2.0, 2.0
+        elif strategy == "wide":
+            lo, hi = -15.0, 15.0
+        else:
+            lo, hi = -5.0, 5.0
         for pid, idx in layout.point_idx.items():
-            x0[idx] = rng.uniform(-5, 5)
-            x0[idx + 1] = rng.uniform(-5, 5)
-            # 用 hint 覆盖
+            x0[idx] = rng.uniform(lo, hi)
+            x0[idx + 1] = rng.uniform(lo, hi)
             obj = obj_map[pid]
             if isinstance(obj, PointObj) and obj.hint is not None:
-                x0[idx] = obj.hint[0]
-                x0[idx + 1] = obj.hint[1]
+                if strategy == "perturb_hint":
+                    x0[idx] = obj.hint[0] + rng.uniform(-2, 2)
+                    x0[idx + 1] = obj.hint[1] + rng.uniform(-2, 2)
+                else:
+                    x0[idx] = obj.hint[0]
+                    x0[idx + 1] = obj.hint[1]
         for cid, idx in layout.circle_idx.items():
             x0[idx] = rng.uniform(-1, 1)
             x0[idx + 1] = rng.uniform(-1, 1)
             x0[idx + 2] = abs(rng.uniform(0.5, 3)) + 0.5
         return x0
 
-    for attempt in range(restarts):
-        x0 = _initial_guess()
+    def _try_solve(x0):
+        """跑一次 least_squares 并计算硬约束 cost。返回 (cost, x, nfev)。"""
         try:
             result = least_squares(
                 residual_vec, x0, method="lm", xtol=1e-12, ftol=1e-12, max_nfev=2000
             )
         except ValueError:
-            # lm 要求 m >= n，退回 trf
             result = least_squares(
                 residual_vec, x0, method="trf", xtol=1e-12, ftol=1e-12, max_nfev=2000
             )
-        # W12：把 hint 软残差从判定 cost 中扣除，避免"hint 距离远导致误报未收敛"
         full_res = residual_vec(result.x)
         if hint_residual_count > 0 and len(full_res) >= hint_residual_count:
             hard_res = full_res[: len(full_res) - hint_residual_count]
         else:
             hard_res = full_res
         cost = float((hard_res ** 2).sum())
+        return cost, result.x, int(result.nfev)
+
+    # ---------- 阶段 1：主 restarts 循环 ----------
+    for attempt in range(restarts):
+        x0 = _initial_guess("default")
+        cost, x_sol, nfev = _try_solve(x0)
         if best is None or cost < best[0]:
-            best = (cost, result.x, int(result.nfev))
+            best = (cost, x_sol, nfev)
         if cost < tol:
             break
+
+    # ---------- W13-A 阶段 2：自适应抢救 ----------
+    # 若最佳 cost 在 (tol, 1e-2) 之间，说明接近可行解但初值不佳，
+    # 用多样化策略再跑 restarts_extra 次
+    STRATEGIES = ["narrow", "perturb_hint", "wide", "default"]
+    assert best is not None
+    if best[0] > tol and best[0] < 1e-2 and restarts_extra > 0:
+        for extra_attempt in range(restarts_extra):
+            strategy = STRATEGIES[extra_attempt % len(STRATEGIES)]
+            x0 = _initial_guess(strategy)
+            cost, x_sol, nfev = _try_solve(x0)
+            if cost < best[0]:
+                best = (cost, x_sol, nfev)
+            if cost < tol:
+                break
 
     assert best is not None
     cost, x_sol, nit = best

@@ -6,7 +6,60 @@
 
 ---
 
-## W12 — on_curve 硬约束 + 求解器 hint 残差分离（当前版本）
+## W13-A — 求解器自适应重启（当前版本）
+
+**测试状态**：145/145 通过（W12 141 + W13 4）
+
+**目标**：解决 v0.12.1 成都真题评估中发现的最大瓶颈——19 题 solve_fail 中 12 题残差 < 1e-2 只差一步收敛。
+
+### 新增
+
+**后端 — Solver 自适应重启阶段 2**
+- `app/solver/engine.py::solve`：新增 `restarts_extra` 参数（默认 20）
+  - 阶段 1（现有 `restarts` 次）跑完后，若最佳 cost ∈ (tol, 1e-2)，进入阶段 2
+  - 阶段 2 用 4 种初值策略循环：`narrow(-2,2)` / `perturb_hint(±2)` / `wide(-15,15)` / `default(-5,5)`
+  - 一旦 cost < tol 立即返回
+  - 阶段 2 是**收益条件触发**：不满足条件时不启动，通过题无延迟增加
+- `_initial_guess(strategy)`：接受策略参数，实现多样化初值
+- `_try_solve(x0)`：抽取的求解 + cost 计算辅助函数（复用 W12 hint 残差分离逻辑）
+
+**测试**
+- `tests/test_w13_adaptive_restarts.py`（4 个测试）：
+  - 简单等边三角形不需要 stage-2（restarts_extra=0 仍通过）
+  - 复杂 4 点系统 restarts=3 不够但 restarts_extra=30 能收敛
+  - 互斥约束（AB=3 且 AB=5）不会无限循环，抛 SolveError
+  - restarts_extra=0 时行为回退到旧版本
+
+### 变更
+
+- 无破坏性变更。所有 W12 之前的测试保持通过。
+- `solve()` 新增参数向后兼容（默认 20，与 W12 效果一致或更好）。
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+W12 → W13-A：**无 schema 变更**。
+
+### 评估
+
+- **成都真题全量**（chengdu_full.json 68 题，2026-07-02）：
+  - v0.12.1 → **W13-A**：41 ok → **48 ok (60.3% → 70.6%)** (+7)
+  - 符合预期率：42 → 47 (61.8% → 69.1%)
+  - 状态转换：
+    - **10 题 solve_fail → ok** ✅ W13-A 直接受益（zk_010, zk_012, zk_024, zk_035, zk_039, zk_044, zk_045, zk_056, zk_060, zk_061）
+    - 5 题 ok → solve_fail ⚠️ LLM 输出漂移（非 W13-A 回归）
+    - 2 题 llm_refuse → ok（LLM 正向漂移）
+  - 平均延迟：26.0s → 28.9s（stage-2 触发时略增，通过题无影响）
+  - v0.12.1 基线备份到 `test/results_chengdu_full_v0.12.1_baseline/`
+
+- 单题精度不变：ok 题平均残差 4.88e-06 → 5.15e-06（同数量级，几何精确）
+
+---
+
+## W12 — on_curve 硬约束 + 求解器 hint 残差分离
 
 **测试状态**：141/141 通过（V2-B 134 + W12 7）
 
