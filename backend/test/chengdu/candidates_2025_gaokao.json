@@ -1,0 +1,54 @@
+[
+  {
+    "tag": "2025 高考·新课标II",
+    "q_num": "3",
+    "raw_text": "3.考试结束后，\n             将本试卷和答题卡一并交回。\n\n一、选择题：本题共8小题，\n            每小题5分，\n                 共40分。在每小题给出的四个选项中只有一个选项是符合题目要求的。",
+    "is_drawing_task": false,
+    "nl": "",
+    "type": "",
+    "expected": "",
+    "confidence": "",
+    "notes": "",
+    "reason": "试卷说明性文字，非题目内容",
+    "llm_error": ""
+  },
+  {
+    "tag": "2025 高考·新课标II",
+    "q_num": "5",
+    "raw_text": "5    在 △ABC 中，BC = 2，AC = 1 + 3 ，AB = 6 ，\n                                         则 A=                                                  (A)\n      A. 45°                 B. 60°                 C. 120°                D. 135°\n                                                 π        π\n解：法一：∵ BC < AC,BC < AB ，\n                       三边相等时，A =                   ,∴ A< ，   结合选项可知 A 正确\n                                                 3        3\n                                          2      2\n       ",
+    "is_drawing_task": false,
+    "nl": "",
+    "type": "",
+    "expected": "",
+    "confidence": "",
+    "notes": "",
+    "reason": "纯代数解三角形题，用余弦定理求角，无作图要求",
+    "llm_error": ""
+  },
+  {
+    "tag": "2025 高考·新课标II",
+    "q_num": "6",
+    "raw_text": "6     设抛物线 C ：y2 = 2px  P>0  的焦点为 F, 点 A 在 C 上, 过 A 作 C 准线的垂线, 垂足为 B. 若直线 BF 的方\n       程为 y =-2x + 2 , 则  AF  =                                                                                  (C)\n       A. 3                          B. 4                        C. 5                        D. 6\n                       p\n解：由题可得 F  1,0  ，\n                 故       = 1 p = 2  C ：y2 = 4x\n                       2                                                                         y    A\n    ",
+    "is_drawing_task": true,
+    "nl": "画抛物线 y²=4x 及其焦点 F 和准线，点 A 在抛物线上，过 A 作准线的垂线，垂足为 B，连接 BF",
+    "type": "函数图像",
+    "expected": "partial",
+    "confidence": "medium",
+    "notes": "抛物线 y²=4x 需拆成 y=±2√x 两条显式曲线，准线为竖直线 x=-1，可画；具体点位需由条件推出",
+    "reason": "",
+    "llm_error": ""
+  },
+  {
+    "tag": "2025 高考·新课标II",
+    "q_num": "11",
+    "raw_text": "11     双曲线 C:     - 2 = 1  a>0,b>0  的左、\n                                         右焦点分别是 F1 ，F2 , 左、    右顶点分别为 A1,A2 , 以 F1F2 为直径的\n               a 2\n                     b\n                                                  5π\n       圆与曲线 C 的一条渐近线交于 M ,N 两点, 且 ∠NA1M =            ,则                             ( ACD )\n                                                   6\n                   π\n       A. ∠A1MA2 =                           B.  MA1  = 2  MA2 \n                   6\n       C. C 的离心率为 ",
+    "is_drawing_task": true,
+    "nl": "画双曲线及其左右焦点 F1、F2，左右顶点 A1、A2，以 F1F2 为直径的圆与一条渐近线交于 M、N 两点",
+    "type": "平面几何",
+    "expected": "refuse",
+    "confidence": "high",
+    "notes": "双曲线属隐式二次曲线，话图 v0.12.1 不支持",
+    "reason": "",
+    "llm_error": ""
+  }
+]

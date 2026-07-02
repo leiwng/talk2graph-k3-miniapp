@@ -229,3 +229,8 @@ frontend/.vite/
 data/
 .DS_Store
 
+
+# 手工生成的 SVG 转 JPG（人工审图产物，非自动化数据）
+backend/test/results_*/svgs/*.jpg
+backend/test/results_*/svgs/*.png
+backend/test/results_*/svgs/report.md.txt
