@@ -16,7 +16,7 @@ from typing import Any
 import structlog
 
 from ..dsl import DSL, DSLValidationError, validate
-from .base import ChatMessage, LLMProvider, parse_json_response
+from .base import ChatMessage, LLMError, LLMProvider, parse_json_response
 
 log = structlog.get_logger(__name__)
 
@@ -88,7 +88,27 @@ async def extract_dsl(
     last_err: str | None = None
 
     for attempt in range(max_repair + 1):
-        resp = await provider.chat(messages, json_mode=True, temperature=0.1)
+        # W13-B 修复：复杂题（如多 curve + on_curve + 多点）LLM 输出可达 4096 tokens 上限且耗时 >60s
+        # 第一次用默认 60s timeout + 4096 max_tokens；
+        # 若第一次超时（LLMError status=None），第二次用 120s + 8192 重试
+        try:
+            if attempt == 0:
+                resp = await provider.chat(messages, json_mode=True, temperature=0.1)
+            else:
+                resp = await provider.chat(
+                    messages, json_mode=True, temperature=0.1,
+                    max_tokens=8192, timeout=120.0,
+                )
+        except LLMError as e:
+            if e.status is None and attempt == 0:
+                # 超时/网络错误，用更宽松参数重试一次
+                log.info("llm.chat.timeout_retry", provider=provider.name)
+                resp = await provider.chat(
+                    messages, json_mode=True, temperature=0.1,
+                    max_tokens=8192, timeout=120.0,
+                )
+            else:
+                raise
         last_raw = resp.content
         try:
             parsed = parse_json_response(resp.content)
