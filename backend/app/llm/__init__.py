@@ -1,6 +1,7 @@
 from .base import ChatMessage, ChatResponse, ChatUsage, LLMError, LLMProvider
 from .deepseek import DeepSeekProvider
 from .extractor import ExtractResult, extract_dsl, build_messages
+from .kimi import KimiProvider
 from .minimax import MiniMaxProvider
 from .mock import MockProvider
 from .router import LLMRouter, get_router
@@ -11,6 +12,6 @@ __all__ = [
     "ChatMessage", "ChatResponse", "ChatUsage", "LLMError", "LLMProvider",
     "ExtractResult", "extract_dsl", "build_messages",
     "MockProvider", "ZhipuProvider", "VolcengineProvider", "DeepSeekProvider",
-    "MiniMaxProvider",
+    "MiniMaxProvider", "KimiProvider",
     "LLMRouter", "get_router",
 ]

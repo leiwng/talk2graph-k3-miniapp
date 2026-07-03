@@ -206,8 +206,16 @@ async def test_api_providers(client):
     assert r.status_code == 200
     data = r.json()
     names = [p["name"] for p in data["providers"]]
+    # 基础 4 家
     assert "zhipu" in names and "volcengine" in names and "deepseek" in names
-    # default 取决于 env DEFAULT_PROVIDER；只要在三家之一即可
+    # W13-B 多模型注册
+    assert "volcengine_doubao_pro" in names
+    assert "volcengine_doubao_turbo" in names
+    assert "deepseek_v4_pro" in names
+    assert "kimi_k26" in names
+    assert "kimi_k27_code" in names
+    assert "kimi_k27_code_hs" in names
+    # default 取决于 env DEFAULT_PROVIDER；只要在已注册列表里即可
     assert data["default"] in names
 
 

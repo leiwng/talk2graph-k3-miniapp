@@ -240,7 +240,15 @@ async def test_router_lists_providers():
     r = LLMRouter()
     items = r.list_available()
     names = {i["name"] for i in items}
-    assert names == {"zhipu", "volcengine", "deepseek", "minimax"}
+    # 基础 4 家
+    assert {"zhipu", "volcengine", "deepseek", "minimax"}.issubset(names)
+    # W13-B 多模型注册
+    assert "volcengine_doubao_pro" in names
+    assert "volcengine_doubao_turbo" in names
+    assert "deepseek_v4_pro" in names
+    assert "kimi_k26" in names
+    assert "kimi_k27_code" in names
+    assert "kimi_k27_code_hs" in names
     # 默认 = env DEFAULT_PROVIDER（缺省 zhipu）
     defaults = [i for i in items if i["is_default"]]
     assert len(defaults) == 1
