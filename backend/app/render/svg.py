@@ -24,6 +24,7 @@ from ..dsl.schema import (
     Style,
 )
 from ..solver.engine import Solution
+from . import text_to_path
 
 
 @dataclass
@@ -51,6 +52,7 @@ def render_svg(
     *,
     canvas_size: int = 480,
     margin: float = 40.0,
+    outline_text: bool = False,
 ) -> str:
     style = dsl.style
     bbox = _compute_bbox(dsl, sol)
@@ -68,6 +70,20 @@ def render_svg(
         sx_ = offset_x + (x - bbox.minx) * scale
         sy_ = canvas_size - (offset_y + (y - bbox.miny) * scale)
         return sx_, sy_
+
+    # V2-C：把 <text> 元素 outline 化为 <path>，解决复制到 PPT 字体丢失问题。
+    # 默认 False（浏览器渲染 <text> 性能更好、可交互）；导出 SVG/PNG/PDF 时传 True。
+    def text_el(
+        text: str, *, x: float, y: float, fill: str = None,
+        font_size: float | None = None, font_style: str | None = None,
+        anchor: str = "start",
+    ) -> str:
+        return _render_text(
+            text, x=x, y=y, fill=fill, font_size=font_size,
+            font_style=font_style, anchor=anchor,
+            default_fill=style.stroke, default_size=style.font_size,
+            outline=outline_text,
+        )
 
     parts: list[str] = []
     parts.append(
@@ -90,7 +106,7 @@ def render_svg(
     # 坐标系（最底层）
     axis = dsl.axis()
     if axis is not None:
-        parts.extend(_render_axis(axis, dsl, sol, tx, scale, style))
+        parts.extend(_render_axis(axis, dsl, sol, tx, scale, style, text_el))
 
     # V2-B：函数曲线（在坐标系之上、几何图形之下）
     for curve in dsl.curves():
@@ -161,8 +177,7 @@ def render_svg(
             lx = dx + ldx / ln * 12
             ly = dy + ldy / ln * 12 + 4
             parts.append(
-                f'<text x="{lx:.2f}" y="{ly:.2f}" text-anchor="middle" '
-                f'fill="{style.stroke}">{sx.escape(label)}</text>'
+                text_el(label, x=lx, y=ly, fill=style.stroke, anchor="middle")
             )
 
     # W11：独立派生点（不隶属派生多边形）
@@ -184,8 +199,7 @@ def render_svg(
         lx = dx + ldx / ln * 12
         ly = dy + ldy / ln * 12 + 4
         parts.append(
-            f'<text x="{lx:.2f}" y="{ly:.2f}" text-anchor="middle" '
-            f'fill="{style.stroke}">{sx.escape(label)}</text>'
+            text_el(label, x=lx, y=ly, fill=style.stroke, anchor="middle")
         )
 
     # 线段
@@ -241,8 +255,7 @@ def render_svg(
         lx = x + ldx / ln * 12
         ly = y + ldy / ln * 12 + 4  # baseline 调整
         parts.append(
-            f'<text x="{lx:.2f}" y="{ly:.2f}" text-anchor="middle" '
-            f'fill="{style.stroke}">{sx.escape(label)}</text>'
+            text_el(label, x=lx, y=ly, fill=style.stroke, anchor="middle")
         )
 
     # ----- 几何标记（基于约束自动绘制） -----
@@ -258,8 +271,8 @@ def render_svg(
             continue
         ax, ay = pos
         parts.append(
-            f'<text x="{ax:.2f}" y="{ay:.2f}" text-anchor="middle" '
-            f'fill="#555" font-style="italic">{sx.escape(text)}</text>'
+            text_el(text, x=ax, y=ay, fill="#555",
+                    font_style="italic", anchor="middle")
         )
 
     parts.append("</svg>")
@@ -615,7 +628,7 @@ def _angle_arc(a, b, c, tx, style: Style, *, value: float | None = None) -> str:
 # Axis / 坐标系绘制（V2-A）
 # ---------------------------------------------------------------------------
 
-def _render_axis(axis: AxisObj, dsl: DSL, sol: Solution, tx, scale: float, style: Style) -> list[str]:
+def _render_axis(axis: AxisObj, dsl: DSL, sol: Solution, tx, scale: float, style: Style, text_el) -> list[str]:
     """绘制直角坐标系：网格 → 轴 → 箭头 → 刻度 → 数字 → 单位标签。"""
     out: list[str] = []
     origin = sol.coordinates.get(axis.origin)
@@ -698,8 +711,8 @@ def _render_axis(axis: AxisObj, dsl: DSL, sol: Solution, tx, scale: float, style
                     f'stroke="{axis_stroke}" stroke-width="1"/>'
                 )
                 out.append(
-                    f'<text x="{cx:.2f}" y="{cy + tick_len + 12:.2f}" text-anchor="middle" '
-                    f'fill="{tick_text_fill}" font-size="11">{_fmt_num(k * step)}</text>'
+                    text_el(_fmt_num(k * step), x=cx, y=cy + tick_len + 12,
+                            fill=tick_text_fill, font_size=11, anchor="middle")
                 )
             k += 1
         # y 轴刻度
@@ -713,26 +726,27 @@ def _render_axis(axis: AxisObj, dsl: DSL, sol: Solution, tx, scale: float, style
                     f'stroke="{axis_stroke}" stroke-width="1"/>'
                 )
                 out.append(
-                    f'<text x="{cx - tick_len - 4:.2f}" y="{cy + 4:.2f}" text-anchor="end" '
-                    f'fill="{tick_text_fill}" font-size="11">{_fmt_num(k * step)}</text>'
+                    text_el(_fmt_num(k * step), x=cx - tick_len - 4, y=cy + 4,
+                            fill=tick_text_fill, font_size=11, anchor="end")
                 )
             k += 1
 
     # 4) 单位标签（轴末端文字）
+    # 4) 单位标签（轴末端文字）
     out.append(
-        f'<text x="{ax2x + 10:.2f}" y="{ax2y + 4:.2f}" text-anchor="start" '
-        f'fill="{axis_stroke}" font-size="13" font-style="italic">{sx.escape(axis.x_label)}</text>'
+        text_el(axis.x_label, x=ax2x + 10, y=ax2y + 4,
+                fill=axis_stroke, font_size=13, font_style="italic", anchor="start")
     )
     out.append(
-        f'<text x="{ay2x:.2f}" y="{ay2y - 8:.2f}" text-anchor="middle" '
-        f'fill="{axis_stroke}" font-size="13" font-style="italic">{sx.escape(axis.y_label)}</text>'
+        text_el(axis.y_label, x=ay2x, y=ay2y - 8,
+                fill=axis_stroke, font_size=13, font_style="italic", anchor="middle")
     )
 
     # 5) 原点 O 标签
     oxs, oys = tx(ox, oy)
     out.append(
-        f'<text x="{oxs - 8:.2f}" y="{oys + 14:.2f}" text-anchor="end" '
-        f'fill="{tick_text_fill}" font-size="11">O</text>'
+        text_el("O", x=oxs - 8, y=oys + 14,
+                fill=tick_text_fill, font_size=11, anchor="end")
     )
 
     return out
@@ -808,3 +822,37 @@ def _render_curve(
 
 def _is_finite(v: float) -> bool:
     return v == v and v != float("inf") and v != float("-inf")
+
+
+# ---------------------------------------------------------------------------
+# V2-C · 文本渲染：默认 <text>，outline 模式下转 <path>（解决 PPT 字体丢失）
+# ---------------------------------------------------------------------------
+
+def _render_text(
+    text: str,
+    *,
+    x: float,
+    y: float,
+    fill: str | None = None,
+    font_size: float | None = None,
+    font_style: str | None = None,
+    anchor: str = "start",
+    default_fill: str = "#000",
+    default_size: float = 14.0,
+    outline: bool = False,
+) -> str:
+    """渲染一段文本：默认走 <text>；outline=True 时走矢量 <path>。"""
+    if outline:
+        fs = font_size or default_size
+        return text_to_path.text_to_svg_paths(
+            text, x=x, y=y, font_size=fs,
+            fill=fill or default_fill, anchor=anchor, font_style=font_style,
+        )
+    fill_attr = f' fill="{fill}"' if fill else ""
+    size_attr = f' font-size="{font_size}"' if font_size else ""
+    style_attr = f' font-style="{font_style}"' if font_style else ""
+    return (
+        f'<text x="{x:.2f}" y="{y:.2f}" text-anchor="{anchor}"'
+        f'{fill_attr}{size_attr}{style_attr}>'
+        f'{sx.escape(text)}</text>'
+    )

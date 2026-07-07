@@ -24,7 +24,7 @@ cd backend
 .venv/bin/pytest -q
 ```
 
-预期：与 CHANGELOG 顶部记录的测试数一致（W13 = 149 个）。如不一致：
+预期：与 CHANGELOG 顶部记录的测试数一致（V2-D = 173 个）。如不一致：
 - 测试**失败** → 报告失败项，**不要随意修复**，等用户指示
 - 测试**数变少** → 可能新代码丢了测试，对照 CHANGELOG 排查
 - 测试**数变多** → 上次对话有人忘了更新 CHANGELOG
@@ -98,12 +98,57 @@ rm backend/data/talk2graph.db
 
 ## 当前里程碑（手动更新此值，每次 W 完成后改）
 
-**W13-B — 约束诊断 + LLM 二次修复回路**（2026-07-02 完成、v0.13.1 已 tag）
+**V2-D — SSE token-level 流式**（2026-07-06 完成）
 
-- 测试：149/149 通过（W13-A 145 + W13-B 4）
+- 测试：173/173 通过（V2-C 162 + V2-D 原 6 + V2-D token-level 流式 5）
+- 目标：让 LLM 调用 8-17 秒阻塞期间不再只显示干等转圈，而是**实时推送 token 流 + 已识别对象列表**给前端，用户看到 "AI 正在生成：点 A / 线段 AB / 圆 O..."。stage 事件保留作为阶段切换标记。
+- 关键发现：
+  - CHANGELOG 之前版本块说"所有 stage 事件最后一次性打印"——经实测验证，**当前代码（带 `await asyncio.sleep(0)`）下其实早已不成立**：第一个 stage=llm 事件在 0.02s 流式到达，后续 stage 一起到是因为它们之间无真正阻塞操作（patch 是直接赋值、solve 通常 <1ms、render <10ms）
+  - `--http h11 --loop asyncio` 跟默认 uvicorn 行为完全一致，不需要切换
+  - 不需要上 sse-starlette 库（默认 StreamingResponse 已能流式）
+  - 真正的"用户看不到流式"问题是 **LLM 阻塞期间没有 token 流**——本次升级解决
+- 实测（curl + 真实 LLM，等边三角形）：
+  - 0.03s STAGE#1 llm 流式到达
+  - 4.77s 第一个 TOKEN 到达（GLM-5.2 首字延迟）
+  - 4.97s-6.66s 7 个 OBJ 事件依次到达（A/B/C/AB/BC/CA/tri）
+  - 8.17s DONE
+  - 总计 40 token + 7 object_seen 事件
+- 体验打磨（V2-D 收尾）：
+  - 首字延迟期加"AI 正在准备输出..."次级提示（stage=llm 后 2s 没收到 token 触发，第一个 token 到达清除）
+  - object_seen 用 requestAnimationFrame 批量 flush（每帧最多触发一次 React re-render，避免每秒 30+ token 卡顿）
+  - stage 切换时不再清空对象列表（保留全程已识别对象）
+  - 修复 thinking 气泡 raw 显示 `__stream__:{...}` 文本 bug（`slice(10)` off-by-one）
+- LLM：火山方舟 GLM-5.2（coding/v3 endpoint 完全支持 stream=True）
+- 无 DB schema 变更
+- 下一步候选：老师试用反馈 / 多 Provider 对比 / 历史会话侧抽屉
+
+---
+
+## 历史里程碑
+
+**V2-C — PPT 字体 outline 化**（2026-07-06 完成）
+
+- 测试：162/162 通过（W13-B.1 151 + V2-C 11）
+- 新增能力：导出 SVG/PNG/PDF 时把 `<text>` 元素转为 `<path>` 矢量 outline
+  - 解决复制到 PPT 后中文/特殊符号字体丢失问题
+  - 新增 `app/render/text_to_path.py`：fonttools 提取字形 outline
+  - 内置 Source Han Sans SC 子集字体（90MB → 28KB）
+  - 浏览器预览仍用 `<text>`（性能好、可交互）；导出强制 outline
+- LLM：火山方舟 GLM-5.2
+- 无 DB schema 变更
+- 下一步候选：求解器符号求解加速（V2 #8）/ 老师试用反馈 / SSE 流式
+
+---
+
+## 历史里程碑
+
+**W13-B.1 — Provider 配置修补**（2026-07-06 完成）
+
+- 测试：151/151 通过（W13-B 149 + W13-B.1 修补 2）
 - 新增能力：
   - **W13-A（v0.13.0）**：求解器自适应重启（stage-2 抢救 + 4 种初值策略），成都真题通过率 60.3% → 70.6%
   - **W13-B（v0.13.1）**：solve_repair 回路 + 约束诊断 + prompt 处理歧义，成都真题符合预期率 61.8% → 76.5%
+  - **W13-B.1（修补）**：kimi 网络错误 hint 按 provider 动态生成域名；doubao 降级到 Seed-2.0-pro；kimi-k2.6 关闭 thinking 避免超时
   - SolveError 携带 residual + worst_constraint 诊断字段
   - Solve 残差 > 1e-2 时自动请 LLM 修正 DSL 再求解
 - LLM：火山方舟 GLM-5.2
@@ -114,8 +159,6 @@ rm backend/data/talk2graph.db
 - 下一步候选：老师试用反馈 / 多 Provider 对比 / 回归黑盒测试 / SSE 流式
 
 ---
-
-## 历史里程碑
 
 **W13-A — 求解器自适应重启**（2026-07-02 完成、v0.13.0 已 tag）
 

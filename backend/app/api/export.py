@@ -49,7 +49,8 @@ async def _current_svg(db: AsyncSession, sid: str) -> str:
         method=snap.solution.get("method", "numeric"),
         iterations=0,
     )
-    return render_svg(snap.dsl, sol)
+    # V2-C：导出时把 <text> outline 化为 <path>，避免复制到 PPT 字体丢失
+    return render_svg(snap.dsl, sol, outline_text=True)
 
 
 @router.get("/{sid}.svg")

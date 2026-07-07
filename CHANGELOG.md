@@ -6,7 +6,516 @@
 
 ---
 
-## W13-B — 约束诊断 + LLM 二次修复回路（当前版本）
+## V2-E — 多 Provider 评测 + UI/UX 打磨 + 自动 Fallback（当前版本，2026-07-07）
+
+**测试状态**：173/173 通过（V2-D 173 + V2-E 0 新增测试；本轮主要是工程化改造与前端样式重写，未引入新业务功能）
+
+**目标**：① 给运营提供"哪家 LLM 画图最好"的对比数据；② 把产品 UI 打磨到面向老师推广可用的水平（视觉精致度 + 首次体验 + 响应式 + 文案）；③ 生产版去调试控件 + LLM 出错自动切换备选模型。
+
+### 新增
+
+**后端 — 多 Provider 自动对比评测脚本**
+- `backend/scripts/eval_multi_providers.py`（新文件，~330 LOC）：
+  - 遍历所有 enabled provider（默认）/ 用户指定列表（`--providers volcengine,kimi_k26`）
+  - 复用 `extract_dsl` + `solve` + `render_svg` 全流程，对每个 provider 跑完整 `chengdu_full.json` 68 题
+  - 输出 5 张表对比报告：
+    - 表 1：总览（OK 数 / 符合预期率 / 通过率 / 平均残差 / p50 延迟 / p95 延迟 / 调用次数 / 输入 tokens / 输出 tokens / 估算成本(元)）
+    - 表 2：逐题状态对比（每家一列 ✅/🟡/🔴/⚠️）
+    - 表 3：失败题详情（仅展示至少一家失败的题）
+    - 表 4：定价参考（每家元/M tokens）
+    - 表 5：综合小结（最高通过率 / 最高符合预期 / 最低延迟 / 最低成本）
+  - `UsageTracker`：包装 LLMProvider 的轻量代理（duck typing 实现 Protocol），累计 prompt/completion tokens 用于成本估算；LLMError 时也计入 calls，反映真实 API 请求次数
+  - 支持 `--limit N` 快速预览前 N 题、`--concurrency N` 单 provider 内并发、`--no-svg` 跳过渲染
+  - 输出目录：`test/results_chengdu_multi/`（含 `comparison.md` + 每家子目录 `<provider>/results.json` + `svgs/<id>_<provider>.svg`）
+- `PRICING_CNY_PER_MTOK`：脚本内置定价参考表（火山 glm-5.2 / Doubao-Seed-2.0-pro / DeepSeek v4-chat / v4-pro / MiniMax-M3 / Kimi k2.6 / k2.7-code / k2.7-code-highspeed / 智谱 glm-5.2）
+
+**后端 — LLM 自动 Fallback Chain**
+- `app/llm/router.py`：
+  - 新增 `is_retryable(err)`：判断错误是否触发 fallback
+    - `LLMError.status is None`（网络/超时）→ True
+    - `LLMError.status >= 500`（5xx 服务端错误，含 503/529 限流）→ True
+    - `LLMError.status in (401, 403, 429)`（鉴权失败/限流）→ True
+    - 其他 4xx → False（业务错误，重试也没用）
+  - `LLMRouter._build_fallback_chain()`：构造 fallback 链
+    - 优先取 env `T2G_FALLBACK_PROVIDERS`（逗号分隔，如 `volcengine,deepseek,kimi_k26`）
+    - 未配置时自动取前 3 个 enabled provider，default 排第一
+    - 最多 3 个（避免无限重试消耗配额）
+  - `LLMRouter.get_fallback_chain(start_with)`：返回 Provider 实例列表
+    - 客户端显式传 name 时把它排第一（调试模式仍可手工切换）
+    - 生产模式 start_with=None，按 default 顺序
+- `app/api/chat_stream.py::_extract_with_fallback_streaming()`（新函数，~50 LOC）：
+  - 包装 `extract_dsl_streaming`，第一个 provider 出错时自动切到下一个
+  - 切换时 yield `{"type": "fallback", "from": "...", "to": "...", "reason": "..."}` 事件
+  - 所有 provider 都失败才 yield error
+- `chat_stream.py::_pick_provider_chain(name)`：
+  - 测试覆盖时（`chat_module._provider_override is not None`）返回 `[override]`，禁用 fallback（保证现有测试语义）
+  - 否则用 `LLMRouter.get_fallback_chain(name)`
+- `chat_stream.py::_run_chat_stream()` 主流程改造：
+  - LLM 阶段从单 provider 升级到 fallback chain
+  - 切换时推 `event: stage` 含 `{"stage":"fallback","from":"...","to":"...","reason":"..."}`
+  - done 事件加 `fallback_chain: [{from, to, reason}, ...]` 字段
+
+**后端 — 生产/调试模式配置**
+- `app/config.py::Settings`：
+  - 新增 `debug_ui: bool`（env `T2G_DEBUG_UI`，默认 `false`）
+  - 新增 `fallback_providers: list[str] | None`（env `T2G_FALLBACK_PROVIDERS`）
+- `app/main.py`：`/api/health` 返回 `debug_ui` 标志
+- `backend/.env.example`：新增 `T2G_DEBUG_UI` / `T2G_FALLBACK_PROVIDERS` 配置说明 + 场景示例
+
+**前端 — 现代教育 SaaS 风视觉重构**
+- `frontend/src/styles.css`（重写，从 423 行扩展到 547 行）：
+  - **颜色系统重做**：主色从纯蓝 `#2563eb` 改为柔和的教育蓝 `#3b82f6` + 渐变 `linear-gradient(135deg, #3b82f6, #6366f1)`
+  - 加 `--text-secondary` / `--panel-subtle` / `--border-strong` 中性色中间档
+  - **阴影系统**：`--shadow-sm` / `--shadow-md` / `--shadow-lg` / `--shadow-card`，让卡片立体
+  - **圆角**：`--radius-sm(6)` / `--radius(8)` / `--radius-md(10)` / `--radius-lg(14)` 四档
+  - **对象类型色条**：`--obj-point`(蓝) / `--obj-segment`(绿) / `--obj-circle`(橙) / `--obj-polygon`(紫) / `--obj-curve`(粉) / `--obj-axis`(灰) / `--obj-derived`(浅灰)
+  - **按钮**：hover 抬升 + active 收缩 + primary 蓝色阴影
+  - **输入框**：focus 时 3px 蓝色光环（box-shadow 模拟）
+  - **TopBar**：56px 高 + 阴影 + 渐变品牌名
+  - **用户气泡**：蓝色渐变背景 + 阴影
+  - **AI 气泡**：浅灰底 + 边框 + 圆角 10px
+  - **思考气泡**：stage 文字蓝色加粗，对象列表虚线分隔
+  - **Canvas 占位符**：渐变背景 + 卡片阴影
+  - **SectionHeader**：56px 高 + 大写字母 + 字间距
+  - **TreeItem**：左 3px 色条按对象类型区分
+  - **Properties 面板**：浅灰底 + 等宽字体
+  - **Dropdown**：圆角 + 大阴影 + overflow:hidden
+
+**前端 — 首次体验引导**
+- `frontend/src/components/ChatPanel.tsx::WelcomeCard`（新组件，~40 LOC）：
+  - 替换旧版 `ExampleHints`（纯文字按钮列表）
+  - 顶部欢迎卡片：标题"你好，老师 👋" + 一句话功能介绍 + 3 条 ✓ 列表（自然语言作图 / 约束支持 / 导出格式）
+  - 下方示例网格：5 个 `example-card` 卡片（图标 + 标题 + 描述），点击即用
+  - 示例清单：等边三角形 / 直角三角形 / 正方形 / 圆与圆心角 / 等腰 + 内切圆
+- `frontend/src/components/TopBar.tsx::EXAMPLES`（重写）：
+  - 从纯文字列表改为 `{icon, title, desc, nl}` 结构
+  - 暴露为 export 给 `ChatPanel::WelcomeCard` 复用
+
+**前端 — 移动端 Tab 切换**
+- `frontend/src/store/index.ts::activeTab`（新 state）：
+  - 类型 `'chat' | 'canvas' | 'objects'`，默认 `'chat'`
+  - 新增 `setActiveTab` action
+  - `sendChat` 成功生成图形后自动切到 `'canvas'`（移动端用户能立即看到画板）
+- `frontend/src/App.tsx::MobileTabBar`（新组件，~30 LOC）：
+  - 底部 50px 高 Tab Bar，3 个 Tab：💬 对话 / 📊 画板 / 📐 对象
+  - 桌面端隐藏（`display: none`），平板/移动端显示
+  - 生产模式（debugUI=false）不显示"对象"Tab
+- `frontend/src/App.tsx` 主结构改造：
+  - 三个面板各自包一层 `<div className="panel-wrap panel-{type} {tab-active}">`
+  - 生产模式不渲染 RightPanel，三栏变两栏（CSS `.app.prod-ui .body { grid-template-columns: 360px 1fr }`）
+  - 配合 CSS 响应式断点控制显示/隐藏
+
+**前端 — 响应式断点**
+- `frontend/src/styles.css`（响应式部分）：
+  - **平板（≤1024px）**：右侧对象面板隐藏，由 Tab 触发后以浮层形式从右侧滑出（width:320, position:fixed, box-shadow）
+  - **移动端（≤768px）**：单栏 Tab 切换，TopBar 横向滚动，子标题"用一句话画几何"隐藏，seq 信息隐藏
+  - 三栏 → 两栏 → 单栏 的渐进退化
+
+**前端 — 生产/调试 UI 切换**
+- `frontend/src/store/index.ts`：
+  - 新增 `debugUI: boolean` state（默认 `false`）
+  - `init()` 拉 `/api/health` 拿 `debug_ui` 标志，存到 store
+  - `sendChat` 在 `debugUI=false` 时不传 `provider`，让后端按 fallback chain 自动选
+- `frontend/src/api/client.ts::health()`：新增方法
+- `frontend/src/components/ProviderSwitch.tsx`：`debugUI=false` 时返回 null（不渲染 select）
+- `frontend/src/App.tsx`：`debugUI=false` 时不渲染 RightPanel；MobileTabBar 不显示"对象"Tab
+
+**前端 — Fallback 模型切换提示**
+- `frontend/src/store/index.ts::onStage`：
+  - 收到 `stage=fallback` 时清空之前 provider 推的已识别对象（避免重复显示）
+  - 重置首字延迟计时器（新 provider 重新计时首字延迟）
+- `frontend/src/components/ChatPanel.tsx::stageText`：
+  - 新增 `fallback: '正在切换备选模型'` 文案
+
+### 变更
+
+- `frontend/src/components/TopBar.tsx`：
+  - brand 区加 30×30 蓝色渐变 logo（圆角 + 阴影）
+  - "话图 T2G" 文字加渐变（`background-clip: text`）
+  - 删除旧的 `ExampleHints` 组件（已被 ChatPanel::WelcomeCard 取代）
+  - `seq #` span 加 `.seq-info` class（移动端隐藏用）
+- `frontend/src/components/ChatPanel.tsx`：
+  - 空状态用 `WelcomeCard` 替代旧的"你好，老师。说一句话我就给你画图。" + ExampleHints
+  - 占位符文案从"例如：画一个内切圆半径为 3 的等腰三角形"改为"试试：画一个等边三角形 ABC，边长为 4"
+  - 示例点击后直接 sendChat（不再 setText 让用户手动发送）
+- `frontend/src/components/Canvas.tsx`：占位符文案"渲染中…"→"正在渲染图形…"，"还没有图形。"加 `<strong>` 强调
+- `frontend/src/components/RightPanel.tsx`：
+  - `ObjectItem` 加 `obj-${obj.kind}` class，配合 CSS 实现左 3px 色条按对象类型区分
+  - 空状态从"（空）"改为"画一个图形后 / 这里会显示对象列表"（居中 + 行高 1.7）
+  - 属性面板空状态"点击左侧对象"→"点击上方对象"（更符合 RightPanel 实际位置）
+- `frontend/src/components/ProviderSwitch.tsx`：包一层 `<div className="provider-switch">`，配合 CSS 控制 select 样式
+- `app/llm/__init__.py`：导出 `is_retryable`
+- `app/llm/router.py`：
+  - `LLMRouter.fallback_chain` 从原来"所有 provider 列表"改为"最多 3 个 enabled"
+  - 新增 `_build_fallback_chain()` / `get_fallback_chain(start_with)` 方法
+
+### 修复
+
+- `app/solver/engine.py::_VarLayout.get_point`：之前直接 `self.point_idx[pid]` 在派生点（TransformedPointObj）/未声明点 id 时抛 `KeyError`，逃逸到外层导致整个评测脚本崩溃。现在捕获 `KeyError` 重抛为 `SolveError`，让 chat 主流程能优雅归类为 `solve_fail`
+- `scripts/eval_multi_providers.py::run_one`：`solve()` 调用从 `except SolveError` 改为额外捕获 `Exception`，防御性捕获所有异常都记为 `solve_fail`，不让脚本崩溃
+- V2-D 173 个测试无回归
+
+### 配置变更
+
+- `backend/.env`：`DEFAULT_PROVIDER` 从 `volcengine` 改为 `deepseek`（基于评测结果，deepseek v4-flash 通过率 73.5% vs volcengine 52.9%）
+- 新增 `T2G_FALLBACK_PROVIDERS=deepseek,volcengine,kimi_k26`
+
+### DB Schema 升级
+
+V2-D → V2-E：**无 schema 变更**。直接拉新代码即可。
+
+### 配置说明
+
+新增两个环境变量（开发期 `.env`，生产期 Docker env）：
+
+```bash
+# 生产/调试 UI 切换
+# false（默认）= 生产模式：前端隐藏 Provider 切换、对象面板，LLM 走 fallback chain
+# true = 调试模式：显示所有控件，可手工切换 provider / 编辑对象
+T2G_DEBUG_UI=true   # 开发期建议设 true，生产期 false
+
+# LLM Fallback Chain（最多 3 个，逗号分隔）
+# 留空 = 自动取前 3 个 enabled provider，default 排第一
+# 显式指定时按指定顺序，第一个为首选
+T2G_FALLBACK_PROVIDERS=volcengine,deepseek,kimi_k26
+```
+
+### LLM 多 Provider 评测（进行中 / 实跑结果待补）
+
+启动命令：
+```bash
+cd backend && .venv/bin/python scripts/eval_multi_providers.py --concurrency 2
+```
+
+预期输出：`test/results_chengdu_multi/comparison.md`（含 5 张表）+ 每家子目录 `results.json`。
+
+> 实测数据将在脚本跑完后回填到本块。
+
+---
+
+## V2-D — SSE 流式输出（2026-07-06 完成）
+
+**测试状态**：173/173 通过（V2-C 162 + V2-D 原 6 + V2-D token-level 流式 5）
+
+**目标**：用户选的方向（取代原 V2 #8 符号求解加速）。让 LLM 调用 8-17 秒阻塞期间不再只显示干等转圈，而是**实时推送 token 流 + 已识别对象列表**给前端，用户看到 "AI 正在生成：点 A / 线段 AB / 圆 O..."。stage 事件保留作为阶段切换标记。
+
+### 关键诊断（V2-D 升级时重要发现）
+
+CHANGELOG 之前版本块说"所有 stage 事件最后一次性打印"——经实测验证，**当前代码（带 `await asyncio.sleep(0)`）下其实早已不成立**：
+- 用 curl + 真实 LLM 实测，第一个 `stage=llm` 事件在 0.02s 流式到达，LLM 阻塞期间前端能看到"正在理解题意"
+- 后续 stage（patch/solve/render）同时到达是符合代码逻辑的预期——它们之间无真正阻塞操作（patch 是直接赋值、solve 通常 <1ms、render <10ms）
+- `--http h11 --loop asyncio` 跟默认 uvicorn（uvloop+httptools）行为完全一致，**不需要切换**
+- 不需要上 `sse-starlette` 库（默认 `StreamingResponse` 已能流式）
+
+真正的"用户看不到流式"问题是 **LLM 阻塞期间没有 token 流**——这才是 V2-D 升级方向。
+
+### 新增
+
+**后端 — Provider 加 streaming 方法**
+- `app/llm/base.py::OpenAICompatProvider.chat_stream()`（新方法，~50 LOC）：
+  - 用 httpx `client.stream("POST", ...)` + `aiter_lines()` 读 OpenAI SSE 帧
+  - 每个 chunk 提取 `choices[0].delta.content` yield 给上层
+  - 处理 `data: [DONE]` 结束标记
+  - 自动去掉 `response_format`（stream=True 与 json_object 互斥）
+  - 复用子类 `_build_payload`（kimi 关 thinking / 火山不支持 json_mode 等行为自动继承）
+  - `LLMProvider` Protocol 加 `chat_stream` 声明
+- `app/llm/mock.py::MockProvider.chat_stream()`：handler 返回字符串切成 ~10 字一块 yield，每块 `await asyncio.sleep(0)` 让出控制权（测试用）
+
+**后端 — 流式 extract_dsl**
+- `app/llm/extractor.py::extract_dsl_streaming()`（新函数，~120 LOC）：
+  - 流式版 `extract_dsl`，yield 事件 dict：`token` / `object_seen` / `done` / `error`
+  - 复用 `build_messages` / `parse_json_response` / DSL 校验 / repair 循环（行为等价 `extract_dsl`）
+  - 每收到 token 推 `event:token`；用 partial JSON regex 识别新对象，推 `event:object_seen`
+  - W13-B 的 timeout_retry 机制保留（第一次 60s/4096 tokens，超时第二次 120s/8192）
+  - repair 阶段也流式（用户在第二次 LLM 调用期间也能看到 token + 对象流）
+- `app/llm/extractor.py::_extract_seen_objects(buffer)`（新 helper，~25 LOC）：
+  - 用 regex 从 LLM 部分输出中识别 (id, kind) 对
+  - `[^{}]*?` 保证 id 和 kind 在同一对象层级，避免跨对象误配对
+  - 支持两种字段顺序：id 在前 / kind 在前（LLM 输出可能不严格按 schema 序列化）
+  - 即使 JSON 不完整（缺末尾 `}` 或字段），只要 "id" 和 "kind" 都已输出就能匹配
+
+**后端 — chat_stream.py 主流程升级**
+- `app/api/chat_stream.py::_run_chat_stream()` 改造：
+  - stage=llm 阶段从 `extract_dsl` 改成 `extract_dsl_streaming`
+  - 每个 token 推 `event:token`；每个已识别对象推 `event:object_seen`
+  - 每个 yield 后 `await asyncio.sleep(0)` 让 ASGI flush
+- `app/api/chat.py::_repair_solve_with_llm_streaming()`（新函数，~70 LOC）：
+  - 流式版 `_repair_solve_with_llm`，yield token / object_seen / done
+  - 复用同款 `repair_solve.txt` prompt，与 extract_dsl_streaming 共用 partial JSON 提取
+- `chat_stream.py` 的 repair 阶段从同步 `_repair_solve_with_llm` 改成流式 `_repair_solve_with_llm_streaming`
+
+**前端 — SSE 客户端加 token/object_seen 回调**
+- `frontend/src/api/client.ts::chatStream`：
+  - 新增 `onToken?: (text: string) => void` 参数
+  - 新增 `onObjectSeen?: (id: string, kind: string) => void` 参数
+  - 处理 `event:token` 和 `event:object_seen` SSE 帧
+
+**前端 — thinking 气泡显示 stage + 已识别对象列表**
+- `frontend/src/store/index.ts::sendChat`：
+  - 维护 streamState：`{ stage, objects: [{id, kind}] }`
+  - thinking 气泡 content 用 `__stream__:<json>` 表示（替代旧的 `__stage__:xxx`）
+  - `onStage`：进入新 stage 清空对象列表
+  - `onObjectSeen`：追加到对象列表
+- `frontend/src/components/ChatPanel.tsx::ChatMsgItem`：
+  - 解析 `__stream__:<json>` content
+  - 显示 stage 中文文案 + dots 动画
+  - 显示已识别对象列表（每个对象一行，"✓ 点 A" / "✓ 线段 AB" / "✓ 圆 O" 等）
+  - 向后兼容旧格式 `__thinking__` 和 `__stage__:xxx`
+- `frontend/src/components/ChatPanel.tsx::describeObject(id, kind)`（新 helper）：
+  - 把 (id, kind) 翻译成中文描述（point→点 / segment→线段 / circle→圆 / polygon→多边形 / axis→坐标系 / curve→曲线 / transformed_point→派生点 / transformed_polygon→变换多边形）
+- `frontend/src/styles.css`：
+  - 新增 `.thinking-stage` / `.thinking-objects` / `.thinking-obj` 样式
+  - 对象列表用虚线分隔 + 较小字号 + 灰色
+
+**测试 — V2-D 新增 5 个**
+- `tests/test_v2d_chat_stream.py::test_stream_token_events_yielded`：LLM 阶段推送 token 事件，每个含 text 字段，token 拼起来能恢复原始 LLM 输出
+- `tests/test_v2d_chat_stream.py::test_stream_object_seen_events`：partial JSON 解析识别 7 个对象（A/B/C/AB/BC/CA/tri），每个只推送一次（去重）
+- `tests/test_v2d_chat_stream.py::test_stream_llm_error_during_stream`：LLM 流式过程中网络断开，应发 error 事件
+- `tests/test_v2d_chat_stream.py::test_extract_seen_objects_unit`：单元测试 `_extract_seen_objects`，覆盖空 buffer / 部分 JSON / 多对象 / 字段顺序颠倒 / 嵌套对象 / 不完整 JSON 不误识别
+- `tests/test_v2d_chat_stream.py::test_extract_seen_objects_no_false_match_for_constraints`：约束对象（只有 type 没有 id+kind）不应误识别
+
+**前端 — 体验打磨（V2-D 收尾）**
+- `frontend/src/store/index.ts::sendChat`：
+  - **改进 1：首字延迟期加准备提示**（LLM stage 进入后启 2 秒定时器，期间若没收到任何 token，streamState.waiting=true，ChatPanel 显示"AI 正在准备输出..."次级提示；第一个 token 到达时清除）
+  - **改进 2：object_seen 用 RAF 批量 flush**（pendingObjects 缓冲队列 + requestAnimationFrame 在下一帧合并追加，每帧最多触发一次 React re-render，避免每秒 30+ token 时 React 卡顿，参考 cherry-studio 模式）
+  - `onStage` 切换时不再清空对象列表（旧版 llm→patch 切换时清空，用户看不到全程已识别对象；新版保留所有对象）
+  - `onToken` 接入但只用于标记首字到达（不显示原始 token 内容；后续若要加 token-level 显示可复用）
+  - `finally` 块清理 RAF + 等待定时器，防止内存泄漏
+- `frontend/src/components/ChatPanel.tsx::ChatMsgItem`：
+  - `__stream__:<json>` 渲染加 `state.waiting` 分支：显示"AI 正在准备输出..."次级提示
+  - 修复 `slice(10)` off-by-one bug（应为 `slice('__stream__:'.length)` = `slice(11)`）—— 之前导致 JSON.parse 收到 `:{...}` 失败，前端 raw 显示 `__stream__:{...}` 文本
+  - 同步修复旧 `__stage__:` 的 `slice(9)` → `slice('__stage__:'.length)`（旧 bug 不影响功能因 stage 不匹配显示默认文案）
+- `frontend/src/styles.css`：
+  - 新增 `.thinking-waiting` 样式（灰色斜体 + 较小字号 + 顶部 2px 间距）
+
+### 变更
+
+- 无破坏性变更。所有 V2-C 之前的 162 个测试无修改、无回归
+- `LLMProvider` Protocol 加 `chat_stream` 方法声明（向后兼容：旧代码不调 chat_stream 不受影响）
+- `OpenAICompatProvider` 子类（kimi/volcengine/deepseek/minimax/zhipu）自动继承 chat_stream 方法，复用各自的 `_build_payload` 行为
+- 旧端点 `POST /api/session/{sid}/chat` 保留非流式行为，向后兼容
+
+### 修复
+
+- 前端 thinking 气泡 raw 显示 `__stream__:{...}` 文本 bug（`slice(10)` off-by-one，应为 `slice(11)`）
+
+### DB Schema 升级
+
+V2-C → V2-D：**无 schema 变更**。直接拉新代码即可。
+
+### 实测数据（curl + 真实 LLM，等边三角形）
+
+| 时间戳 | 事件 |
+|---|---|
+| 0.03s | STAGE#1 llm 流式到达 |
+| 4.77s | 第一个 TOKEN 到达（GLM-5.2 首字延迟） |
+| 4.97s | OBJ#1: A (point) — partial JSON 识别成功 |
+| 5.17s | OBJ#2: B (point) |
+| 5.37s | OBJ#3: C / OBJ#4: AB (segment) |
+| 5.57s-5.77s | OBJ#5: BC / TOKEN#20 |
+| 5.97s | OBJ#6: CA (segment) |
+| 6.66s | OBJ#7: tri (polygon) — 全部对象识别完成 |
+| 8.16s | STAGE#2,3,4 patch/solve/render（之间无阻塞，同时到达符合预期） |
+| 8.17s | DONE ok=true |
+
+总计：40 个 token + 7 个 object_seen 事件，全程 8.17s。
+
+**用户体感对比**：
+- 旧版本（V2-C）：用户看到"正在理解题意..." 干等 8-17s，期间什么都看不到
+- 新版本（V2-D token-level）：用户看到"正在理解题意..." → 4-5s 后 dots 动画继续，thinking 气泡开始显示"已识别对象"列表 → "✓ 点 A" → "✓ 点 B" → ... → "✓ 多边形 tri"，用户全程看到 AI 正在生成什么对象
+
+### 火山 GLM-5.2 stream=True 验证
+
+直接 curl 火山方舟 coding/v3 endpoint 验证 `stream=True`：
+- status=200, content-type=text/event-stream ✅
+- 59 个 token chunks，跨 3.28 秒（首 token 6.69s，末 9.97s）
+- 标准 OpenAI SSE 格式（`data: {...}\n\n` + `data: [DONE]`）
+- coding/v3 endpoint 完全支持 stream=True，与 json_mode 互斥但本就不用 json_mode（火山 `supports_json_mode=False`）
+
+### 关键诊断命令（下一轮接手验证流式是否正常）
+
+```bash
+# 启动后端（默认 uvloop + httptools 即可，不需要 h11）
+cd backend && .venv/bin/uvicorn app.main:app --reload
+
+# 用 127.0.0.1（不要用 localhost，会被 SurrealDB 拦截）
+SID=$(curl -s -X POST http://127.0.0.1:8000/api/session \
+  -H "Content-Type: application/json" \
+  -d '{}' | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])")
+
+curl -N -X POST "http://127.0.0.1:8000/api/session/$SID/chat/stream" \
+  -H "Content-Type: application/json" \
+  -d '{"nl":"画一个等边三角形","provider":null}'
+```
+
+预期：先收到 `event: stage llm`，几秒后逐个收到 `event: token` 和 `event: object_seen`（A/B/C/AB/BC/CA/tri），最后 `event: done`。
+
+### 环境注意事项
+
+- 用户的 `localhost:8000` 被 **SurrealDB** 占用（IPv6 解析问题），必须用 `127.0.0.1:8000`
+- 用户的 uvicorn PID 在 `localhost:irdmi`（端口 8000 别名）监听，但 `localhost` 解析到 SurrealDB
+- 前端 vite proxy 配置在 `frontend/vite.config.ts`，指向 `http://127.0.0.1:8000`（正确）
+
+### 调研笔记（参考 open-webui + cherry-studio）
+
+实现前调研了两个开源项目的 SSE 实现：
+
+**open-webui**（Python/FastAPI 后端）：
+- stage 事件根本不走 SSE，走 Socket.IO WebSocket。SSE 只在「WebSocket 不可用」时作为 fallback
+- HTTP 端点立即返回普通 JSON `{status: True, task_ids: [...]}`，真正处理在后台 task 跑，每阶段通过 `event_emitter` 推 WebSocket
+- 不用 sse-starlette，没有特殊 uvicorn 参数
+- 启发：双通道架构能彻底消解 SSE 缓冲问题，但本次未采用（改动量大）
+
+**cherry-studio**（Electron + Vercel AI SDK）：
+- 前端不直接 fetch，所有 SSE 解析在 Node.js 主进程用 Vercel AI SDK + `eventsource-parser@3.0.8` 完成
+- Vercel AI SDK 不设 `Accept: text/event-stream`，纯 fetch + `response.body.pipeThrough()`
+- `eventsource-parser` 提供 `EventSourceParserStream`（TransformStream），3KB
+- 启发：RAF 批量 flush 模式（每秒 30-50 token 时用），本次 stage 级流式间隔秒级未采用；token 显示方案 B（partial JSON 解析后描述）正是借鉴此项目
+
+**调研结论**：
+- 前端 SSE 解析不是问题，问题在后端 ASGI flush
+- `--http h11 --loop asyncio` 跟默认配置行为一致，不需要切换
+- 不需要上 sse-starlette 库（默认 StreamingResponse 已能流式）
+- 真正的"用户看不到流式"问题是 LLM 阻塞期间没有 token 流——本次升级解决
+
+---
+
+## V2-C — PPT 字体 outline 化（当前版本）
+
+**测试状态**：162/162 通过（W13-B.1 151 + V2-C 11）
+
+**目标**：解决老师试用反馈中"复制到 PPT 后中文/特殊符号字体丢失"的问题。把 `<text>` 元素替换成 `<path>` 几何路径，文字变矢量 outline，跨平台一致。
+
+### 新增
+
+**后端 — 安全表达式沙箱复用，新增文本→path 模块**
+- `app/render/text_to_path.py`（新文件，~110 LOC）：
+  - 加载内置 Source Han Sans SC 子集字体（`backend/assets/fonts/SourceHanSansSC-Subset.otf`，28KB）
+  - `text_to_svg_paths(text, x, y, font_size, fill, anchor)`：返回 `<path>` 字符串拼接
+  - 坐标变换：fonttools 字形 path 用字体坐标系（y 向上、em 单位），用 `transform="translate(x y) scale(s -s) translate(cx_font 0)"` 映射到 SVG 像素坐标（y 翻转）
+  - 支持 anchor=start/middle/end 三种对齐
+  - 缺字符（如 ★）自动跳过，不报错
+  - 字符 → path 缓存，二次访问零成本
+  - 字体惰性加载（首次调用时），线程安全
+- `backend/assets/fonts/SourceHanSansSC-Subset.otf`（新文件，28KB）：
+  - 来源：Source Han Sans SC Regular（Adobe + Google 开源，OFL 许可）
+  - 子集化：用 `pyftsubset` 保留画图所需字符集（A-Z / a-z / 0-9 / ° / π / × / ÷ / = / + / - / . / 括号 / 中文「原点边角长宽高平垂直弧切径心距上下左右中外内接等腰直角三角形四边形多边形圆线段直线」/ 中文标点）
+  - 完整字体 90MB → 子集 28KB，体积可控
+
+**测试 — V2-C**
+- `tests/test_v2c_text_to_path.py`（11 个测试）：
+  - text_to_path 模块：字体可用、单字符 path、多字符拼接、anchor 对齐、缺字符跳过、缓存命中、中文字符（7）
+  - render_svg 集成：默认走 `<text>`、outline 走 `<path>`、几何元素保持不变、坐标系刻度数字也 outline（4）
+
+### 变更
+
+**后端 — render_svg 新增 outline_text 参数**
+- `app/render/svg.py`：
+  - `render_svg()` 新增 `outline_text: bool = False` 参数
+  - 抽出模块级 `_render_text()` 函数：默认输出 `<text>`，outline 模式调用 `text_to_path.text_to_svg_paths()` 输出 `<path>`
+  - 8 处 `<text>` 元素全部改走 `text_el`/`_render_text`：点标签 / 派生点标签 / 注解 / 坐标系刻度数字（x 轴 + y 轴）/ 坐标系单位标签 x/y / 原点 O
+  - `_render_axis()` 新增 `text_el` 参数，把文本渲染回调传进去
+  - 默认行为不变（`outline_text=False`）：浏览器渲染 `<text>` 性能好、可交互（hover/选中）
+
+**后端 — 导出强制 outline**
+- `app/api/export.py::_current_svg`：调用 `render_svg(dsl, sol, outline_text=True)`
+  - SVG / PNG / PDF 三种导出格式全部走 outline 模式
+  - 旧行为：导出 SVG 含 `<text font-family="...">A</text>`，复制到 PPT 字体替换导致中文/特殊符号丢失
+  - 新行为：导出 SVG 含 `<path d="M4 0H97..."/>`，文字变矢量，跨平台一致
+
+**依赖 / 部署**
+- `backend/pyproject.toml`：新增 `fonttools>=4.50` 依赖
+- `backend/Dockerfile`：新增 `COPY assets ./assets`（让字体进镜像）
+
+### 修复
+
+- 无（V2-C 是纯新增 + 兼容变更，所有 151 个旧测试无回归）
+
+### DB Schema 升级
+
+W13-B.1 → V2-C：**无 schema 变更**。直接拉新代码 + `pip install fonttools` 即可。
+
+### 字体子集化命令（备查）
+
+```bash
+# 完整字体 90MB 下载（来自 adobe-fonts GitHub release）
+curl -sL -o /tmp/SourceHanSansSC.zip \
+  "https://github.com/adobe-fonts/source-han-sans/releases/download/2.004R/SourceHanSansSC.zip"
+unzip /tmp/SourceHanSansSC.zip -d /tmp/SourceHanSansSC
+
+# 子集化保留画图字符集（90MB → 28KB）
+.venv/bin/pyftsubset \
+  /tmp/SourceHanSansSC/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf \
+  --text="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789°π×÷=+-.,()[]{}原点边角长宽高平垂直弧切径心距上下左右中外内接等腰直角三角形四边形多边形圆线段直线甲乙丙丁一二三四五六七八九十" \
+  --output-file=backend/assets/fonts/SourceHanSansSC-Subset.otf
+```
+
+未来若需要扩充字符集（如新增中文标签），用上述命令重新生成子集字体即可。
+
+---
+
+## W13-B.1 — Provider 配置修补（kimi 网络提示 + doubao 降级 + 端点对齐）
+
+**测试状态**：151/151 通过（W13-B 149 + 2 新增）
+
+**目标**：修 provider 配置问题——① kimi 切换报网络错误时提示文案误导（只列了智谱/火山/DeepSeek 域名，没列 moonshot）；② kimi `.env` base_url 写错域名；③ Doubao-Seed-2.1-pro/turbo 太新火山 Coding Plan 不支持，且按 `model_config_v02.md` doubao 应与 glm-5.2 共用 coding/v3 端点。
+
+### 修复
+
+**后端 — 错误提示按 Provider 动态生成域名**
+- `app/api/errors.py`：
+  - 新增 `_PROVIDER_DOMAIN` 映射（zhipu/volcengine/deepseek/minimax/kimi → 域名）
+  - 新增 `_network_hint(provider)`：根据 `LLMError.provider` 取对应厂商域名生成 hint
+  - 多模型注册的带后缀 name（如 `kimi_k26` / `volcengine_doubao_pro`）取首个下划线前的前缀匹配厂商域名
+  - 旧行为：网络错误 hint 写死 "检查后端机器到 open.bigmodel.cn / ark.cn-beijing / api.deepseek.com 的网络" —— 切到 kimi/minimax 时误导用户
+  - 新行为：kimi 报错时提示 "检查后端机器到 api.moonshot.cn 的网络（provider=kimi_k26）"
+
+**配置 — kimi base_url 根因修正**
+- `backend/.env`：`MOONSHOT_BASE_URL` 误写成 `https://api.moonshot.ai/v1`（`.ai`），覆盖了代码正确的默认值 `https://api.moonshot.cn/v1`（`.cn`），导致 kimi 全线连接失败报"网络异常或超时"。已改回 `.cn`
+- `backend/model_config.md`：MoonshotAI BASE_URL 同步由 `.ai` 更正为 `.cn`
+- 代码默认值（`kimi.py` / `router.py` / `errors.py` 域名映射）本就是 `.cn`，无需改动
+
+**后端 — kimi-k2.6 关闭 thinking 避免超时**
+- `app/llm/kimi.py`：`KimiProvider._build_payload` 对 `kimi-k2.6` 传 `thinking.type=disabled`
+  - 根因：据 Moonshot 官方文档，kimi-k2.6 是通用思考模型、默认开启 thinking；复杂题（如折叠+多约束）推理 >120s 触发超时（60s 首次 + 120s 重试均失败），日志反复出现 `llm.chat.timeout_retry` 无后续 `llm.chat.ok`
+  - kimi-k2.7-code 始终 thinking 且无法关闭（传 disabled 报错），不处理；日志显示其 17-81s 能完成
+  - 画图 DSL 是结构化输出，无需深度推理，关闭 thinking 保证响应速度
+- 新增测试 `test_kimi_payload_disables_thinking_for_k26`：验证 k2.6 payload 含 `thinking=disabled`、k2.7 不含、temperature 均被移除
+
+### 变更
+
+**后端 — Doubao 模型降级 + 端点对齐 model_config_v02**
+- `app/llm/router.py`：
+  - 删除 `doubao-seed-2-1-pro-260628`（`volcengine_doubao_pro`）和 `doubao-seed-2-1-turbo-260628`（`volcengine_doubao_turbo`）两个注册
+  - 替换为 `Doubao-Seed-2.0-pro`（保留 provider name `volcengine_doubao_pro`）
+  - **端点改用 coding/v3**（复用 `VOLCENGINE_BASE_URL`，默认 `https://ark.cn-beijing.volces.com/api/coding/v3`），与 glm-5.2 共用火山方舟 CodingPlan 端点
+  - 旧行为：doubao 走标准 v3 端点 `api/v3`、模型名 `doubao-seed-2-0-pro`
+  - 新行为：按 `model_config_v02.md`，doubao 与 glm-5.2 同属火山方舟 CodingPlan，共用 coding/v3 端点、模型名 `Doubao-Seed-2.0-pro`
+- `backend/.env.example`：多模型注册说明同步更新（删 turbo 行、pro 行模型名改为 `Doubao-Seed-2.0-pro`）
+
+**前端 — Provider 下拉仅显示 Model Name**
+- `frontend/src/components/ProviderSwitch.tsx`：
+  - 删除 `labelOf` / `shorten`，下拉项直接用 `p.model || p.name`
+  - 旧行为：显示「智谱 glm-5.2」「火山方舟 Doubao-Seed…」（厂商前缀 + 模型名）
+  - 新行为：仅显示模型名（如 `glm-5.2` / `Doubao-Seed-2.0-pro` / `kimi-k2.6`）
+
+**前端 — 未配置的 Provider 不显示**
+- `frontend/src/components/ProviderSwitch.tsx`：下拉只渲染 `enabled` 的 provider，未配置的（如未填 Key 的 `glm-4.5`）不再出现
+- `frontend/src/store/index.ts::init`：若 localStorage 缓存的 provider 已不在 enabled 列表，自动回退到后端 default，避免选中失效 provider
+
+**测试**
+- `tests/test_w6_ops.py`：
+  - `test_classify_llm_network_error` 加断言 hint 含 `open.bigmodel.cn`
+  - 新增 `test_classify_llm_network_hint_per_provider`：覆盖 5 个基础 provider + 4 个带后缀多模型 name 的域名匹配
+- `tests/test_w2_llm.py` / `tests/test_w3_api.py`：删除 `volcengine_doubao_turbo` 断言
+
+### DB Schema 升级
+
+W13-B → W13-B.1：**无 schema 变更**。
+
+---
+
+## W13-B — 约束诊断 + LLM 二次修复回路
 
 **测试状态**：149/149 通过（W13-A 145 + W13-B 4）
 

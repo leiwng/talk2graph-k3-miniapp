@@ -18,6 +18,8 @@ WORKDIR /app
 # 先复制依赖文件，利用 Docker 缓存
 COPY pyproject.toml ./
 COPY app ./app
+# V2-C：思源黑体子集字体（28KB），用于把 <text> outline 化为 <path>
+COPY assets ./assets
 
 # 安装；省略 [dev] 不带测试依赖
 # PIP_INDEX_URL 通过 ENV 注入清华镜像，国内可避免 pypi.org/pythonhosted 超时
