@@ -157,8 +157,8 @@
 
 ### 配置变更
 
-- `backend/.env`：`DEFAULT_PROVIDER` 从 `volcengine` 改为 `deepseek`（基于评测结果，deepseek v4-flash 通过率 73.5% vs volcengine 52.9%）
-- 新增 `T2G_FALLBACK_PROVIDERS=deepseek,volcengine,kimi_k26`
+- `backend/.env`：`DEFAULT_PROVIDER` 从 `volcengine` 改为 `volcengine_doubao_pro`（基于评测结果，doubao-pro 通过率 82.4% vs volcengine 51.5% vs deepseek 61.8%）
+- 新增 `T2G_FALLBACK_PROVIDERS=volcengine_doubao_pro,kimi_k26,deepseek`
 
 ### DB Schema 升级
 
@@ -180,16 +180,41 @@ T2G_DEBUG_UI=true   # 开发期建议设 true，生产期 false
 T2G_FALLBACK_PROVIDERS=volcengine,deepseek,kimi_k26
 ```
 
-### LLM 多 Provider 评测（进行中 / 实跑结果待补）
+### LLM 多 Provider 评测结果（2026-07-07 完成）
 
 启动命令：
 ```bash
 cd backend && .venv/bin/python scripts/eval_multi_providers.py --concurrency 2
 ```
 
-预期输出：`test/results_chengdu_multi/comparison.md`（含 5 张表）+ 每家子目录 `results.json`。
+输出：`test/results_chengdu_multi/comparison.md`（含 5 张表）+ 每家子目录 `results.json` + `svgs/<id>_<provider>.svg`
 
-> 实测数据将在脚本跑完后回填到本块。
+#### 总览（按通过率排序）
+
+| 排名 | Provider | 通过率 | 符合预期 | p50 延迟 | 平均残差 | 成本(元) |
+|---|---|---|---|---|---|---|
+| 🥇 | `volcengine_doubao_pro` (Doubao-Seed-2.0-pro) | **82.4%** (56/68) | 82.4% (56) | 54.7s | 2.0e-06 | 1.144 |
+| 🥈 | `kimi_k26` (kimi-k2.6) | 69.1% (47/68) | **83.8%** (57) | 19.4s | 8.2e-07 | 1.096 |
+| 🥉 | `deepseek_v4_pro` (deepseek-v4-pro 推理模型) | 64.7% (44/68) | 69.1% (47) | 55.7s | 1.3e-06 | 3.582 |
+| 4 | `deepseek` (deepseek-v4-flash) | 61.8% (42/68) | 73.5% (50) | 30.6s | 9.6e-08 | 0.845 |
+| 5 | `minimax` (MiniMax-M3) | 60.3% (41/68) | 76.5% (52) | **9.4s** ⚡ | 2.2e-06 | 0.541 |
+| 6 | `kimi_k27_code` (kimi-k2.7-code) | 52.9% (36/68) | 57.4% (39) | 114.0s | 1.3e-06 | 0.990 |
+| 7 | `volcengine` (glm-5.2) | 51.5% (35/68) | 54.4% (37) | 111.2s | 2.3e-06 | **0.466** 💰 |
+| 8 | `kimi_k27_code_hs` (kimi-k2.7-code-highspeed) | 48.5% (33/68) | 55.9% (38) | 17.5s | 9.0e-10 | 0.655 |
+
+#### 关键发现
+
+1. **Doubao-Seed-2.0-pro 是真正的王者**：通过率 82.4%，远超第二名 kimi-k2.6 (69.1%)。它跟 volcengine glm-5.2 用同一套火山方舟 CodingPlan API Key，只是 endpoint model 名不同，不增加运维成本。
+2. **kimi-k2.6 符合预期率最高 (83.8%)**：通过率不是第一但"会拒绝做不了的题"（refuse），不像其他模型会硬画出错的图。
+3. **deepseek-v4-pro 是最差投资**：推理模型延迟高 (55.7s) + 成本最贵 (¥3.582) + 通过率只有 64.7%，完全不值。
+4. **glm-5.2 通过率垫底之一 (51.5%)**：但成本最低 (¥0.466) + 残差精度优秀，适合作 fallback 兜底。
+5. **MiniMax-M3 是速度之王**：p50=9.4s，是其他家的 1/3，适合实时交互场景。
+
+#### 最终配置
+
+基于评测结果：
+- `DEFAULT_PROVIDER=volcengine_doubao_pro`（通过率 82.4% 最高，复用火山 Key）
+- `T2G_FALLBACK_PROVIDERS=volcengine_doubao_pro,kimi_k26,deepseek`（3 家不同厂商，故障隔离）
 
 ---
 
