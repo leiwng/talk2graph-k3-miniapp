@@ -68,6 +68,16 @@ class LLMProvider(Protocol):
         timeout: float = 60.0,
     ) -> ChatResponse: ...
 
+    async def chat_stream(
+        self,
+        messages: list[ChatMessage],
+        *,
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 4096,
+        timeout: float = 120.0,
+    ) -> AsyncIterator[str]: ...
+
 
 class OpenAICompatProvider:
     """OpenAI 兼容 chat completions Provider 基类。
@@ -172,6 +182,79 @@ class OpenAICompatProvider:
             latency_ms=latency_ms,
             provider=self.name,
             model=self.model,
+        )
+
+    async def chat_stream(
+        self,
+        messages: list[ChatMessage],
+        *,
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 4096,
+        timeout: float = 120.0,
+    ) -> AsyncIterator[str]:
+        """流式调用 LLM，逐 token yield content（delta.content）。
+
+        用 OpenAI SSE 协议：每个 chunk 是 `data: {...}\\n\\n`，
+        提取 choices[0].delta.content yield 给上层。
+
+        注意：
+        - stream=True 时一般不传 response_format=json_object（OpenAI 兼容
+          endpoint 普遍不支持 stream + json_object 组合）。火山 GLM-5.2 本来
+          就 supports_json_mode=False，可以放心去掉 response_format。
+        - 不返回 usage（流式响应末尾才可能有，且各家实现不一致），调用方需要
+          的话在收到 [DONE] 后另算或用 Anthropic/OpenAI 的最终事件。
+        """
+        if not self.enabled:
+            raise LLMError(self.name, None, "API key not configured")
+        payload = self._build_payload(
+            messages,
+            json_mode=json_mode,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        payload["stream"] = True
+        # 流式与 json_object 模式互斥（OpenAI/火山/智谱均如此），统一去掉
+        payload.pop("response_format", None)
+
+        t0 = time.perf_counter()
+        url = self.base_url.rstrip("/") + "/chat/completions"
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                async with client.stream(
+                    "POST", url, headers=self._headers(), json=payload
+                ) as r:
+                    if r.status_code >= 400:
+                        body = await r.aread()
+                        raise LLMError(
+                            self.name, r.status_code, body.decode("utf-8", "replace")[:300]
+                        )
+                    async for line in r.aiter_lines():
+                        if not line or not line.startswith("data: "):
+                            continue
+                        data = line[6:]
+                        if data == "[DONE]":
+                            break
+                        try:
+                            obj = json.loads(data)
+                        except json.JSONDecodeError:
+                            continue
+                        choices = obj.get("choices") or []
+                        if not choices:
+                            continue
+                        delta = choices[0].get("delta") or {}
+                        content = delta.get("content")
+                        if content:
+                            yield content
+        except httpx.HTTPError as e:
+            raise LLMError(self.name, None, f"network error: {e}") from e
+
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        log.info(
+            "llm.chat_stream.ok",
+            provider=self.name,
+            model=self.model,
+            latency_ms=latency_ms,
         )
 
 

@@ -37,17 +37,28 @@ export const useStore = create((set, get) => ({
     loading: true,
     busy: false,
     errorBanner: null,
+    activeTab: 'chat',
+    debugUI: false,
     async init() {
         set({ loading: true });
         try {
+            // 拉 /api/health 拿 debug_ui 标志
+            try {
+                const h = await api.health();
+                set({ debugUI: h.debug_ui === true });
+            }
+            catch {
+                /* 后端旧版本不带 debug_ui 字段，默认 false */
+            }
             const provs = await api.listProviders();
             set({
                 availableProviders: provs.providers,
                 defaultProvider: provs.default,
             });
-            // 当前 provider：localStorage > server default
+            // 当前 provider：localStorage > server default；若缓存的 provider 未配置则回退到 default
             const cached = localStorage.getItem(LS.providerName);
-            if (!cached) {
+            const enabledNames = provs.providers.filter((p) => p.enabled).map((p) => p.name);
+            if (!cached || !enabledNames.includes(cached)) {
                 set({ providerName: provs.default });
             }
         }
@@ -172,14 +183,121 @@ export const useStore = create((set, get) => ({
             busy: true,
             errorBanner: null,
         });
+        // V2-D：stage → 中文文案
+        const stageText = {
+            llm: '正在理解题意',
+            patch: '正在修改图形',
+            solve: '正在求解几何约束',
+            repair: '图形不收敛，正在尝试修正',
+            render: '正在渲染图形',
+        };
+        // 流式状态：当前 stage + 已识别对象列表 + 首字延迟期标志
+        // thinking 气泡 content 用 `__stream__:<json>` 表示，ChatPanel 解析渲染
+        // 改进 3：waiting=true 表示 LLM 首字延迟期（stage=llm 后 2s 还没收到 token）
+        //   显示"AI 正在准备输出..."次级提示，避免干等
+        // 改进 4：onObjectSeen 不直接 set，而是用 RAF 批量 flush，避免每对象触发 re-render
+        const streamState = {
+            stage: '',
+            objects: [],
+            waiting: false,
+        };
+        let pendingObjects = [];
+        let rafHandle = null;
+        let firstTokenReceived = false;
+        let waitingTimer = null;
+        let streamClosed = false;
+        const updateThinking = () => {
+            const content = `__stream__:${JSON.stringify(streamState)}`;
+            const msgs = get().messages.map((m) => m.id === tempId - 1 ? { ...m, content } : m);
+            set({ messages: msgs });
+        };
+        const flushPending = () => {
+            rafHandle = null;
+            if (streamClosed || pendingObjects.length === 0)
+                return;
+            for (const o of pendingObjects) {
+                streamState.objects.push(o);
+            }
+            pendingObjects = [];
+            updateThinking();
+        };
+        const scheduleFlush = () => {
+            if (rafHandle === null) {
+                rafHandle = requestAnimationFrame(flushPending);
+            }
+        };
+        const onStage = (stage) => {
+            streamState.stage = stage;
+            // V2-E：fallback 切换模型时清空之前 provider 推的对象，避免重复显示
+            if (stage === 'fallback') {
+                streamState.objects = [];
+                // 重置首字延迟：新 provider 重新计时
+                firstTokenReceived = false;
+                streamState.waiting = false;
+                if (waitingTimer !== null) {
+                    clearTimeout(waitingTimer);
+                    waitingTimer = null;
+                }
+                // 2 秒后若新 provider 也没收到 token，再次显示准备提示
+                waitingTimer = window.setTimeout(() => {
+                    if (!firstTokenReceived && !streamClosed) {
+                        streamState.waiting = true;
+                        updateThinking();
+                    }
+                }, 2000);
+                updateThinking();
+                return;
+            }
+            if (stage === 'llm') {
+                streamState.waiting = false;
+                // 2 秒后若还没收到 token，显示准备提示
+                waitingTimer = window.setTimeout(() => {
+                    if (!firstTokenReceived && !streamClosed) {
+                        streamState.waiting = true;
+                        updateThinking();
+                    }
+                }, 2000);
+            }
+            else {
+                // 离开 llm 阶段：清除等待状态
+                if (waitingTimer !== null) {
+                    clearTimeout(waitingTimer);
+                    waitingTimer = null;
+                }
+                streamState.waiting = false;
+            }
+            updateThinking();
+        };
+        const onToken = (_text) => {
+            // 不显示原始 token 内容，只用于标记首字到达
+            if (!firstTokenReceived) {
+                firstTokenReceived = true;
+                if (waitingTimer !== null) {
+                    clearTimeout(waitingTimer);
+                    waitingTimer = null;
+                }
+                if (streamState.waiting) {
+                    streamState.waiting = false;
+                    updateThinking();
+                }
+            }
+        };
+        const onObjectSeen = (id, kind) => {
+            pendingObjects.push({ id, kind });
+            scheduleFlush();
+        };
         try {
-            const res = await api.chat(sid, nl, get().providerName);
+            // 生产模式（debugUI=false）：不传 provider，让后端按 fallback chain 自动选
+            // 调试模式：传用户在 ProviderSwitch 选的 providerName
+            const providerForReq = get().debugUI ? get().providerName : null;
+            const res = await api.chatStream(sid, nl, providerForReq, onStage, onToken, onObjectSeen);
             if (res.ok && res.dsl) {
                 set({
                     dsl: res.dsl,
                     solution: res.solution || null,
                     svg: res.svg || null,
                     seq: res.seq || 0,
+                    activeTab: 'canvas',
                 });
             }
             else if (res.error_kind === 'refuse') {
@@ -227,6 +345,16 @@ export const useStore = create((set, get) => ({
             }
         }
         finally {
+            // V2-D 改进：清理 RAF + 等待定时器，防止泄漏
+            streamClosed = true;
+            if (rafHandle !== null) {
+                cancelAnimationFrame(rafHandle);
+                rafHandle = null;
+            }
+            if (waitingTimer !== null) {
+                clearTimeout(waitingTimer);
+                waitingTimer = null;
+            }
             set({ busy: false });
         }
     },
@@ -301,6 +429,9 @@ export const useStore = create((set, get) => ({
     setProvider(name) {
         localStorage.setItem(LS.providerName, name);
         set({ providerName: name });
+    },
+    setActiveTab(t) {
+        set({ activeTab: t });
     },
     dismissError() {
         set({ errorBanner: null });

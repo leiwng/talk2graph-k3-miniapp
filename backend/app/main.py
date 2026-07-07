@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import admin, chat, export, providers, session
+from .api import admin, chat, chat_stream, export, providers, session
 from .config import settings
 from .db.session import init_db
 from .logging_setup import setup_logging
@@ -35,13 +35,18 @@ def create_app() -> FastAPI:
     )
     app.include_router(session.router)
     app.include_router(chat.router)
+    app.include_router(chat_stream.router)
     app.include_router(export.router)
     app.include_router(providers.router)
     app.include_router(admin.router)
 
     @app.get("/api/health")
     async def health() -> dict:
-        return {"status": "ok", "version": app.version}
+        return {
+            "status": "ok",
+            "version": app.version,
+            "debug_ui": settings.debug_ui,
+        }
 
     return app
 

@@ -4,7 +4,7 @@ from .extractor import ExtractResult, extract_dsl, build_messages
 from .kimi import KimiProvider
 from .minimax import MiniMaxProvider
 from .mock import MockProvider
-from .router import LLMRouter, get_router
+from .router import LLMRouter, get_router, is_retryable
 from .volcengine import VolcengineProvider
 from .zhipu import ZhipuProvider
 
@@ -13,5 +13,5 @@ __all__ = [
     "ExtractResult", "extract_dsl", "build_messages",
     "MockProvider", "ZhipuProvider", "VolcengineProvider", "DeepSeekProvider",
     "MiniMaxProvider", "KimiProvider",
-    "LLMRouter", "get_router",
+    "LLMRouter", "get_router", "is_retryable",
 ]

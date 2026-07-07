@@ -316,6 +316,68 @@ async def _repair_solve_with_llm(
     return dsl
 
 
+async def _repair_solve_with_llm_streaming(
+    provider: LLMProvider, nl: str, residual: float, diagnosis: str
+):
+    """流式版 _repair_solve_with_llm。yield 事件 dict：
+
+    - {"type": "token", "text": "..."}
+    - {"type": "object_seen", "id": "X", "kind": "Y"}
+    - {"type": "done", "dsl": DSL | None}  — 修正成功返回 DSL，失败 None
+
+    复用同款 prompt（repair_solve.txt）；与 extract_dsl_streaming 共用
+    partial JSON object 提取，让前端在 repair 期间也看到 token 流。
+    """
+    from pathlib import Path
+    from ..dsl import DSLValidationError, validate
+    from ..llm.base import parse_json_response
+    from ..llm.extractor import _extract_seen_objects, build_messages
+
+    prompt_path = Path(__file__).parent.parent / "llm" / "prompts" / "repair_solve.txt"
+    if not prompt_path.exists():
+        yield {"type": "done", "dsl": None}
+        return
+
+    template = prompt_path.read_text(encoding="utf-8")
+    user_msg = template.format(residual=f"{residual:.3e}", diagnosis=diagnosis, nl=nl)
+    messages = build_messages(nl=user_msg, current_dsl=None)
+
+    buffer = ""
+    seen: set[tuple[str, str]] = set()
+    try:
+        async for token in provider.chat_stream(
+            messages, json_mode=True, temperature=0.1, timeout=120.0
+        ):
+            buffer += token
+            yield {"type": "token", "text": token}
+            new_objs = _extract_seen_objects(buffer)
+            for obj_id, kind in new_objs - seen:
+                seen.add((obj_id, kind))
+                yield {"type": "object_seen", "id": obj_id, "kind": kind}
+    except LLMError:
+        yield {"type": "done", "dsl": None}
+        return
+
+    try:
+        parsed = parse_json_response(buffer)
+    except ValueError:
+        yield {"type": "done", "dsl": None}
+        return
+
+    if not isinstance(parsed, dict) or "objects" not in parsed:
+        yield {"type": "done", "dsl": None}
+        return
+
+    try:
+        dsl = DSL.model_validate(parsed)
+        validate(dsl)
+    except (DSLValidationError, ValueError, TypeError):
+        yield {"type": "done", "dsl": None}
+        return
+
+    yield {"type": "done", "dsl": dsl}
+
+
 # ---------------------------------------------------------------------------
 # Refuse message friendly formatter
 # ---------------------------------------------------------------------------

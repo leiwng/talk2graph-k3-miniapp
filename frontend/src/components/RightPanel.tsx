@@ -12,8 +12,11 @@ export function RightPanel() {
     return (
       <section className="right-panel">
         <div className="section-header">对象</div>
-        <div style={{ padding: 12, color: 'var(--muted)', fontSize: 12 }}>
-          （空）
+        <div style={{
+          padding: 24, color: 'var(--muted)', fontSize: 12,
+          textAlign: 'center', lineHeight: 1.7,
+        }}>
+          画一个图形后<br />这里会显示对象列表
         </div>
       </section>
     )
@@ -71,7 +74,7 @@ function ObjectItem({
   const meta = describeObject(obj)
   return (
     <div
-      className={`tree-item ${selected ? 'selected' : ''}`}
+      className={`tree-item obj-${obj.kind} ${selected ? 'selected' : ''}`}
       onClick={onClick}
     >
       <span>
@@ -200,7 +203,9 @@ function PropertyPanel() {
     return (
       <div className="properties">
         <h4>属性</h4>
-        <div style={{ color: 'var(--muted)' }}>点击左侧对象查看属性</div>
+        <div style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.6 }}>
+          点击上方对象查看属性
+        </div>
       </div>
     )
   }

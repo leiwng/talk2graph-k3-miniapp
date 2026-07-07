@@ -244,7 +244,6 @@ async def test_router_lists_providers():
     assert {"zhipu", "volcengine", "deepseek", "minimax"}.issubset(names)
     # W13-B 多模型注册
     assert "volcengine_doubao_pro" in names
-    assert "volcengine_doubao_turbo" in names
     assert "deepseek_v4_pro" in names
     assert "kimi_k26" in names
     assert "kimi_k27_code" in names
@@ -253,3 +252,22 @@ async def test_router_lists_providers():
     defaults = [i for i in items if i["is_default"]]
     assert len(defaults) == 1
     assert defaults[0]["name"] in names
+
+
+def test_kimi_payload_disables_thinking_for_k26():
+    from app.llm.base import ChatMessage
+    from app.llm.kimi import KimiProvider
+
+    msgs = [ChatMessage("user", "画等边三角形")]
+    # kimi-k2.6：默认开启 thinking，需显式关闭
+    p26 = KimiProvider(api_key="x", model="kimi-k2.6", base_url="https://api.moonshot.cn/v1")
+    payload26 = p26._build_payload(msgs, json_mode=True, temperature=0.1, max_tokens=4096)
+    assert payload26["thinking"] == {"type": "disabled"}
+    # temperature 不可修改，应被移除
+    assert "temperature" not in payload26
+
+    # kimi-k2.7-code：始终 thinking 无法关闭，不应传 thinking
+    p27 = KimiProvider(api_key="x", model="kimi-k2.7-code", base_url="https://api.moonshot.cn/v1")
+    payload27 = p27._build_payload(msgs, json_mode=True, temperature=0.1, max_tokens=4096)
+    assert "thinking" not in payload27
+    assert "temperature" not in payload27

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
-import { ExampleHints } from './TopBar'
+import { EXAMPLES } from './TopBar'
 import type { Message } from '../api/types'
 
 export function ChatPanel() {
@@ -26,18 +26,19 @@ export function ChatPanel() {
     await sendChat(v)
   }
 
+  const sendExample = async (nl: string) => {
+    if (busy) return
+    setText('')
+    await sendChat(nl)
+  }
+
+  const showWelcome = messages.length === 0 && seq === 0
+
   return (
-    <section>
+    <section className="chat-panel">
       <div className="section-header">对话</div>
       <div className="chat-list" ref={listRef}>
-        {messages.length === 0 && seq === 0 && (
-          <>
-            <div className="chat-msg assistant">
-              你好，老师。说一句话我就给你画图。
-            </div>
-            <ExampleHints onClick={(t) => setText(t)} />
-          </>
-        )}
+        {showWelcome && <WelcomeCard onPick={sendExample} />}
         {messages.map((m) => (
           <ChatMsgItem key={m.id} msg={m} />
         ))}
@@ -58,7 +59,7 @@ export function ChatPanel() {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="例如：画一个内切圆半径为 3 的等腰三角形"
+          placeholder="试试：画一个等边三角形 ABC，边长为 4"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               e.preventDefault()
@@ -78,6 +79,48 @@ export function ChatPanel() {
   )
 }
 
+function WelcomeCard({ onPick }: { onPick: (nl: string) => void }) {
+  return (
+    <>
+      <div className="welcome-card">
+        <h2 className="welcome-title">你好，老师 👋</h2>
+        <p className="welcome-desc">
+          说一句话，我就给你画几何图形。支持初中平面几何、坐标系、函数图像、几何变换。
+        </p>
+        <div className="welcome-features">
+          <div className="feature-row">
+            <span className="check">✓</span>
+            <span>自然语言作图，无需手动拖拽</span>
+          </div>
+          <div className="feature-row">
+            <span className="check">✓</span>
+            <span>支持等长、角度、相切、共线、等腰等约束</span>
+          </div>
+          <div className="feature-row">
+            <span className="check">✓</span>
+            <span>可导出 SVG / PNG / PDF 用于课件</span>
+          </div>
+        </div>
+      </div>
+      <div className="example-grid">
+        {EXAMPLES.map((ex) => (
+          <button
+            key={ex.nl}
+            className="example-card"
+            onClick={() => onPick(ex.nl)}
+          >
+            <span className="icon">{ex.icon}</span>
+            <span className="text">
+              <span className="title">{ex.title}</span>
+              <span className="desc">{ex.desc}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function ChatMsgItem({ msg }: { msg: Message }) {
   if (msg.role === 'user') {
     return (
@@ -87,11 +130,58 @@ function ChatMsgItem({ msg }: { msg: Message }) {
     )
   }
 
-  // 思考占位
-  if (msg.content === '__thinking__') {
+  // 思考占位（V2-D SSE 流式）
+  // 新格式：__stream__:<json>，含 stage + objects 列表
+  // 旧格式：__thinking__ 或 __stage__:xxx（向后兼容）
+  const stageText: Record<string, string> = {
+    llm: '正在理解题意',
+    fallback: '正在切换备选模型',
+    patch: '正在修改图形',
+    solve: '正在求解几何约束',
+    repair: '图形不收敛，正在尝试修正',
+    render: '正在渲染图形',
+  }
+  if (msg.content.startsWith('__stream__:')) {
+    try {
+      const state = JSON.parse(msg.content.slice('__stream__:'.length))
+      const text = stageText[state.stage] || '话图正在思考中'
+      return (
+        <div className="chat-msg assistant thinking">
+          <div className="thinking-stage">
+            {text}
+            <span className="dots">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </span>
+          </div>
+          {state.waiting && (
+            <div className="thinking-waiting">
+              AI 正在准备输出…
+            </div>
+          )}
+          {state.objects?.length > 0 && (
+            <div className="thinking-objects">
+              {state.objects.map((o: { id: string; kind: string }, i: number) => (
+                <div key={i} className="thinking-obj">
+                  ✓ {describeObject(o.id, o.kind)}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    } catch {
+      // 解析失败回退到旧格式
+    }
+  }
+  if (msg.content === '__thinking__' || msg.content.startsWith('__stage__:')) {
+    const stage = msg.content.startsWith('__stage__:')
+      ? msg.content.slice('__stage__:'.length) : ''
+    const text = stageText[stage] || '话图正在思考中'
     return (
       <div className="chat-msg assistant thinking">
-        话图正在思考中
+        {text}
         <span className="dots">
           <span>.</span>
           <span>.</span>
@@ -151,4 +241,20 @@ function ChatMsgItem({ msg }: { msg: Message }) {
       {preview}
     </div>
   )
+}
+
+// V2-D：把 (id, kind) 翻译成中文描述，给 thinking 气泡的"已识别对象"列表用
+function describeObject(id: string, kind: string): string {
+  switch (kind) {
+    case 'point': return `点 ${id}`
+    case 'segment': return `线段 ${id}`
+    case 'line': return `直线 ${id}`
+    case 'circle': return `圆 ${id}`
+    case 'polygon': return `多边形 ${id}`
+    case 'axis': return `坐标系 ${id}`
+    case 'curve': return `曲线 ${id}`
+    case 'transformed_point': return `派生点 ${id}`
+    case 'transformed_polygon': return `变换多边形 ${id}`
+    default: return `${id} (${kind})`
+  }
 }

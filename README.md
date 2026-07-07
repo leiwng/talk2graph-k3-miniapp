@@ -33,8 +33,10 @@
 | **W12 — on_curve 硬约束** | ✅ | v0.12.1 | 点在曲线上硬约束 + hint 残差分离 |
 | **W13-A — 求解器自适应重启** | ✅ | v0.13.0 | restarts_extra + 4 种初值策略 |
 | **W13-B — 约束诊断 + LLM 二次修复** | ✅ | v0.13.1 | solve_repair 回路 + 歧义处理 prompt |
+| **V2-C — PPT 字体 outline 化** | ✅ | — | 导出 SVG/PNG/PDF 时 text→path，跨平台字体一致 |
+| **V2-D — SSE token-level 流式** | ✅ | — | LLM 阻塞期间实时推送 token + 已识别对象列表 |
 
-**累计 149 个测试通过。**
+**累计 173 个测试通过。**
 
 ## 后端快速上手
 

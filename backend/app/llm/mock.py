@@ -4,8 +4,9 @@
 """
 from __future__ import annotations
 
+import asyncio
 import time
-from typing import Callable
+from typing import AsyncIterator, Callable
 
 from .base import ChatMessage, ChatResponse, ChatUsage, LLMError
 
@@ -42,3 +43,26 @@ class MockProvider:
             provider=self.name,
             model=self.model,
         )
+
+    async def chat_stream(
+        self,
+        messages: list[ChatMessage],
+        *,
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 4096,
+        timeout: float = 120.0,
+    ) -> AsyncIterator[str]:
+        """流式模拟：把 handler 返回的字符串切成 ~10 字一块 yield。
+
+        每块之间 await asyncio.sleep(0) 让出控制权，模拟真实 SSE 流式节奏。
+        测试不需要真实延迟，0ms 让出足够验证流式行为。
+        """
+        if self._handler is None:
+            raise LLMError(self.name, None, "no handler configured")
+        content = self._handler(messages)
+        # 切成 ~10 字一块（最后一个块可能更短）
+        chunk_size = 10
+        for i in range(0, len(content), chunk_size):
+            yield content[i : i + chunk_size]
+            await asyncio.sleep(0)

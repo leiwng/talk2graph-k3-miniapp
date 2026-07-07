@@ -7,7 +7,10 @@ export function RightPanel() {
     const applyPatch = useStore((s) => s.applyPatch);
     const busy = useStore((s) => s.busy);
     if (!dsl) {
-        return (_jsxs("section", { className: "right-panel", children: [_jsx("div", { className: "section-header", children: "\u5BF9\u8C61" }), _jsx("div", { style: { padding: 12, color: 'var(--muted)', fontSize: 12 }, children: "\uFF08\u7A7A\uFF09" })] }));
+        return (_jsxs("section", { className: "right-panel", children: [_jsx("div", { className: "section-header", children: "\u5BF9\u8C61" }), _jsxs("div", { style: {
+                        padding: 24, color: 'var(--muted)', fontSize: 12,
+                        textAlign: 'center', lineHeight: 1.7,
+                    }, children: ["\u753B\u4E00\u4E2A\u56FE\u5F62\u540E", _jsx("br", {}), "\u8FD9\u91CC\u4F1A\u663E\u793A\u5BF9\u8C61\u5217\u8868"] })] }));
     }
     return (_jsxs("section", { className: "right-panel", children: [_jsxs("div", { className: "section-header", children: ["\u5BF9\u8C61 (", dsl.objects.length, ")"] }), _jsx("div", { className: "tree", children: dsl.objects.map((o) => (_jsx(ObjectItem, { obj: o, selected: selected === o.id, onClick: () => select(selected === o.id ? null : o.id) }, o.id))) }), _jsxs("div", { className: "section-header", children: ["\u7EA6\u675F (", dsl.constraints.length, ")"] }), _jsx("div", { className: "tree", style: { flex: 'none', maxHeight: '30%' }, children: dsl.constraints.map((c, i) => (_jsx(ConstraintItem, { c: c, disabled: busy, onChangeValue: async (newVal) => {
                         const ops = [
@@ -21,7 +24,7 @@ export function RightPanel() {
 }
 function ObjectItem({ obj, selected, onClick, }) {
     const meta = describeObject(obj);
-    return (_jsxs("div", { className: `tree-item ${selected ? 'selected' : ''}`, onClick: onClick, children: [_jsx("span", { children: _jsx("strong", { children: obj.id }) }), _jsx("span", { className: "meta", children: meta })] }));
+    return (_jsxs("div", { className: `tree-item obj-${obj.kind} ${selected ? 'selected' : ''}`, onClick: onClick, children: [_jsx("span", { children: _jsx("strong", { children: obj.id }) }), _jsx("span", { className: "meta", children: meta })] }));
 }
 function describeObject(o) {
     switch (o.kind) {
@@ -101,7 +104,7 @@ function PropertyPanel() {
     const applyPatch = useStore((s) => s.applyPatch);
     const busy = useStore((s) => s.busy);
     if (!dsl || !selectedId) {
-        return (_jsxs("div", { className: "properties", children: [_jsx("h4", { children: "\u5C5E\u6027" }), _jsx("div", { style: { color: 'var(--muted)' }, children: "\u70B9\u51FB\u5DE6\u4FA7\u5BF9\u8C61\u67E5\u770B\u5C5E\u6027" })] }));
+        return (_jsxs("div", { className: "properties", children: [_jsx("h4", { children: "\u5C5E\u6027" }), _jsx("div", { style: { color: 'var(--muted)', fontSize: 12, lineHeight: 1.6 }, children: "\u70B9\u51FB\u4E0A\u65B9\u5BF9\u8C61\u67E5\u770B\u5C5E\u6027" })] }));
     }
     const obj = dsl.objects.find((o) => o.id === selectedId);
     if (!obj)

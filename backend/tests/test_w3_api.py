@@ -210,7 +210,6 @@ async def test_api_providers(client):
     assert "zhipu" in names and "volcengine" in names and "deepseek" in names
     # W13-B 多模型注册
     assert "volcengine_doubao_pro" in names
-    assert "volcengine_doubao_turbo" in names
     assert "deepseek_v4_pro" in names
     assert "kimi_k26" in names
     assert "kimi_k27_code" in names

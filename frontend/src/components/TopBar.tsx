@@ -3,12 +3,37 @@ import { useStore } from '../store'
 import { api } from '../api/client'
 import { ProviderSwitch } from './ProviderSwitch'
 
-const EXAMPLES = [
-  '画一个内切圆半径为 3 的等腰三角形',
-  '画一个等边三角形 ABC，边长为 4',
-  '画一个直角三角形 ABC，C 为直角顶点，BC=3，CA=4',
-  '画一个边长为 5 的正方形 ABCD',
-  '画圆 O，半径为 5，A、B 两点在圆上，AOB 角为 90 度',
+export const EXAMPLES: { icon: string; title: string; desc: string; nl: string }[] = [
+  {
+    icon: '△',
+    title: '等边三角形',
+    desc: '边长为 4 的正三角形',
+    nl: '画一个等边三角形 ABC，边长为 4',
+  },
+  {
+    icon: '∟',
+    title: '直角三角形',
+    desc: '直角边 3 和 4，含直角标记',
+    nl: '画一个直角三角形 ABC，C 为直角顶点，BC=3，CA=4',
+  },
+  {
+    icon: '□',
+    title: '正方形',
+    desc: '边长 5，标注所有顶点',
+    nl: '画一个边长为 5 的正方形 ABCD',
+  },
+  {
+    icon: '○',
+    title: '圆与圆心角',
+    desc: '半径 5，圆心角 90°',
+    nl: '画圆 O，半径为 5，A、B 两点在圆上，∠AOB=90°',
+  },
+  {
+    icon: '△',
+    title: '等腰 + 内切圆',
+    desc: '内切圆半径为 3',
+    nl: '画一个内切圆半径为 3 的等腰三角形',
+  },
 ]
 
 export function TopBar() {
@@ -26,7 +51,9 @@ export function TopBar() {
   return (
     <div className="topbar">
       <div className="brand">
-        话图 T2G<span className="sub">用一句话画几何</span>
+        <span className="logo">话</span>
+        <span className="name">话图 T2G</span>
+        <span className="sub">用一句话画几何</span>
       </div>
 
       <button onClick={() => newSession()} disabled={busy} title="新建会话">
@@ -41,7 +68,7 @@ export function TopBar() {
 
       <div className="spacer" />
 
-      <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+      <span className="seq-info" style={{ fontSize: 11, color: 'var(--muted)' }}>
         seq #{seq}
       </span>
 
@@ -71,27 +98,6 @@ export function TopBar() {
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-function ProviderSwitchWrap() {
-  return <ProviderSwitch />
-}
-
-export function ExampleHints({ onClick }: { onClick: (text: string) => void }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ fontSize: 11, color: 'var(--muted)' }}>试试：</div>
-      {EXAMPLES.map((ex) => (
-        <button
-          key={ex}
-          onClick={() => onClick(ex)}
-          style={{ textAlign: 'left', fontSize: 12, padding: '4px 8px' }}
-        >
-          {ex}
-        </button>
-      ))}
     </div>
   )
 }

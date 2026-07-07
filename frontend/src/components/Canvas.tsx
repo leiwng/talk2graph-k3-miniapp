@@ -136,11 +136,12 @@ export function Canvas() {
           />
         ) : dsl ? (
           <div className="placeholder">
-            {busy ? '渲染中…' : '点击撤销/重做后会自动刷新画板'}
+            {busy ? '正在渲染图形…' : '点击撤销/重做后会自动刷新画板'}
           </div>
         ) : (
           <div className="placeholder">
-            还没有图形。<br />
+            <strong>还没有图形</strong>
+            <br />
             在左侧输入"画一个等边三角形"试试。
           </div>
         )}

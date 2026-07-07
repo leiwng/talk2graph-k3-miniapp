@@ -46,6 +46,22 @@ def test_classify_llm_network_error():
 
     fe = classify(LLMError("zhipu", None, "Connection refused"))
     assert fe.code == "llm_network"
+    assert "open.bigmodel.cn" in fe.hint
+
+
+def test_classify_llm_network_hint_per_provider():
+    from app.api.errors import classify
+    from app.llm.base import LLMError
+
+    # 基础 provider
+    assert "api.moonshot.cn" in classify(LLMError("kimi", None, "x")).hint
+    assert "api.minimaxi.com" in classify(LLMError("minimax", None, "x")).hint
+    assert "ark.cn-beijing.volces.com" in classify(LLMError("volcengine", None, "x")).hint
+    # 多模型注册的带后缀 name（取前缀匹配厂商域名）
+    assert "api.moonshot.cn" in classify(LLMError("kimi_k26", None, "x")).hint
+    assert "api.moonshot.cn" in classify(LLMError("kimi_k27_code_hs", None, "x")).hint
+    assert "ark.cn-beijing.volces.com" in classify(LLMError("volcengine_doubao_pro", None, "x")).hint
+    assert "api.deepseek.com" in classify(LLMError("deepseek_v4_pro", None, "x")).hint
 
 
 def test_classify_solve_no_converge():

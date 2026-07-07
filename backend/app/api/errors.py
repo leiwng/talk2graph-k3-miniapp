@@ -21,6 +21,25 @@ class FriendlyError:
     detail: str | None = None  # 原始错误（折叠展示）
 
 
+_PROVIDER_DOMAIN = {
+    "zhipu": "open.bigmodel.cn",
+    "volcengine": "ark.cn-beijing.volces.com",
+    "deepseek": "api.deepseek.com",
+    "minimax": "api.minimaxi.com",
+    "kimi": "api.moonshot.cn",
+}
+
+
+def _network_hint(provider: str) -> str:
+    # 多模型注册的 provider name 带后缀（如 volcengine_doubao_pro / kimi_k26），
+    # 取首个下划线前的前缀匹配所属厂商域名。
+    prefix = provider.split("_", 1)[0] if "_" in provider else provider
+    domain = _PROVIDER_DOMAIN.get(prefix) or _PROVIDER_DOMAIN.get(provider)
+    if domain:
+        return f"检查后端机器到 {domain} 的网络（provider={provider}）"
+    return "检查后端机器到 LLM 服务的网络"
+
+
 def classify(exc: Exception) -> FriendlyError:
     s = str(exc)
 
@@ -42,7 +61,7 @@ def classify(exc: Exception) -> FriendlyError:
             return FriendlyError(
                 "llm_network",
                 "无法连接 LLM 服务（网络异常或超时）。",
-                hint="检查后端机器到 open.bigmodel.cn / ark.cn-beijing / api.deepseek.com 的网络",
+                hint=_network_hint(exc.provider),
                 detail=s,
             )
         if exc.status and exc.status >= 500:

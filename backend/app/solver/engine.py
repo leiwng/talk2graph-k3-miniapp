@@ -75,7 +75,13 @@ class _VarLayout:
     def get_point(self, x: np.ndarray, pid: str) -> tuple[float, float]:
         if pid in self.fixed:
             return self.fixed[pid]
-        i = self.point_idx[pid]
+        try:
+            i = self.point_idx[pid]
+        except KeyError as e:
+            raise SolveError(
+                f"point {pid!r} not in solver layout "
+                f"(可能是派生点 / 未声明点 / 校验漏过)"
+            ) from e
         return float(x[i]), float(x[i + 1])
 
     def get_circle(self, x: np.ndarray, cid: str) -> tuple[float, float, float]:
@@ -109,7 +115,6 @@ def _line_direction(dsl: DSL, sid: str, x: np.ndarray, layout: _VarLayout) -> tu
     pa = layout.get_point(x, obj.a)
     pb = layout.get_point(x, obj.b)
     return _vec(pa, pb)
-
 
 def _point_line_distance(
     p: tuple[float, float], a: tuple[float, float], b: tuple[float, float]
