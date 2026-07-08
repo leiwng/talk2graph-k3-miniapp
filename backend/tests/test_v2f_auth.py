@@ -62,15 +62,16 @@ async def _register_and_login(client: AsyncClient, email: str | None = None, pas
 
 @pytest.mark.asyncio
 async def test_register_success(client):
+    email = _unique_email()
     r = await client.post("/api/auth/register", json={
-        "email": "bob@example.com",
+        "email": email,
         "password": "secure-pwd-1",
         "username": "Bob",
     })
     assert r.status_code == 201, r.text
     data = r.json()
     assert "token" in data and len(data["token"]) > 20
-    assert data["user"]["email"] == "bob@example.com"
+    assert data["user"]["email"] == email
     assert data["user"]["username"] == "Bob"
     assert data["user"]["role"] == "user"
     assert data["user"]["status"] == "active"

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useStore } from '../store'
 import { api } from '../api/client'
+import { authHeader } from '../api/auth'
 import { ProviderSwitch } from './ProviderSwitch'
 import { UserMenu } from './auth/UserMenu'
 
@@ -88,10 +89,27 @@ export function TopBar() {
             {(['svg', 'png', 'pdf'] as const).map((fmt) => (
               <button
                 key={fmt}
-                onClick={() => {
+                onClick={async () => {
                   if (!sessionId) return
-                  window.open(api.exportUrl(sessionId, fmt), '_blank')
                   setExportOpen(false)
+                  try {
+                    const url = api.exportUrl(sessionId, fmt)
+                    const r = await fetch(url, {
+                      headers: authHeader(),
+                    })
+                    if (!r.ok) throw new Error(`导出失败：${r.status}`)
+                    const blob = await r.blob()
+                    const objUrl = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = objUrl
+                    a.download = `${sessionId}.${fmt}`
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    URL.revokeObjectURL(objUrl)
+                  } catch (e: any) {
+                    alert(e.message || '导出失败')
+                  }
                 }}
               >
                 导出 {fmt.toUpperCase()}
