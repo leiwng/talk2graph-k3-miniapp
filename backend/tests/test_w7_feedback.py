@@ -20,14 +20,40 @@ def _setup_test_db():
 
 @pytest_asyncio.fixture
 async def client():
-    from app.db.session import init_db
+    """V2-F.1 后 /api/admin/* 要求 admin token，fixture 内预建 admin 用户。"""
+    from app.db.session import init_db, get_session
     from app.main import create_app
+    from app.auth.password import hash_password
+    from app.auth.repository import create_user
 
     app = create_app()
     await init_db()
+    async with get_session() as db:
+        try:
+            await create_user(
+                db,
+                email="w7admin@example.com",
+                username="w7admin",
+                hashed_password=hash_password("admin-pwd-123"),
+                role="admin",
+                status="active",
+            )
+        except Exception:
+            pass
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
+
+
+@pytest_asyncio.fixture
+async def admin_headers(client):
+    """登录拿 admin token，返回 headers dict。"""
+    r = await client.post("/api/auth/login", json={
+        "email": "w7admin@example.com", "password": "admin-pwd-123",
+    })
+    assert r.status_code == 200, r.text
+    token = r.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +128,7 @@ async def test_solve_error_kind_in_message(client):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_feedback_good(client):
+async def test_feedback_good(client, admin_headers):
     """成功画图后老师点 👍。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -133,7 +159,7 @@ async def test_feedback_good(client):
         assert body["id"] > 0
 
         # 列表查询
-        r = await client.get("/api/admin/feedback?days=1")
+        r = await client.get("/api/admin/feedback?days=1", headers=admin_headers)
         data = r.json()
         assert data["total"] >= 1
         assert data["good"] >= 1
@@ -144,7 +170,7 @@ async def test_feedback_good(client):
 
 
 @pytest.mark.asyncio
-async def test_feedback_bad_with_comment(client):
+async def test_feedback_bad_with_comment(client, admin_headers):
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
@@ -170,7 +196,7 @@ async def test_feedback_bad_with_comment(client):
         )
         assert r.status_code == 200
 
-        r = await client.get("/api/admin/feedback?days=1")
+        r = await client.get("/api/admin/feedback?days=1", headers=admin_headers)
         items = r.json()["items"]
         bad = [x for x in items if x["rating"] == "bad"]
         assert bad
@@ -191,7 +217,7 @@ async def test_feedback_invalid_rating(client):
 
 
 @pytest.mark.asyncio
-async def test_feedback_jsonl_export(client):
+async def test_feedback_jsonl_export(client, admin_headers):
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
@@ -209,7 +235,7 @@ async def test_feedback_jsonl_export(client):
         await client.post(f"/api/session/{sid}/chat", json={"nl": "AB=3"})
         await client.post(f"/api/session/{sid}/feedback", json={"rating": "good"})
 
-        r = await client.get("/api/admin/feedback.jsonl?days=1")
+        r = await client.get("/api/admin/feedback.jsonl?days=1", headers=admin_headers)
         assert r.status_code == 200
         assert r.headers["content-type"].startswith("application/x-ndjson")
         lines = [l for l in r.text.strip().split("\n") if l]

@@ -12,12 +12,45 @@ class Base(DeclarativeBase):
     pass
 
 
+# V2-F.1：固定 ID 的匿名用户，承载未登录用户的会话（保留试用体验）
+ANONYMOUS_USER_ID = "00000000-0000-0000-0000-anonymous"
+
+
+class User(Base):
+    """用户账号。
+
+    F.1 阶段：邮箱+密码登录，role ∈ {user, admin}，status ∈ {active, disabled}。
+    后续 F.3 接 WeChat OAuth 时会扩展 wechat_openid / wechat_unionid 等字段。
+    """
+
+    __tablename__ = "user"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    email: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    username: Mapped[str] = mapped_column(String(100))
+    hashed_password: Mapped[str] = mapped_column(String(200))
+    role: Mapped[str] = mapped_column(String(20), default="user")  # user | admin
+    status: Mapped[str] = mapped_column(String(20), default="active")  # active | disabled
+    # 改密后更新；JWT 用 auth_version = password_changed_at || updated_at || created_at 让旧 token 失效
+    password_changed_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.current_timestamp(), onupdate=func.current_timestamp()
+    )
+
+
 class Session(Base):
     __tablename__ = "session"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     title: Mapped[Optional[str]] = mapped_column(String(200))
     llm_provider: Mapped[Optional[str]] = mapped_column(String(32))
+    # V2-F.1：会话归属。未登录用户创建的会话归属 anonymous_user；登录用户创建的归属自己
+    # 列 nullable 保留向后兼容（开发期 ensure_schema 自动加列；老 session.user_id=NULL 也算 anonymous）
+    user_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("user.id", ondelete="SET NULL"), index=True
+    )
     created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp())
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.current_timestamp(), onupdate=func.current_timestamp()
@@ -29,6 +62,29 @@ class Session(Base):
     )
     snapshots: Mapped[list["DSLSnapshot"]] = relationship(
         back_populates="session", cascade="all, delete-orphan"
+    )
+
+
+class AuditLog(Base):
+    """审计日志。
+
+    所有敏感操作（登录/登出/改密/每次 chat 作图）都会写入；写入走 fire-and-forget，
+    失败仅 logger.warning，永不阻塞主流程。借鉴 Lumiton 的 best-effort 模式。
+    """
+
+    __tablename__ = "audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    actor_id: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    actor_email: Mapped[Optional[str]] = mapped_column(String(200))  # 反规范化，防用户删除后丢失
+    action: Mapped[str] = mapped_column(String(80), index=True)
+    target_type: Mapped[Optional[str]] = mapped_column(String(50))
+    target_id: Mapped[Optional[str]] = mapped_column(String(64))
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(64))
+    user_agent: Mapped[Optional[str]] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.current_timestamp(), index=True
     )
 
 

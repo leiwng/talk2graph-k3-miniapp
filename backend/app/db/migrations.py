@@ -20,6 +20,10 @@ REQUIRED_COLUMNS: dict[str, list[tuple[str, str]]] = {
     "message": [
         ("fallback", "BOOLEAN"),  # W10：标记此 assistant 消息是否经过 patch fallback
     ],
+    "session": [
+        # V2-F.1：会话归属。新建表由 create_all 建；老库走这里自动 ALTER
+        ("user_id", "TEXT"),
+    ],
 }
 
 

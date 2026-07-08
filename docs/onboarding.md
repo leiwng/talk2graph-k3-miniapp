@@ -24,7 +24,7 @@ cd backend
 .venv/bin/pytest -q
 ```
 
-预期：与 CHANGELOG 顶部记录的测试数一致（V2-D = 173 个）。如不一致：
+预期：与 CHANGELOG 顶部记录的测试数一致（V2-F.1 = 205 个）。如不一致：
 - 测试**失败** → 报告失败项，**不要随意修复**，等用户指示
 - 测试**数变少** → 可能新代码丢了测试，对照 CHANGELOG 排查
 - 测试**数变多** → 上次对话有人忘了更新 CHANGELOG
@@ -98,35 +98,30 @@ rm backend/data/talk2graph.db
 
 ## 当前里程碑（手动更新此值，每次 W 完成后改）
 
-**V2-D — SSE token-level 流式**（2026-07-06 完成）
+**V2-F.1 — 用户体系 + 审计骨架**（2026-07-07 完成）
 
-- 测试：173/173 通过（V2-C 162 + V2-D 原 6 + V2-D token-level 流式 5）
-- 目标：让 LLM 调用 8-17 秒阻塞期间不再只显示干等转圈，而是**实时推送 token 流 + 已识别对象列表**给前端，用户看到 "AI 正在生成：点 A / 线段 AB / 圆 O..."。stage 事件保留作为阶段切换标记。
-- 关键发现：
-  - CHANGELOG 之前版本块说"所有 stage 事件最后一次性打印"——经实测验证，**当前代码（带 `await asyncio.sleep(0)`）下其实早已不成立**：第一个 stage=llm 事件在 0.02s 流式到达，后续 stage 一起到是因为它们之间无真正阻塞操作（patch 是直接赋值、solve 通常 <1ms、render <10ms）
-  - `--http h11 --loop asyncio` 跟默认 uvicorn 行为完全一致，不需要切换
-  - 不需要上 sse-starlette 库（默认 StreamingResponse 已能流式）
-  - 真正的"用户看不到流式"问题是 **LLM 阻塞期间没有 token 流**——本次升级解决
-- 实测（curl + 真实 LLM，等边三角形）：
-  - 0.03s STAGE#1 llm 流式到达
-  - 4.77s 第一个 TOKEN 到达（GLM-5.2 首字延迟）
-  - 4.97s-6.66s 7 个 OBJ 事件依次到达（A/B/C/AB/BC/CA/tri）
-  - 8.17s DONE
-  - 总计 40 token + 7 object_seen 事件
-- 体验打磨（V2-D 收尾）：
-  - 首字延迟期加"AI 正在准备输出..."次级提示（stage=llm 后 2s 没收到 token 触发，第一个 token 到达清除）
-  - object_seen 用 requestAnimationFrame 批量 flush（每帧最多触发一次 React re-render，避免每秒 30+ token 卡顿）
-  - stage 切换时不再清空对象列表（保留全程已识别对象）
-  - 修复 thinking 气泡 raw 显示 `__stream__:{...}` 文本 bug（`slice(10)` off-by-one）
-- LLM：火山方舟 GLM-5.2（coding/v3 endpoint 完全支持 stream=True）
-- 无 DB schema 变更
-- 下一步候选：老师试用反馈 / 多 Provider 对比 / 历史会话侧抽屉
+- 测试：205/205 通过（V2-E 173 + V2-F.1 32 新增）
+- 目标：邮箱+密码注册/登录、JWT + auth_version 失效机制、审计日志（含每次 chat 作图）、Session 归属校验、Admin 权限保护、前端路由 + 登录页
+- 关键设计：
+  - **JWT in localStorage** + `auth_version` claim：改密后 `password_changed_at` 更新 → 旧 token 立即失效（无 token 黑名单）
+  - **匿名会话保留试用体验**：未登录仍可用，归属内置 anonymous 用户；登录用户只能访问自己的 session（cross-user 404 防探测）
+  - **审计 best-effort**：所有写入 try/except + logger.warning，永不阻塞主流程；chat.send 走 `asyncio.create_task` fire-and-forget
+  - **Bootstrap admin**：首次启动按 env 创建管理员（账号创建后 env 可删除）
+- 后端：新增 `app/auth/`（password/jwt_token/deps/repository）+ `app/audit/`（actions/repository）+ `app/api/auth.py` + `app/api/audit_log.py`；DB 加 2 张表（user / audit_log），session 加 user_id 列（ensure_schema 自动 ALTER）
+- 前端：引入 `react-router-dom`，路由结构 `/ /login /register /forgot-password /app（守卫）/account（守卫）/account/password（守卫）`；AuthStore 独立；LoginPage / RegisterPage / ForgotPasswordPage / AccountPage / ChangePasswordPage 5 个页面；TopBar 加 UserMenu
+- 既有改造：admin 端点全部加 `Depends(require_admin)`；session API 加归属校验
+- 测试既有改造：test_w6_ops.py + test_w7_feedback.py 加 admin token fixture
+- LLM：火山方舟 GLM-5.2
+- DB schema：新增 2 张表 + session.user_id 列；开发期 `rm backend/data/talk2graph.db` 重建，生产期启动自动迁移
+- 配置：新增 3 个 env（`T2G_JWT_SECRET` / `T2G_BOOTSTRAP_ADMIN_EMAIL` / `T2G_BOOTSTRAP_ADMIN_PASSWORD`）
+- 不含：邮箱验证码（F.3）/ WeChat OAuth（F.3）/ Alipay（F.2）/ 配额限流（F.2）
+- 下一步候选：V2-F.2（付费 + 配额）/ V2-F.3（邮箱验证码 + WeChat OAuth）/ 历史会话侧抽屉
 
 ---
 
 ## 历史里程碑
 
-**V2-C — PPT 字体 outline 化**（2026-07-06 完成）
+**V2-E — 多 Provider 评测 + UI/UX 打磨 + 自动 Fallback**（2026-07-07 完成）
 
 - 测试：162/162 通过（W13-B.1 151 + V2-C 11）
 - 新增能力：导出 SVG/PNG/PDF 时把 `<text>` 元素转为 `<path>` 矢量 outline

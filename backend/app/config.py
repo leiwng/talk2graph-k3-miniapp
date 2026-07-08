@@ -38,6 +38,19 @@ def _fallback_providers() -> list[str] | None:
     return [p.strip() for p in raw.split(",") if p.strip()]
 
 
+def _jwt_secret() -> str:
+    """JWT HS256 签名密钥。
+
+    生产期必须替换为长随机串（如 `openssl rand -hex 32`）。
+    开发期用默认值便于本地启动。
+    """
+    return os.getenv("T2G_JWT_SECRET", "dev-only-change-in-prod-please-use-32+-chars")
+
+
+def _jwt_expiry_seconds() -> int:
+    return int(os.getenv("T2G_JWT_EXPIRY_SECONDS", "86400"))  # 默认 24h
+
+
 @dataclass
 class Settings:
     base_dir: Path = _BASE
@@ -51,6 +64,16 @@ class Settings:
     debug_ui: bool = field(default_factory=_debug_ui)
     # LLM fallback chain（最多 3 个），None = 自动从 enabled 选前 3
     fallback_providers: list[str] | None = field(default_factory=_fallback_providers)
+    # V2-F.1：JWT 配置
+    jwt_secret: str = field(default_factory=_jwt_secret)
+    jwt_expiry_seconds: int = field(default_factory=_jwt_expiry_seconds)
+    # V2-F.1：bootstrap admin（首次启动且无 admin 时按 env 创建管理员，账号创建后可删除这两个 env）
+    bootstrap_admin_email: str | None = field(
+        default_factory=lambda: os.getenv("T2G_BOOTSTRAP_ADMIN_EMAIL") or None
+    )
+    bootstrap_admin_password: str | None = field(
+        default_factory=lambda: os.getenv("T2G_BOOTSTRAP_ADMIN_PASSWORD") or None
+    )
 
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)

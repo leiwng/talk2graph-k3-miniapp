@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useStore } from '../store'
 import { api } from '../api/client'
 import { ProviderSwitch } from './ProviderSwitch'
+import { UserMenu } from './auth/UserMenu'
 
 export const EXAMPLES: { icon: string; title: string; desc: string; nl: string }[] = [
   {
@@ -50,11 +52,11 @@ export function TopBar() {
 
   return (
     <div className="topbar">
-      <div className="brand">
+      <Link to="/" className="brand">
         <span className="logo">话</span>
         <span className="name">话图 T2G</span>
         <span className="sub">用一句话画几何</span>
-      </div>
+      </Link>
 
       <button onClick={() => newSession()} disabled={busy} title="新建会话">
         + 新会话
@@ -98,6 +100,8 @@ export function TopBar() {
           </div>
         )}
       </div>
+
+      <UserMenu />
     </div>
   )
 }

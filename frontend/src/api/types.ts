@@ -125,3 +125,40 @@ export interface PatchOp {
   path: string
   value?: any
 }
+
+// ===================== V2-F.1: 用户管理 =====================
+
+export interface User {
+  id: string
+  email: string
+  username: string
+  role: 'user' | 'admin'
+  status: 'active' | 'disabled'
+  last_login_at: string | null
+  created_at: string
+}
+
+export interface AuthResp {
+  token: string
+  user: User
+}
+
+export interface AuditLogItem {
+  id: number
+  actor_id: string | null
+  actor_email: string | null
+  action: string
+  target_type: string | null
+  target_id: string | null
+  metadata: Record<string, any> | null
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
+}
+
+export interface AuditLogListResp {
+  items: AuditLogItem[]
+  total: number
+  limit: number
+  offset: number
+}

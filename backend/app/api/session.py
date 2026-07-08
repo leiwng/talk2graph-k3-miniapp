@@ -1,12 +1,18 @@
-"""会话管理路由：创建 / 列表 / 获取 / 删除 / 撤销 / 重做 / 当前 DSL。"""
+"""会话管理路由：创建 / 列表 / 获取 / 删除 / 撤销 / 重做 / 当前 DSL。
+
+V2-F.1：登录用户只能访问自己的 session（cross-user 返回 404 防探测）；
+未登录用户创建的 session 归属 anonymous，任何人持 sid 可访问（保留试用体验）。
+"""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth.deps import CurrentUser, get_current_user_optional
+from ..db.models import ANONYMOUS_USER_ID
 from ..render import render_svg
 from ..session import repo as repo_mod
 from ..solver.engine import Solution
@@ -38,39 +44,81 @@ def _to_out(s) -> SessionOut:
     )
 
 
+async def _require_session_with_owner(
+    db: AsyncSession, sid: str, user: Optional[CurrentUser]
+):
+    """加载 session 并校验归属：
+
+    - session 不存在 → 404
+    - session.user_id == current_user.id → 通过
+    - session.user_id == ANONYMOUS_USER_ID → 通过（任何人都能访问匿名会话）
+    - 其他 → 404（不是 403，防探测）
+    """
+    s = await require_session(db, sid)  # 内部已 404
+    if s.user_id is None or s.user_id == ANONYMOUS_USER_ID:
+        # 匿名会话：任何人都能访问（保留试用体验）
+        return s
+    if user is not None and s.user_id == user.id:
+        return s
+    # 不是自己的也不是匿名的 → 404 防探测
+    raise HTTPException(404, detail=f"session not found: {sid}")
+
+
 @router.post("/session", response_model=SessionOut)
 async def create_session(
-    req: CreateSessionReq, db: AsyncSession = Depends(db_dep)
+    req: CreateSessionReq,
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
 ) -> SessionOut:
+    """创建 session。登录用户归属自己；未登录归属 anonymous。"""
+    uid = user.id if user is not None else ANONYMOUS_USER_ID
     s = await repo_mod.create_session(
-        db, llm_provider=req.llm_provider, title=req.title
+        db, llm_provider=req.llm_provider, title=req.title, user_id=uid
     )
     return _to_out(s)
 
 
 @router.get("/sessions", response_model=list[SessionOut])
-async def list_sessions(db: AsyncSession = Depends(db_dep)) -> list[SessionOut]:
-    items = await repo_mod.list_sessions(db)
+async def list_sessions(
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
+) -> list[SessionOut]:
+    """列出 session。登录用户只看到自己的（含 anonymous 的）；未登录看到 anonymous 的。"""
+    uid = user.id if user is not None else ANONYMOUS_USER_ID
+    items = await repo_mod.list_sessions(db, user_id=uid)
     return [_to_out(s) for s in items]
 
 
 @router.get("/session/{sid}", response_model=SessionOut)
-async def get_session(sid: str, db: AsyncSession = Depends(db_dep)) -> SessionOut:
-    s = await require_session(db, sid)
+async def get_session(
+    sid: str,
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
+) -> SessionOut:
+    s = await _require_session_with_owner(db, sid, user)
     return _to_out(s)
 
 
 @router.delete("/session/{sid}")
-async def delete_session(sid: str, db: AsyncSession = Depends(db_dep)) -> dict:
-    ok = await repo_mod.delete_session(db, sid)
+async def delete_session(
+    sid: str,
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
+) -> dict:
+    s = await _require_session_with_owner(db, sid, user)
+    ok = await repo_mod.delete_session(db, s.id)
     if not ok:
         raise HTTPException(404, detail="session not found")
     return {"deleted": sid}
 
 
 @router.get("/session/{sid}/dsl")
-async def get_current_dsl(sid: str, db: AsyncSession = Depends(db_dep)) -> dict[str, Any]:
-    await require_session(db, sid)
+async def get_current_dsl(
+    sid: str,
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
+) -> dict[str, Any]:
+    await _require_session_with_owner(db, sid, user)
     snap = await repo_mod.current_snapshot(db, sid)
     if snap is None:
         return {"seq": 0, "dsl": None, "solution": None, "svg": None}
@@ -84,8 +132,12 @@ async def get_current_dsl(sid: str, db: AsyncSession = Depends(db_dep)) -> dict[
 
 
 @router.get("/session/{sid}/messages")
-async def list_messages(sid: str, db: AsyncSession = Depends(db_dep)) -> list[dict]:
-    await require_session(db, sid)
+async def list_messages(
+    sid: str,
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
+) -> list[dict]:
+    await _require_session_with_owner(db, sid, user)
     msgs = await repo_mod.list_messages(db, sid)
     return [
         {
@@ -106,16 +158,24 @@ async def list_messages(sid: str, db: AsyncSession = Depends(db_dep)) -> list[di
 
 
 @router.get("/session/{sid}/history")
-async def history(sid: str, db: AsyncSession = Depends(db_dep)) -> dict:
-    await require_session(db, sid)
+async def history(
+    sid: str,
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
+) -> dict:
+    await _require_session_with_owner(db, sid, user)
     seqs = await repo_mod.history(db, sid)
     cur = await repo_mod.current_snapshot(db, sid)
     return {"seqs": seqs, "current": cur.seq if cur else 0}
 
 
 @router.post("/session/{sid}/undo")
-async def undo(sid: str, db: AsyncSession = Depends(db_dep)) -> dict:
-    await require_session(db, sid)
+async def undo(
+    sid: str,
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
+) -> dict:
+    await _require_session_with_owner(db, sid, user)
     snap = await repo_mod.undo(db, sid)
     if snap is None:
         return {"seq": 0, "dsl": None, "solution": None, "svg": None}
@@ -124,8 +184,12 @@ async def undo(sid: str, db: AsyncSession = Depends(db_dep)) -> dict:
 
 
 @router.post("/session/{sid}/redo")
-async def redo(sid: str, db: AsyncSession = Depends(db_dep)) -> dict:
-    await require_session(db, sid)
+async def redo(
+    sid: str,
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
+) -> dict:
+    await _require_session_with_owner(db, sid, user)
     snap = await repo_mod.redo(db, sid)
     if snap is None:
         return {"seq": 0, "dsl": None, "solution": None, "svg": None}
@@ -140,9 +204,12 @@ class FeedbackReq(BaseModel):
 
 @router.post("/session/{sid}/feedback")
 async def submit_feedback(
-    sid: str, req: FeedbackReq, db: AsyncSession = Depends(db_dep)
+    sid: str,
+    req: FeedbackReq,
+    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(db_dep),
 ) -> dict:
-    await require_session(db, sid)
+    await _require_session_with_owner(db, sid, user)
     if req.rating not in ("good", "bad"):
         raise HTTPException(400, detail="rating 必须是 good 或 bad")
 

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from '../api/client'
+import { getStoredToken } from '../api/auth'
 import type { DSL, Message, PatchOp, Solution } from '../api/types'
 
 const LS = {
@@ -116,17 +117,19 @@ export const useStore = create<AppState>((set, get) => ({
       set({ errorBanner: '后端不可用：' + e.message })
     }
 
-    // 恢复会话
-    const sid = localStorage.getItem(LS.currentSessionId)
-    if (sid) {
-      try {
-        await get().switchSession(sid)
-      } catch {
-        localStorage.removeItem(LS.currentSessionId)
+    // V2-F.1：仅登录用户恢复会话；未登录用户在落地页不需要 session
+    if (getStoredToken()) {
+      const sid = localStorage.getItem(LS.currentSessionId)
+      if (sid) {
+        try {
+          await get().switchSession(sid)
+        } catch {
+          localStorage.removeItem(LS.currentSessionId)
+          await get().newSession()
+        }
+      } else {
         await get().newSession()
       }
-    } else {
-      await get().newSession()
     }
     set({ loading: false })
   },

@@ -813,3 +813,386 @@ input:focus, textarea:focus, select:focus {
     padding: 10px;
   }
 }
+
+/* ============================================================
+   V2-F.1：用户管理页面样式
+   设计风格沿用教育蓝 + 卡片 + 圆角 + 阴影
+   ============================================================ */
+
+/* 通用按钮（auth / landing / account 通用） */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  background: transparent;
+  color: var(--text);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover, #2563eb);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+.btn-ghost {
+  border-color: var(--border);
+  background: white;
+  color: var(--text);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--panel-subtle, #f8fafc);
+  border-color: var(--border-strong, #cbd5e1);
+}
+.btn-danger {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+.btn-block {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Auth 页面 shell（居中卡片） */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 50%, #eef2ff 100%);
+  padding: 24px 16px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card, 0 10px 40px rgba(0, 0, 0, 0.08));
+  padding: 32px 28px;
+}
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  margin-bottom: 24px;
+  color: inherit;
+}
+.auth-brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: var(--accent-gradient, linear-gradient(135deg, #3b82f6, #6366f1));
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+}
+.auth-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.auth-brand-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+}
+.auth-brand-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.auth-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+.auth-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 24px;
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-field > span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #475569);
+}
+.auth-field input {
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.auth-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.auth-error {
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  color: #dc2626;
+  font-size: 13px;
+}
+.auth-success {
+  padding: 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  color: #15803d;
+  font-size: 14px;
+}
+.auth-success p {
+  margin: 0 0 8px;
+}
+.auth-success .auth-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.auth-links {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  font-size: 13px;
+  margin-top: 8px;
+  color: var(--muted);
+}
+.auth-links a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.auth-links a:hover {
+  text-decoration: underline;
+}
+
+/* Loading 状态 */
+.auth-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg, #f8fafc);
+}
+.auth-loading-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  color: var(--muted);
+  font-size: 14px;
+}
+.auth-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: t2g-spin 0.8s linear infinite;
+}
+@keyframes t2g-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Landing 页 */
+.landing-content {
+  text-align: center;
+}
+.landing-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  background: var(--accent-gradient, linear-gradient(135deg, #3b82f6, #6366f1));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.landing-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 28px;
+}
+.landing-cta {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+.landing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  display: inline-block;
+}
+.landing-features li {
+  font-size: 13px;
+  color: var(--text-secondary, #475569);
+  padding: 4px 0;
+}
+
+/* Account 页 */
+.account-info {
+  margin: 0 0 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.account-row {
+  display: flex;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.account-row:last-child {
+  border-bottom: none;
+}
+.account-label {
+  flex: 0 0 100px;
+  color: var(--muted);
+}
+.account-value {
+  flex: 1;
+  color: var(--text);
+  word-break: break-all;
+}
+.account-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* TopBar 上的 UserMenu */
+.user-menu .user-avatar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.user-menu .user-avatar-btn:hover {
+  border-color: var(--accent);
+  background: var(--panel-subtle, #f8fafc);
+}
+.user-menu .user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-gradient, linear-gradient(135deg, #3b82f6, #6366f1));
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+}
+.user-menu .user-name {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu .caret {
+  font-size: 10px;
+  color: var(--muted);
+}
+.user-menu-dropdown {
+  min-width: 200px;
+  padding: 4px;
+}
+.user-menu-dropdown a,
+.user-menu-dropdown button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.user-menu-dropdown a:hover,
+.user-menu-dropdown button:hover {
+  background: var(--panel-subtle, #f8fafc);
+}
+.user-menu-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.user-menu-email {
+  font-size: 13px;
+  color: var(--text);
+  word-break: break-all;
+}
+.user-menu-role {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* TopBar 的 brand 改为 a 标签后的样式微调 */
+.topbar .brand {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+.topbar .brand:hover .name {
+  opacity: 0.85;
+}

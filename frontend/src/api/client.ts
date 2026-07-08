@@ -7,6 +7,7 @@ import type {
   SessionInfo,
   Solution,
 } from './types'
+import { authHeader, getStoredToken, clearStoredAuth } from './auth'
 
 const BASE = '/api'
 
@@ -17,10 +18,20 @@ async function request<T>(
   const r = await fetch(BASE + path, {
     headers: {
       'Content-Type': 'application/json',
+      ...authHeader(),
       ...(options.headers || {}),
     },
     ...options,
   })
+  if (r.status === 401) {
+    // 仅当原本有 token 时才清，避免公开页 401 误清
+    if (getStoredToken()) {
+      clearStoredAuth()
+      const from = encodeURIComponent(window.location.pathname + window.location.search)
+      window.location.href = `/login?from=${from}`
+    }
+    throw new Error('请先登录')
+  }
   if (!r.ok) {
     let detail: any = ''
     try {
@@ -96,7 +107,10 @@ export const api = {
   ): Promise<ChatResult> {
     const r = await fetch(`${BASE}/session/${sid}/chat/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeader(),
+      },
       body: JSON.stringify({ nl, provider: provider ?? null }),
     })
     if (!r.ok || !r.body) {

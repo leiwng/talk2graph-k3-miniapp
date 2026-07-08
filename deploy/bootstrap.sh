@@ -2,12 +2,13 @@
 # 一键部署 / 升级脚本（在腾讯云服务器上执行）
 #
 # 使用：
-#   ./deploy/bootstrap.sh                    # 默认对外 8080 端口
-#   T2G_HOST_PORT=8081 ./deploy/bootstrap.sh # 自定义端口
-#   T2G_RESET_DB=1 ./deploy/bootstrap.sh     # 显式重置 DB（破坏性，谨慎）
-#   T2G_SKIP_GIT=1 ./deploy/bootstrap.sh     # 跳过远端拉取，只重建本地代码
+#   ./deploy/bootstrap.sh                              # 默认对外 8080 端口
+#   T2G_HOST_PORT=8081 ./deploy/bootstrap.sh           # 自定义端口
+#   T2G_DOMAIN=t2g.yinhour.com ./deploy/bootstrap.sh   # 启用 HTTPS + 域名（推荐）
+#   T2G_RESET_DB=1 ./deploy/bootstrap.sh               # 显式重置 DB（破坏性，谨慎）
+#   T2G_SKIP_GIT=1 ./deploy/bootstrap.sh               # 跳过远端拉取，只重建本地代码
 #   T2G_GIT_MIRROR=https://kkgithub.com/leiwng/talk2graph-glm.git \
-#     ./deploy/bootstrap.sh                  # GitHub 失败时自动重试镜像（国内推荐）
+#     ./deploy/bootstrap.sh                            # GitHub 失败时自动重试镜像（国内推荐）
 
 set -euo pipefail
 
@@ -17,8 +18,19 @@ ROOT="$(pwd)"
 T2G_HOST_PORT="${T2G_HOST_PORT:-8080}"
 export T2G_HOST_PORT
 
-echo "[T2G] 部署根目录：$ROOT"
-echo "[T2G] 对外端口   ：$T2G_HOST_PORT"
+# V2-F.1：若设置了 T2G_DOMAIN 则启用 HTTPS profile（Caddy 自动签 Let's Encrypt 证书）
+# 前提：DNS A 记录已指向本服务器公网 IP；80/443 端口在腾讯云安全组放行
+T2G_DOMAIN="${T2G_DOMAIN:-}"
+export T2G_DOMAIN
+
+if [ -n "$T2G_DOMAIN" ]; then
+    echo "[T2G] 部署根目录：$ROOT"
+    echo "[T2G] 域名（HTTPS）：$T2G_DOMAIN"
+    echo "[T2G] 端口：80/443（Caddy 反向代理）"
+else
+    echo "[T2G] 部署根目录：$ROOT"
+    echo "[T2G] 对外端口：$T2G_HOST_PORT（无 HTTPS）"
+fi
 
 # 1. 必要文件检查
 if [ ! -f backend/.env ]; then
@@ -121,15 +133,36 @@ fi
 echo "[T2G] docker compose build"
 docker compose build
 
-echo "[T2G] docker compose up -d"
-docker compose up -d
+if [ -n "$T2G_DOMAIN" ]; then
+    echo "[T2G] docker compose --profile https up -d（HTTPS 模式）"
+    docker compose --profile https up -d
+else
+    echo "[T2G] docker compose up -d"
+    docker compose up -d
+fi
 
-# 7. 健康检查（走宿主端口）
+# 7. 健康检查
 echo "[T2G] 等待服务就绪…"
-for i in {1..30}; do
-    if curl -fsS "http://localhost:${T2G_HOST_PORT}/api/health" >/dev/null 2>&1; then
-        echo "[T2G] ✅ 部署成功 → http://localhost:${T2G_HOST_PORT}"
-        echo "[T2G]    外网访问：http://<服务器公网 IP>:${T2G_HOST_PORT}"
+if [ -n "$T2G_DOMAIN" ]; then
+    # HTTPS 模式：先试 https，再 fallback 到 http（Caddy 签证书期间可能短暂 502）
+    HEALTH_URL="https://${T2G_DOMAIN}/api/health"
+    FALLBACK_URL="http://localhost:80/api/health"
+else
+    HEALTH_URL="http://localhost:${T2G_HOST_PORT}/api/health"
+    FALLBACK_URL=""
+fi
+
+for i in {1..60}; do
+    if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
+        echo "[T2G] ✅ 部署成功 -> $HEALTH_URL"
+        if [ -n "$T2G_DOMAIN" ]; then
+            echo "[T2G]    外网访问：https://$T2G_DOMAIN"
+        fi
+        exit 0
+    fi
+    # Fallback：HTTPS 还没就绪时走内部 80 端口
+    if [ -n "$FALLBACK_URL" ] && curl -fsS "$FALLBACK_URL" >/dev/null 2>&1; then
+        echo "[T2G] ⏳ Caddy 正在签发证书，内部服务已就绪；稍等 1-2 分钟后访问 https://$T2G_DOMAIN"
         exit 0
     fi
     sleep 2

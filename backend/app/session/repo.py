@@ -46,10 +46,14 @@ def _save_meta(s: Session, meta: dict) -> None:
 # ---------------------------------------------------------------------------
 
 async def create_session(
-    db: AsyncSession, *, llm_provider: str | None = None, title: str | None = None
+    db: AsyncSession,
+    *,
+    llm_provider: str | None = None,
+    title: str | None = None,
+    user_id: str | None = None,
 ) -> Session:
     sid = uuid.uuid4().hex
-    s = Session(id=sid, llm_provider=llm_provider, title=title)
+    s = Session(id=sid, llm_provider=llm_provider, title=title, user_id=user_id)
     db.add(s)
     await db.commit()
     await db.refresh(s)
@@ -60,8 +64,22 @@ async def get_session_by_id(db: AsyncSession, sid: str) -> Session | None:
     return await db.get(Session, sid)
 
 
-async def list_sessions(db: AsyncSession, limit: int = 50) -> list[Session]:
-    stmt = select(Session).order_by(Session.updated_at.desc()).limit(limit)
+async def list_sessions(
+    db: AsyncSession, limit: int = 50, user_id: str | None = None
+) -> list[Session]:
+    """列出会话。传入 user_id 时只返回该用户的会话（含 anonymous 用户的）。
+
+    V2-F.1：登录用户列表只看到自己的；未登录用户看到 anonymous 会话。
+    """
+    if user_id is not None:
+        stmt = (
+            select(Session)
+            .where(Session.user_id == user_id)
+            .order_by(Session.updated_at.desc())
+            .limit(limit)
+        )
+    else:
+        stmt = select(Session).order_by(Session.updated_at.desc()).limit(limit)
     res = await db.execute(stmt)
     return list(res.scalars())
 

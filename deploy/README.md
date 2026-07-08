@@ -1,7 +1,7 @@
 # 话图 T2G 部署指南（腾讯云轻量应用服务器）
 
-> 当前状态：**W8 — 生产部署**。
-> 实际部署到的服务器 IP / 域名请由部署执行人填回 `README.md` 与 `CHANGELOG.md` 顶部块。
+> 当前状态：**V2-F.1 - 用户体系 + 审计骨架**（2026-07-07）。
+> 域名：t2g.yinhour.com（已备案）；公网 IP：49.233.15.73；端口：8080 试用期 / 443 正式。
 
 ---
 
@@ -117,19 +117,78 @@ chmod +x deploy/bootstrap.sh
 
 ## 6. 自动 HTTPS（域名 + 备案完成后再做）
 
-1. DNS A 记录指向服务器
-2. 设环境变量：
-   ```bash
-   export T2G_DOMAIN=t2g.yourdomain.com
-   ```
-3. 启用 https profile：
-   ```bash
-   docker compose --profile https up -d
-   ```
+V2-F.1 起支持 `T2G_DOMAIN` 环境变量，`bootstrap.sh` 会自动启用 Caddy + Let's Encrypt。
 
-Caddy 会自动申请并续期 Let's Encrypt 证书；流量从 80/443 进 → 反代 frontend。
+### 6.1 DNS 解析
 
-启 https profile 时**不要**同时暴露 frontend 的 8080，否则会和 caddy 抢端口（compose 配置已避免）。
+在 `yinhour.com` 的 DNS 控制台加一条 A 记录：
+
+| 主机记录 | 类型 | 记录值 | TTL |
+|---|---|---|---|
+| `t2g` | A | `49.233.15.73` | 600 |
+
+验证（本机执行）：
+```bash
+dig t2g.yinhour.com +short
+# 期望输出：49.233.15.73
+```
+
+### 6.2 腾讯云安全组放行 80/443
+
+参考 [`firewall.md`](firewall.md) 的 HTTPS 模式表格：放行 22 / 80 / 443，关闭 8080。
+
+### 6.3 服务器上配置 .env
+
+在 `backend/.env` 末尾加上 V2-F.1 必填项：
+
+```bash
+# JWT HS256 签名密钥；生产期必须替换为长随机串（openssl rand -hex 32）
+T2G_JWT_SECRET=<用 openssl rand -hex 32 生成的 64 位字符串>
+
+# Bootstrap admin：首次启动后这两个 env 可删除
+T2G_BOOTSTRAP_ADMIN_EMAIL=admin@yinhour.com
+T2G_BOOTSTRAP_ADMIN_PASSWORD=<一个强密码>
+```
+
+### 6.4 一键部署（HTTPS 模式）
+
+```bash
+cd /opt/talk2graph-glm
+git pull
+T2G_DOMAIN=t2g.yinhour.com ./deploy/bootstrap.sh
+```
+
+脚本会：
+- 检测到 `T2G_DOMAIN` 已设置
+- 启用 `caddy` profile（compose 配置已避免和 frontend 抢端口）
+- Caddy 自动向 Let's Encrypt 申请证书（首次 1-2 分钟）
+- 健康检查走 `https://t2g.yinhour.com/api/health`
+
+成功后访问：**https://t2g.yinhour.com**
+
+### 6.5 验证 HTTPS
+
+```bash
+curl -I https://t2g.yinhour.com/api/health
+# 期望：HTTP/2 200，response header 含 server: Caddy
+
+# 在浏览器打开 https://t2g.yinhour.com，看到落地页
+# 在浏览器打开 https://t2g.yinhour.com/login，能登录
+```
+
+证书自动续期，无需 cron。证书文件存在 docker volume `caddy_data` 里。
+
+### 6.6 回退到 8080（应急）
+
+如果 HTTPS 出问题（如证书签发失败、Caddy 配置错），可以临时切回 8080：
+
+```bash
+docker compose down
+# 删除 .env 里的 T2G_DOMAIN 或 unset
+unset T2G_DOMAIN
+./deploy/bootstrap.sh
+# 重新走 http://49.233.15.73:8080
+```
 
 ---
 
@@ -224,16 +283,22 @@ docker system prune -af
 
 ---
 
-## 10. DB Schema 当前状态（W7+W8 一致）
+## 10. DB Schema 当前状态（V2-F.1）
 
 ```
-session       (id, title, llm_provider, created_at, updated_at, meta_json)
-message       (id, session_id, role, content, dsl_patch_json, llm_provider,
-               tokens_in, tokens_out, latency_ms, error_kind, created_at)
-dsl_snapshot  (id, session_id, seq, dsl_json, solution_json, created_at)
-feedback      (id, session_id, snapshot_seq, rating, comment, nl,
-               dsl_json, llm_provider, created_at)
+user           (id, email UNIQUE, username, hashed_password, role, status,
+                password_changed_at, last_login_at, created_at, updated_at)
+session        (id, title, llm_provider, user_id FK, created_at, updated_at, meta_json)
+message        (id, session_id, role, content, dsl_patch_json, llm_provider,
+                tokens_in, tokens_out, latency_ms, error_kind, fallback, created_at)
+dsl_snapshot   (id, session_id, seq, dsl_json, solution_json, created_at)
+feedback       (id, session_id, snapshot_seq, rating, comment, nl,
+                dsl_json, llm_provider, created_at)
+audit_log      (id, actor_id INDEX, actor_email, action INDEX, target_type,
+                target_id, metadata_json, ip_address, user_agent, created_at INDEX)
 ```
+
+启动时自动建 anonymous user（固定 ID，禁用登录）+ 把 NULL session 归属到 anonymous + 按 env 建 bootstrap admin。
 
 生产期 schema 升级当前未上 Alembic；要在线升级请：
 1. 停机 `docker compose down`

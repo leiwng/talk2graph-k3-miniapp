@@ -1,6 +1,6 @@
-"""管理类路由：LLM 用量统计、系统状态。
+"""管理类路由：LLM 用量统计、系统状态、反馈查询。
 
-无鉴权 MVP（部署在内网或仅老师可见）。生产环境如需鉴权，加 API key middleware。
+V2-F.1：所有路由要求 admin 角色（Depends(require_admin)）。
 """
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from fastapi.responses import Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth.deps import CurrentUser, require_admin
 from ..db.models import DSLSnapshot, Feedback, Message, Session
 from .deps import db_dep
 
@@ -20,7 +21,9 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 @router.get("/stats")
 async def stats(
-    days: int = 7, db: AsyncSession = Depends(db_dep)
+    days: int = 7,
+    db: AsyncSession = Depends(db_dep),
+    user: CurrentUser = Depends(require_admin),
 ) -> dict:
     """近 N 天的用量统计。"""
     since = datetime.utcnow() - timedelta(days=days)
@@ -76,7 +79,10 @@ async def stats(
 
 @router.get("/feedback")
 async def list_feedback(
-    days: int = 30, limit: int = 1000, db: AsyncSession = Depends(db_dep)
+    days: int = 30,
+    limit: int = 1000,
+    db: AsyncSession = Depends(db_dep),
+    user: CurrentUser = Depends(require_admin),
 ) -> dict:
     since = datetime.utcnow() - timedelta(days=days)
     stmt = (
@@ -106,7 +112,9 @@ async def list_feedback(
 
 @router.get("/feedback.jsonl")
 async def feedback_jsonl(
-    days: int = 30, db: AsyncSession = Depends(db_dep)
+    days: int = 30,
+    db: AsyncSession = Depends(db_dep),
+    user: CurrentUser = Depends(require_admin),
 ) -> Response:
     since = datetime.utcnow() - timedelta(days=days)
     stmt = (

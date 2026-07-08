@@ -6,7 +6,199 @@
 
 ---
 
-## V2-E — 多 Provider 评测 + UI/UX 打磨 + 自动 Fallback（当前版本，2026-07-07）
+## V2-F.1 — 用户体系 + 审计骨架（当前版本，2026-07-07）
+
+**测试状态**：205/205 通过（V2-E 173 + V2-F.1 32 新增；前端 `npm run build` 通过）
+
+**目标**：建立用户管理体系第一块——邮箱+密码注册/登录、JWT 鉴权、审计日志（含每次 chat 作图）、Session 归属校验、Admin 权限保护、前端路由 + 登录页。
+
+**不含**：邮箱验证码 / WeChat OAuth / Alipay 付费 / 配额限流（这些分别在 F.2 / F.3）。F.1 不验证邮箱（用户填什么邮箱就建什么账号），SMTP 留 F.3 一起接。
+
+**关键设计决策**：
+- **JWT in localStorage** + `auth_version` 失效机制：用户改密后 `password_changed_at` 更新 → 旧 token 立即失效（不需要 token 黑名单）。借鉴 Lumiton `api/jwt_auth.py`
+- **匿名会话保留试用体验**：未登录用户仍可创建 session（归属内置 `anonymous` 用户），任何人持 sid 仍可访问；登录用户只能访问自己的 session（cross-user 返回 404 防探测）
+- **审计 best-effort**：所有 audit 写入 try/except + `logger.warning`，永不阻塞主流程；chat.send 走 `asyncio.create_task` fire-and-forget
+- **Bootstrap admin**：首次启动且无 admin 时按 env `T2G_BOOTSTRAP_ADMIN_EMAIL` + `T2G_BOOTSTRAP_ADMIN_PASSWORD` 自动创建管理员；账号创建后这两个 env 可删除
+
+### 新增
+
+**后端 — Auth 模块（`app/auth/`）**
+- `app/auth/__init__.py`：模块文档
+- `app/auth/password.py`（~25 LOC）：bcrypt `hash_password` / `verify_password`，逐字借鉴 Lumiton `api/password_utils.py`；`verify_password` 捕获 `AttributeError` 防 None / 损坏 hash 崩溃
+- `app/auth/jwt_token.py`（~95 LOC）：
+  - HS256 + `auth_version` claim（从 `password_changed_at || updated_at || created_at` 派生 unix_ts）
+  - `create_access_token(user)`：payload 含 sub/email/username/role/status/auth_version/iat/exp，默认 24h 过期
+  - `decode_token(token, expected_auth_version=None)`：验签 + 验过期 + 可选 auth_version 比对
+  - `TokenError` / `TokenExpiredError` / `TokenInvalidError` 异常分级
+  - `decode_token_unsafe(token)`：不抛异常版本，用于 logger 提取 user_id 等 best-case 场景
+- `app/auth/repository.py`（~80 LOC）：
+  - `get_user_by_id` / `get_user_by_email` / `create_user` / `update_password` / `update_last_login` / `count_admins`
+  - `update_password` + `update_last_login` 后 `await db.refresh(user)` 让 onupdate 自动字段（updated_at）重新加载，避免 `auth_version` 取到 stale 值触发 `MissingGreenlet` 错误
+- `app/auth/deps.py`（~140 LOC）：
+  - `CurrentUser` Pydantic 模型（id/email/username/role/status/auth_version，不含 hashed_password）
+  - `get_current_user` Depends：从 `Authorization: Bearer <token>` 提取 + DB 校验 + status 校验 + auth_version 比对
+  - `get_current_user_optional` Depends：有 token 则校验，无 token 返回 None（用于"未登录也能用，登录后走归属"的端点）
+  - `require_admin` Depends：包 `get_current_user`，校验 `role == 'admin'`
+  - `extract_request_meta(request)`：提取 `(ip, user_agent)` 给 audit 用（优先 X-Forwarded-For）
+
+**后端 — Audit 模块（`app/audit/`）**
+- `app/audit/__init__.py`：模块文档
+- `app/audit/actions.py`：审计 action 字符串常量集中定义（auth.register.success / auth.login.success / .failed / auth.logout / auth.password.changed / chat.send / session.delete / order.* 等，避免拼写错误）
+- `app/audit/repository.py`（~120 LOC）：
+  - `create_audit(db, *, actor_id, actor_email, action, target_type?, target_id?, metadata?, ip?, ua?)`：同步写入，失败仅 `logger.warning` 不抛
+  - `list_logs(db, *, actor_id?, action?, target_type?, target_id?, start?, end?, limit, offset)`：分页查询 + 多维过滤，返回 `(rows, total)`；total 用 `select(func.count()).select_from(subquery)` 单独查（避免 select 结果集 `rowcount` 不可靠问题）
+  - `fire_and_forget(action, **kwargs) -> asyncio.Task`：开独立 session 写审计，不阻塞请求；用于 chat.send 等高频事件
+  - 内部 `_fire_and_forget_inner` 局部 import `get_session` 避免循环依赖
+
+**后端 — Auth API（`app/api/auth.py`，~250 LOC）**
+- `POST /api/auth/register`：邮箱+密码+用户名 → 创建 user（role=user, status=active）→ 颁 JWT → 写 audit `auth.register.success`
+  - F.1 不验证邮箱；F.3 接 SMTP 后加验证码步骤
+  - 邮箱重复 → IntegrityError → 422
+  - 密码 < 6 位 → pydantic Field(min_length=6) → 422
+- `POST /api/auth/login`：邮箱+密码 → 校验 → 颁 JWT → 更新 last_login_at → 写 audit `auth.login.success` 或 `.failed`（含 reason: user_not_found / invalid_password / disabled）
+- `POST /api/auth/logout`：写 audit `auth.logout`（best-effort）；客户端清 token
+- `GET /api/auth/me`：返回当前用户最新信息（从 DB 拉取，含 last_login_at 等动态字段）
+- `POST /api/auth/refresh`：用旧 token 换新 token（重置 24h 过期；auth_version 必须不变）
+- `POST /api/auth/change-password`：old + new → 校验旧密码 → 更新 hashed_password + password_changed_at（旧 token 全失效）→ 写 audit `auth.password.changed`
+
+**后端 — AuditLog API（`app/api/audit_log.py`，~80 LOC）**
+- `GET /api/audit-log`（admin only）：分页 + 多维过滤（actor_id / action / target_type / target_id / start / end / limit / offset）
+- 返回 `{items, total, limit, offset}`，metadata 字段自动 JSON parse
+
+**后端 — DB Schema 变更**
+- `app/db/models.py`：
+  - 新增 `User` 表（id/email/username/hashed_password/role/status/password_changed_at/last_login_at/created_at/updated_at；email UNIQUE INDEX）
+  - 新增 `AuditLog` 表（id/actor_id INDEX/actor_email/action INDEX/target_type/target_id/metadata_json/ip_address/user_agent/created_at INDEX）
+  - `Session` 表加 `user_id: str | None`（FK user.id ondelete=SET NULL, INDEX）
+  - 常量 `ANONYMOUS_USER_ID = "00000000-0000-0000-0000-anonymous"`（固定 ID 的内置匿名用户）
+- `app/db/migrations.py`：`REQUIRED_COLUMNS["session"] = [("user_id", "TEXT")]`，让老库通过 `ensure_schema()` 自动 ALTER 加列
+- `app/db/session.py::init_db` 启动时增加 3 步 bootstrap：
+  1. `_bootstrap_anonymous_user`：创建内置 anonymous 用户（id 固定，role=user, status=disabled 禁止登录，幂等）
+  2. `_attach_orphan_sessions`：把所有 `user_id IS NULL` 的 session 全部归属到 anonymous（裸 SQL UPDATE，幂等）
+  3. `_bootstrap_admin`：若 DB 无 admin 用户且 env `T2G_BOOTSTRAP_ADMIN_EMAIL` + `T2G_BOOTSTRAP_ADMIN_PASSWORD` 已配置 → 创建 admin 用户；幂等
+
+**后端 — Config / 依赖**
+- `app/config.py::Settings` 新增：
+  - `jwt_secret`（env `T2G_JWT_SECRET`，默认 `dev-only-change-in-prod-please-use-32+-chars`）
+  - `jwt_expiry_seconds`（env `T2G_JWT_EXPIRY_SECONDS`，默认 86400 = 24h）
+  - `bootstrap_admin_email` / `bootstrap_admin_password`（env `T2G_BOOTSTRAP_ADMIN_EMAIL` / `T2G_BOOTSTRAP_ADMIN_PASSWORD`）
+- `backend/.env.example`：新增"用户管理（V2-F.1）"章节
+- `backend/pyproject.toml`：新增依赖 `bcrypt>=4.0` / `pyjwt>=2.8` / `email-validator>=2.0`（pydantic EmailStr 校验需要）
+- `backend/app/main.py`：注册 `auth.router` + `audit_log.router`
+
+**前端 — 路由 + AuthStore**
+- `frontend/package.json`：新增依赖 `react-router-dom@^6.26`
+- `frontend/src/main.tsx`：用 `BrowserRouter` 包 `<App/>`
+- `frontend/src/App.tsx` 重构：
+  - 顶层 `<Routes>` 定义 7 条路由：`/` LandingPage / `/login` / `/register` / `/forgot-password` / `/app` AppShell（守卫）/ `/account` AccountPage（守卫）/ `/account/password` ChangePasswordPage（守卫）/ `*` → `/`
+  - `ProtectedRoute` 组件：未登录 → `<Navigate to="/login?from=...">`；登录中显示 spinner
+  - `AppShell`（原 App 内容抽出）：进入 `/app` 时若 `sessionId` is null 则自动 `newSession()`
+  - `LandingPage`：保留现有 WelcomeCard 风格 + 升级 CTA（已注册显示"进入工作台"，未注册显示"免费注册"+"已注册，去登录"）
+- `frontend/src/store/auth.ts`（新，~95 LOC）：独立 AuthStore
+  - state：`user / token / isAuthenticated / isLoading / lastAuthCheck`
+  - actions：`init / login / register / logout / checkAuth / refreshUser`
+  - `checkAuth` 30s TTL 缓存，避免每次切路由都打 `/me`
+- `frontend/src/store/index.ts::init`：仅登录用户恢复或新建 session；未登录用户在落地页不创建 session（节省资源）
+- `frontend/src/api/auth.ts`（新，~140 LOC）：
+  - `loadStoredAuth` / `storeAuth` / `clearStoredAuth` / `getStoredToken` / `authHeader`：localStorage 持久化（key=`t2g.auth`）
+  - `authApi`：register / login / logout / me / refresh / changePassword / listAuditLogs
+  - 独立 `request<T>` 包装注入 `authHeader()` + 401 拦截（仅当原本有 token 时才清，避免公开页 401 误清）
+- `frontend/src/api/client.ts`：所有 `request<T>` 调用注入 `authHeader()`；`chatStream` 的 fetch 也注入；401 拦截跳 `/login?from=...`
+- `frontend/src/api/types.ts`：新增 `User` / `AuthResp` / `AuditLogItem` / `AuditLogListResp` 类型
+
+**前端 — 页面（5 个，~600 LOC）**
+- `frontend/src/pages/LoginPage.tsx`：邮箱+密码表单，提交后跳 `from` 参数或 `/app`
+- `frontend/src/pages/RegisterPage.tsx`：邮箱+用户名+密码+确认密码；密码 < 6 位 / 不一致前端校验
+- `frontend/src/pages/ForgotPasswordPage.tsx`：F.1 占位（提示"邮箱重置功能尚未启用，联系管理员"）；F.3 接 SMTP 后实跑
+- `frontend/src/pages/AccountPage.tsx`：用户信息卡片 + 修改密码 / 返回工作台 / 退出登录按钮
+- `frontend/src/pages/ChangePasswordPage.tsx`：旧密码+新密码+确认；成功后 1.5s 自动 logout 跳登录页（旧 token 已失效）
+- `frontend/src/components/auth/AuthPageShell.tsx`（~25 LOC）：公共壳（居中卡片 + brand + 教育蓝渐变背景）
+- `frontend/src/components/auth/ProtectedRoute.tsx`（~30 LOC）：路由守卫，loading 时显示 spinner
+- `frontend/src/components/auth/UserMenu.tsx`（~70 LOC）：TopBar 右上角下拉（圆形头像 + 用户名 + caret），下拉菜单含账号信息 / 修改密码 / 退出登录
+- `frontend/src/components/TopBar.tsx`：
+  - brand 改为 `<Link to="/">`（可点击回首页）
+  - 右侧加 `<UserMenu/>`（已登录显示用户菜单）
+- `frontend/src/styles.css`（815 → 1130 行，+315 行）：
+  - 新增 `.btn` / `.btn-primary` / `.btn-ghost` / `.btn-danger` / `.btn-block` 通用按钮
+  - 新增 `.auth-page` / `.auth-card` / `.auth-brand` / `.auth-title` / `.auth-sub` / `.auth-form` / `.auth-field` / `.auth-error` / `.auth-success` / `.auth-links` 样式（教育蓝 + 卡片 + 圆角 + 阴影）
+  - 新增 `.auth-loading` / `.auth-loading-card` / `.auth-loading-spinner`（旋转动画）
+  - 新增 `.landing-content` / `.landing-title`（渐变文字） / `.landing-sub` / `.landing-cta` / `.landing-features`
+  - 新增 `.account-info` / `.account-row` / `.account-label` / `.account-value` / `.account-actions`
+  - 新增 `.user-menu` / `.user-avatar-btn` / `.user-avatar`（渐变圆形头像） / `.user-name` / `.caret` / `.user-menu-dropdown` / `.user-menu-header` / `.dropdown-divider`
+  - TopBar 的 `.brand` 改为 a 标签样式微调
+
+### 变更
+
+- `app/db/models.py::Session`：新增 `user_id` FK 列（向后兼容，nullable）
+- `app/session/repo.py`：
+  - `create_session` 加 `user_id` 参数
+  - `list_sessions` 加 `user_id` 参数过滤
+- `app/api/session.py`：
+  - 所有 `/api/session*` 路由加 `user: Optional[CurrentUser] = Depends(get_current_user_optional)` 依赖
+  - 新增 `_require_session_with_owner(db, sid, user)`：校验 session 归属，cross-user 返回 404（防探测）；anonymous session 任何人都能访问（保留试用体验）
+  - POST /api/session：登录用户归属自己，未登录归属 anonymous
+  - GET /api/sessions：只返回当前用户的（含 anonymous 的）
+  - GET/DELETE /api/session/{sid} + dsl/messages/history/undo/redo/feedback：均加归属校验
+- `app/api/admin.py`：
+  - 所有 3 个路由（stats / feedback / feedback.jsonl）加 `Depends(require_admin)`
+  - 头部注释从"无鉴权 MVP"改为"V2-F.1：所有路由要求 admin 角色"
+- `app/main.py`：注册 `auth.router` + `audit_log.router`
+- `backend/.env.example`：顶部新增"用户管理（V2-F.1）"章节（JWT_SECRET / BOOTSTRAP_ADMIN_*）
+- `backend/pyproject.toml`：+bcrypt>=4.0 / +pyjwt>=2.8 / +email-validator>=2.0
+
+### 修复
+
+- `app/auth/repository.py::update_password` / `update_last_login`：commit 后 `await db.refresh(user)`，让 onupdate 自动字段（updated_at）重新加载，避免 `auth_version` 取到 stale 值导致 `MissingGreenlet` 错误（测试 `test_login_success` / `test_change_password_invalidates_old_token` 暴露）
+- `app/auth/password.py::verify_password`：捕获 `AttributeError`，防止 hashed=None / 损坏 hash 字符串导致崩溃
+- `app/audit/repository.py::list_logs`：total 用 `select(func.count()).select_from(subquery)` 单独查，避免 SQLAlchemy 2.0 中 select 结果集 `rowcount` 不可靠问题
+
+### DB Schema 升级
+
+V2-E → V2-F.1：
+- 新增 2 张表：`user` / `audit_log`（`create_all` 自动建）
+- `session` 表新增 `user_id TEXT` 列（`ensure_schema` 自动 ALTER）
+- 启动时自动建 anonymous user（id 固定）+ 把 NULL session 归属到 anonymous + 按 env 建 bootstrap admin
+- **升级方式**：开发期直接 `rm backend/data/talk2graph.db`；生产期无需手动操作（启动自动迁移）
+
+### 配置说明
+
+新增 3 个环境变量（开发期 `.env`，生产期 Docker env）：
+
+```bash
+# JWT HS256 签名密钥。开发期可用默认值；生产期必须替换为长随机串：
+#   openssl rand -hex 32
+T2G_JWT_SECRET=dev-only-change-in-prod-please-use-32+-chars
+
+# Bootstrap admin：首次启动且无 admin 用户时按这两个 env 自动创建管理员
+# 创建成功后这两个 env 可删除（账号之后改密走 /api/auth/change-password 流程）
+T2G_BOOTSTRAP_ADMIN_EMAIL=admin@your-domain.com
+T2G_BOOTSTRAP_ADMIN_PASSWORD=change-me-immediately
+```
+
+### 测试
+
+新增 32 个测试（173 → 205），分布在 6 个文件：
+
+- `tests/test_v2f_password.py`（4 个）：hash/verify roundtrip / 错密码 / 损坏 hash / salt 唯一性
+- `tests/test_v2f_jwt.py`（5 个）：编解码 roundtrip / 过期拒绝 / 错 secret 拒绝 / auth_version 失效 / claims 完整性
+- `tests/test_v2f_auth.py`（12 个）：注册成功 / 邮箱重复 422 / 密码过短 422 / 登录成功 / 错密码 401 + audit / 不存在用户 401 + audit / 禁用账号 403 / me 带 token / me 不带 token 401 / refresh / 改密后旧 token 失效 / bootstrap admin 首次启动
+- `tests/test_v2f_audit.py`（5 个）：写入 + 列表查询 / 按 actor 过滤 / best-effort 不阻塞主流程 / fire_and_forget chat.send / 非 admin 403
+- `tests/test_v2f_session_ownership.py`（4 个）：用户 A 创建的 session A 能访问 / B 访问 A 的返回 404 防探测 / 列表按用户过滤 / 匿名 session 任何人可访问
+- `tests/test_v2f_admin_guard.py`（2 个）：普通 user 访问 `/api/admin/stats` 403 / admin 角色访问通过
+
+既有测试改造（~10 处加 admin token）：
+- `tests/test_w6_ops.py`：fixture 内预建 admin 用户，新增 `admin_token` fixture；admin stats 测试加 headers
+- `tests/test_w7_feedback.py`：同上，新增 `admin_headers` fixture；admin feedback / jsonl 测试加 headers
+
+### 下一步候选
+
+- **V2-F.2**：付费（Alipay 电脑网站支付 + 配额限流）
+- **V2-F.3**：邮箱验证码 + WeChat OAuth + SMTP/Resend 集成
+- 历史会话侧抽屉（V2-E 路线图遗留）
+
+---
+
+## V2-E — 多 Provider 评测 + UI/UX 打磨 + 自动 Fallback（2026-07-07）
 
 **测试状态**：173/173 通过（V2-D 173 + V2-E 0 新增测试；本轮主要是工程化改造与前端样式重写，未引入新业务功能）
 

@@ -234,3 +234,14 @@ data/
 backend/test/results_*/svgs/*.jpg
 backend/test/results_*/svgs/*.png
 backend/test/results_*/svgs/report.md.txt
+backend/test/results_*/svgs/*.svg
+
+# V2-F.1：前端 TS 编译产物（保留 .tsx 源码，忽略 .js 重新生成）
+frontend/src/**/*.js
+frontend/src/tsconfig.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
+
+# Alipay 密钥文件（V2-F.2）
+secrets/
+*.pem
+*_private_key*.txt

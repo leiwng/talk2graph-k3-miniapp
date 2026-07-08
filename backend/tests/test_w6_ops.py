@@ -102,19 +102,51 @@ def test_classify_unknown():
 
 @pytest_asyncio.fixture
 async def client():
-    from app.db.session import init_db
+    """带 admin 用户的 test client。
+
+    V2-F.1 后 /api/admin/* 要求 admin 角色，测试需带 Bearer token。
+    通过 admin_token fixture 拿到 token 后注入 Authorization header。
+    """
+    from app.db.session import init_db, get_session
     from app.main import create_app
+    from app.auth.password import hash_password
+    from app.auth.repository import create_user
 
     app = create_app()
     await init_db()
+    # 直接建 admin 用户
+    async with get_session() as db:
+        try:
+            await create_user(
+                db,
+                email="w6admin@example.com",
+                username="w6admin",
+                hashed_password=hash_password("admin-pwd-123"),
+                role="admin",
+                status="active",
+            )
+        except Exception:
+            pass  # 已存在则跳过
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
 
 
+@pytest_asyncio.fixture
+async def admin_token(client):
+    """登录拿 admin token，并返回 (token, auth_headers)。"""
+    r = await client.post("/api/auth/login", json={
+        "email": "w6admin@example.com", "password": "admin-pwd-123",
+    })
+    assert r.status_code == 200, r.text
+    token = r.json()["token"]
+    return token, {"Authorization": f"Bearer {token}"}
+
+
 @pytest.mark.asyncio
-async def test_admin_stats_empty(client):
-    r = await client.get("/api/admin/stats")
+async def test_admin_stats_empty(client, admin_token):
+    _, headers = admin_token
+    r = await client.get("/api/admin/stats", headers=headers)
     assert r.status_code == 200
     data = r.json()
     assert "sessions" in data
@@ -124,11 +156,12 @@ async def test_admin_stats_empty(client):
 
 
 @pytest.mark.asyncio
-async def test_admin_stats_with_activity(client):
+async def test_admin_stats_with_activity(client, admin_token):
     """模拟一轮 chat → stats 应反映出来。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
+    _, headers = admin_token
     canned = {
         "version": "0.1",
         "objects": [
@@ -141,11 +174,11 @@ async def test_admin_stats_with_activity(client):
     }
     set_provider_override(MockProvider(handler=lambda m: json.dumps(canned, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={})
+        r = await client.post("/api/session", json={}, headers=headers)
         sid = r.json()["id"]
-        await client.post(f"/api/session/{sid}/chat", json={"nl": "线段 AB 长 5"})
+        await client.post(f"/api/session/{sid}/chat", json={"nl": "线段 AB 长 5"}, headers=headers)
 
-        r = await client.get("/api/admin/stats")
+        r = await client.get("/api/admin/stats", headers=headers)
         data = r.json()
         assert data["sessions"] >= 1
         assert data["messages"] >= 2  # 1 user + 1 assistant
