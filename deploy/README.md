@@ -85,7 +85,7 @@ nano backend/.env
 DEFAULT_PROVIDER=volcengine
 
 # 火山方舟（承载 GLM-5.2）
-VOLCENGINE_API_KEY=REMOVEDxxxxx
+VOLCENGINE_API_KEY=ark-xxxxx
 VOLCENGINE_ENDPOINT_ID=glm-5.2
 VOLCENGINE_BASE_URL=https://ark.cn-beijing.volces.com/api/coding/v3
 ```
