@@ -148,3 +148,95 @@ class Feedback(Base):
     dsl_json: Mapped[Optional[str]] = mapped_column(Text)
     llm_provider: Mapped[Optional[str]] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp())
+
+
+# ============================================================================
+# V2-F.2：付费 + 配额限流
+# ============================================================================
+
+
+class SubscriptionPlan(Base):
+    """订阅套餐定义。
+
+    admin 可通过 SQL 修改 daily_graph_limit 调整配额（不需要改代码 + 重新部署）。
+    启动时若表为空，会 seed 3 个默认 plan（free / pro / enterprise），幂等。
+    """
+
+    __tablename__ = "subscription_plan"
+
+    code: Mapped[str] = mapped_column(String(32), primary_key=True)  # 'free'|'pro'|'enterprise'
+    name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    feature_bullets_json: Mapped[Optional[str]] = mapped_column(Text)  # JSON array of strings
+    price_cents: Mapped[int] = mapped_column(Integer, default=0)  # 分（避免浮点）
+    currency: Mapped[str] = mapped_column(String(8), default="CNY")
+    period: Mapped[str] = mapped_column(String(20))  # 'free' | 'calendar_month' | 'contract'
+    # 每日画图配额上限。0 = 无限。free=5, pro=0（无限）, enterprise=0
+    daily_graph_limit: Mapped[int] = mapped_column(Integer, default=5)
+    status: Mapped[str] = mapped_column(String(20), default="active")  # 'active' | 'archived'
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.current_timestamp(), onupdate=func.current_timestamp()
+    )
+
+
+class SubscriptionOrder(Base):
+    """订阅订单。
+
+    状态机：pending -> paid（webhook 验签通过）-> expired（15min 未支付自动过期）/ closed（用户主动关闭）
+    幂等：webhook 重复通知时通过 provider_payload.subscription_applied 标记避免重复激活
+    """
+
+    __tablename__ = "subscription_order"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    plan_id: Mapped[str] = mapped_column(ForeignKey("subscription_plan.code"))
+    plan_code: Mapped[str] = mapped_column(String(32))  # 反规范化，便于查询
+    amount_cents: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(8), default="CNY")
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending|paid|expired|closed|refunded|failed
+    provider: Mapped[str] = mapped_column(String(20), default="alipay")
+    # 商户订单号（UNIQUE）：T2G{timestamp}{uuid8}
+    provider_out_trade_no: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    provider_transaction_id: Mapped[Optional[str]] = mapped_column(String(128))
+    # 完整 webhook 通知 payload + 幂等标记 {subscription_applied: bool}
+    provider_payload_json: Mapped[Optional[str]] = mapped_column(Text)
+    failure_code: Mapped[Optional[str]] = mapped_column(String(64))
+    failure_message: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp())
+    paid_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(default=None)  # 15 分钟未支付过期
+    closed_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+
+
+class UserSubscription(Base):
+    """用户当前订阅状态。
+
+    每个用户最多 1 条记录。无记录 = free 用户（用 plan 默认配额）。
+    daily_graph_limit_override 用于 per-user 配额覆盖（admin 可调，营销用）：
+      - None：用 plan 的 daily_graph_limit
+      - 非 None：覆盖 plan 的值（如给某用户 30 次/天但仍是 free）
+    """
+
+    __tablename__ = "user_subscription"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    plan_id: Mapped[str] = mapped_column(ForeignKey("subscription_plan.code"))
+    plan_code: Mapped[str] = mapped_column(String(32))  # 反规范化
+    status: Mapped[str] = mapped_column(String(20), default="free")  # 'free' | 'active' | 'expired'
+    # per-user 配额覆盖（admin 可调）。None=用 plan 默认值
+    daily_graph_limit_override: Mapped[Optional[int]] = mapped_column(default=None)
+    current_period_start: Mapped[Optional[datetime]] = mapped_column(default=None)
+    current_period_end: Mapped[Optional[datetime]] = mapped_column(default=None)
+    source_order_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("subscription_order.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.current_timestamp(), onupdate=func.current_timestamp()
+    )

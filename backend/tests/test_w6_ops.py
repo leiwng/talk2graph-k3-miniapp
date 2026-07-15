@@ -143,6 +143,31 @@ async def admin_token(client):
     return token, {"Authorization": f"Bearer {token}"}
 
 
+@pytest_asyncio.fixture
+async def auth_headers(client):
+    """创建普通用户 + 登录拿 token。"""
+    import uuid
+    from app.auth.password import hash_password
+    from app.auth.repository import create_user
+    from app.db.session import get_session
+
+    email = f"test-{uuid.uuid4().hex[:8]}@example.com"
+    async with get_session() as db:
+        await create_user(
+            db,
+            email=email,
+            username="testuser",
+            hashed_password=hash_password("password123"),
+            role="user",
+            status="active",
+        )
+
+    r = await client.post("/api/auth/login", json={"email": email, "password": "password123"})
+    assert r.status_code == 200, r.text
+    token = r.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 @pytest.mark.asyncio
 async def test_admin_stats_empty(client, admin_token):
     _, headers = admin_token
@@ -192,12 +217,12 @@ async def test_admin_stats_with_activity(client, admin_token):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_chat_returns_friendly_error_on_solve_fail(client):
-    """LLM 返回过约束的 DSL → 求解失败 → 友好错误。"""
+async def test_chat_returns_friendly_error_on_solve_fail(client, auth_headers):
+    """LLM 返回过约束的 DSL -> 求解失败 -> 友好错误。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
-    # AB 同时长度 3 和长度 5 — 矛盾
+    # AB 同时长度 3 和长度 5 - 矛盾
     bad = {
         "version": "0.1",
         "objects": [
@@ -213,9 +238,9 @@ async def test_chat_returns_friendly_error_on_solve_fail(client):
     }
     set_provider_override(MockProvider(handler=lambda m: json.dumps(bad, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={})
+        r = await client.post("/api/session", json={}, headers=auth_headers)
         sid = r.json()["id"]
-        r = await client.post(f"/api/session/{sid}/chat", json={"nl": "矛盾的指令"})
+        r = await client.post(f"/api/session/{sid}/chat", json={"nl": "矛盾的指令"}, headers=auth_headers)
         assert r.status_code == 422
         detail = r.json()["detail"]
         assert isinstance(detail, dict)

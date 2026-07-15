@@ -1196,3 +1196,104 @@ input:focus, textarea:focus, select:focus {
 .topbar .brand:hover .name {
   opacity: 0.85;
 }
+
+/* ============================================================
+   V2-F.2：定价 + 订阅页面
+   ============================================================ */
+
+.pricing-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 50%, #eef2ff 100%);
+  padding: 40px 16px;
+}
+
+.pricing-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.pricing-cards {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.pricing-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card, 0 10px 40px rgba(0, 0, 0, 0.08));
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 300px;
+  position: relative;
+  border: 2px solid transparent;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.pricing-card:hover {
+  transform: translateY(-2px);
+}
+
+.pricing-card.recommended {
+  border-color: var(--accent);
+}
+
+.pricing-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-gradient, linear-gradient(135deg, #3b82f6, #6366f1));
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.pricing-name {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+
+.pricing-price {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.pricing-amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pricing-period {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.pricing-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+.pricing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--text-secondary, #475569);
+}
+
+.pricing-features li {
+  padding: 4px 0;
+}

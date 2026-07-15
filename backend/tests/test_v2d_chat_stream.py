@@ -34,7 +34,47 @@ async def client():
     await init_db()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
+        # V2-F.2: 预建普通用户 + enterprise 订阅（无限配额，避免测试间 quota 超限）
+        from app.auth.password import hash_password
+        from app.auth.repository import create_user, get_user_by_email
+        from app.db.session import get_session
+        from app.db.models import UserSubscription
+        import uuid
+
+        async with get_session() as db:
+            try:
+                u = await create_user(
+                    db,
+                    email="v2dtest@example.com",
+                    username="v2dtest",
+                    hashed_password=hash_password("password123"),
+                    role="user",
+                    status="active",
+                )
+                # 给测试用户 enterprise 配额（无限），避免 9 个测试累计超 free 5/天
+                db.add(UserSubscription(
+                    id=uuid.uuid4().hex,
+                    user_id=u.id,
+                    plan_id="enterprise",
+                    plan_code="enterprise",
+                    status="active",
+                    daily_graph_limit_override=0,  # 0 = 无限
+                ))
+                await db.commit()
+            except Exception:
+                pass
         yield c
+
+
+@pytest_asyncio.fixture
+async def auth_headers(client):
+    """V2-F.2: 登录拿 token，返回 headers。"""
+    r = await client.post("/api/auth/login", json={
+        "email": "v2dtest@example.com", "password": "password123",
+    })
+    assert r.status_code == 200, r.text
+    token = r.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
 
 
 def _parse_sse(text: str) -> list[tuple[str, dict]]:
@@ -76,7 +116,7 @@ CANNED_DSL = {
 
 
 @pytest.mark.asyncio
-async def test_stream_success_full_flow(client):
+async def test_stream_success_full_flow(client, auth_headers):
     """完整成功路径：每个 stage 事件按顺序发出，最终 done 含 svg。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -84,13 +124,14 @@ async def test_stream_success_full_flow(client):
     set_provider_override(MockProvider(handler=lambda m: json.dumps(CANNED_DSL, ensure_ascii=False)))
     try:
         # 创建会话
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         # 调流式 chat
         r = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "画一个等边三角形 边长 4"},
+            headers=auth_headers,
         )
         assert r.status_code == 200
         events = _parse_sse(r.text)
@@ -114,7 +155,7 @@ async def test_stream_success_full_flow(client):
 
 
 @pytest.mark.asyncio
-async def test_stream_llm_refuse(client):
+async def test_stream_llm_refuse(client, auth_headers):
     """LLM 主动拒绝：直接 done(ok=false, error_kind=refuse)。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -123,12 +164,13 @@ async def test_stream_llm_refuse(client):
         {"error": "暂不支持立体几何"}
     )))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "画一个正方体"},
+            headers=auth_headers,
         )
         events = _parse_sse(r.text)
         # 应有 stage=llm + done
@@ -144,7 +186,7 @@ async def test_stream_llm_refuse(client):
 
 
 @pytest.mark.asyncio
-async def test_stream_llm_network_error(client):
+async def test_stream_llm_network_error(client, auth_headers):
     """LLM 网络错误：应发 error 事件。"""
     from app.api.chat import set_provider_override
     from app.llm.base import LLMError
@@ -155,12 +197,13 @@ async def test_stream_llm_network_error(client):
 
     set_provider_override(MockProvider(handler=fail_handler))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "画一个三角形"},
+            headers=auth_headers,
         )
         events = _parse_sse(r.text)
         err = [data for e, data in events if e == "error"]
@@ -171,7 +214,7 @@ async def test_stream_llm_network_error(client):
 
 
 @pytest.mark.asyncio
-async def test_stream_solve_fail(client):
+async def test_stream_solve_fail(client, auth_headers):
     """约束不一致导致 solve 失败：应发 error 事件含 solve_no_converge。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -191,12 +234,13 @@ async def test_stream_solve_fail(client):
     }
     set_provider_override(MockProvider(handler=lambda m: json.dumps(bad_dsl, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "画一条线段 AB=3 又 AB=5"},
+            headers=auth_headers,
         )
         events = _parse_sse(r.text)
         err = [data for e, data in events if e == "error"]
@@ -208,7 +252,7 @@ async def test_stream_solve_fail(client):
 
 
 @pytest.mark.asyncio
-async def test_stream_patch_mode(client):
+async def test_stream_patch_mode(client, auth_headers):
     """patch 模式：第二轮 chat 应返回 patch 而非全量 DSL。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -228,13 +272,14 @@ async def test_stream_patch_mode(client):
 
     set_provider_override(MockProvider(handler=handler))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         # 第一轮：完整 DSL
         r1 = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "画等边三角形 边长 4"},
+            headers=auth_headers,
         )
         events1 = _parse_sse(r1.text)
         done1 = [d for e, d in events1 if e == "done"][0]
@@ -244,6 +289,7 @@ async def test_stream_patch_mode(client):
         r2 = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "把边长改成 6"},
+            headers=auth_headers,
         )
         events2 = _parse_sse(r2.text)
         done2 = [d for e, d in events2 if e == "done"][0]
@@ -257,19 +303,20 @@ async def test_stream_patch_mode(client):
 
 
 @pytest.mark.asyncio
-async def test_stream_response_headers(client):
+async def test_stream_response_headers(client, auth_headers):
     """SSE 响应应有正确的 content-type 和缓存控制头。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
     set_provider_override(MockProvider(handler=lambda m: json.dumps(CANNED_DSL, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "画一个三角形"},
+            headers=auth_headers,
         )
         assert r.status_code == 200
         assert "text/event-stream" in r.headers["content-type"]
@@ -284,19 +331,20 @@ async def test_stream_response_headers(client):
 
 
 @pytest.mark.asyncio
-async def test_stream_token_events_yielded(client):
+async def test_stream_token_events_yielded(client, auth_headers):
     """LLM 阶段应有 token 事件推送，每个 token 含 text 字段。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
     set_provider_override(MockProvider(handler=lambda m: json.dumps(CANNED_DSL, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "画等边三角形 ABC"},
+            headers=auth_headers,
         )
         events = _parse_sse(r.text)
 
@@ -316,19 +364,20 @@ async def test_stream_token_events_yielded(client):
 
 
 @pytest.mark.asyncio
-async def test_stream_object_seen_events(client):
+async def test_stream_object_seen_events(client, auth_headers):
     """partial JSON 解析应识别已生成对象，推送 object_seen 事件。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
     set_provider_override(MockProvider(handler=lambda m: json.dumps(CANNED_DSL, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "画等边三角形 ABC"},
+            headers=auth_headers,
         )
         events = _parse_sse(r.text)
 
@@ -353,7 +402,7 @@ async def test_stream_object_seen_events(client):
 
 
 @pytest.mark.asyncio
-async def test_stream_llm_error_during_stream(client):
+async def test_stream_llm_error_during_stream(client, auth_headers):
     """LLM 流式过程中网络断开：应发 error 事件。"""
     from app.api.chat import set_provider_override
     from app.llm.base import LLMError
@@ -367,12 +416,13 @@ async def test_stream_llm_error_during_stream(client):
 
     set_provider_override(StreamFailProvider(handler=lambda m: "ignored"))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(
             f"/api/session/{sid}/chat/stream",
             json={"nl": "画三角形"},
+            headers=auth_headers,
         )
         events = _parse_sse(r.text)
         err = [data for e, data in events if e == "error"]

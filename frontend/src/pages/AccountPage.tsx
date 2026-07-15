@@ -47,6 +47,7 @@ export function AccountPage() {
       </div>
 
       <div className="account-actions">
+        <Link to="/account/subscription" className="btn btn-primary btn-block">我的订阅</Link>
         <Link to="/account/password" className="btn btn-ghost btn-block">修改密码</Link>
         <Link to="/app" className="btn btn-ghost btn-block">返回工作台</Link>
         <button

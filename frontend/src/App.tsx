@@ -11,6 +11,8 @@ import { RegisterPage } from './pages/RegisterPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { AccountPage } from './pages/AccountPage'
 import { ChangePasswordPage } from './pages/ChangePasswordPage'
+import { PricingPage } from './pages/PricingPage'
+import { SubscriptionPage } from './pages/SubscriptionPage'
 import { useStore } from './store'
 import { useAuthStore } from './store/auth'
 
@@ -28,6 +30,7 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route
         path="/app"
         element={
@@ -49,6 +52,14 @@ export function App() {
         element={
           <ProtectedRoute>
             <ChangePasswordPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/account/subscription"
+        element={
+          <ProtectedRoute>
+            <SubscriptionPage />
           </ProtectedRoute>
         }
       />
@@ -81,11 +92,15 @@ function LandingPage() {
         </p>
         <div className="landing-cta">
           {isAuthenticated ? (
-            <a className="btn btn-primary" href="/app">进入工作台 →</a>
+            <>
+              <a className="btn btn-primary" href="/app">进入工作台 →</a>
+              <a className="btn btn-ghost" href="/pricing">查看价格</a>
+            </>
           ) : (
             <>
               <a className="btn btn-primary" href="/register">免费注册</a>
               <a className="btn btn-ghost" href="/login">已注册，去登录</a>
+              <a className="btn btn-ghost" href="/pricing">查看价格</a>
             </>
           )}
         </div>

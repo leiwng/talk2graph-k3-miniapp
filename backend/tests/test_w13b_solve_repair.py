@@ -39,6 +39,31 @@ async def client():
         yield c
 
 
+@pytest_asyncio.fixture
+async def auth_headers(client):
+    """创建普通用户 + 登录拿 token。"""
+    import uuid
+    from app.auth.password import hash_password
+    from app.auth.repository import create_user
+    from app.db.session import get_session
+
+    email = f"test-{uuid.uuid4().hex[:8]}@example.com"
+    async with get_session() as db:
+        await create_user(
+            db,
+            email=email,
+            username="testuser",
+            hashed_password=hash_password("password123"),
+            role="user",
+            status="active",
+        )
+
+    r = await client.post("/api/auth/login", json={"email": email, "password": "password123"})
+    assert r.status_code == 200, r.text
+    token = r.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 # ---------------------------------------------------------------------------
 # 1) Solver 诊断
 # ---------------------------------------------------------------------------
@@ -106,9 +131,9 @@ _GOOD_DSL = {
 
 
 @pytest.mark.asyncio
-async def test_solve_repair_succeeds(client):
+async def test_solve_repair_succeeds(client, auth_headers):
     """第一次 LLM 给病态 DSL 触发 solve_fail (residual > 1e-2)，
-    第二次修复 LLM 给正常 DSL → 接口 ok=true 且 solve_repaired=true。
+    第二次修复 LLM 给正常 DSL -> 接口 ok=true 且 solve_repaired=true。
     """
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -123,11 +148,12 @@ async def test_solve_repair_succeeds(client):
 
     set_provider_override(MockProvider(handler=handler))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(f"/api/session/{sid}/chat",
-                              json={"nl": "画一条线段 AB，长度冲突"})
+                              json={"nl": "画一条线段 AB，长度冲突"},
+                              headers=auth_headers)
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["ok"] is True
@@ -140,8 +166,8 @@ async def test_solve_repair_succeeds(client):
 
 
 @pytest.mark.asyncio
-async def test_solve_repair_also_fails(client):
-    """两次 LLM 都给病态 DSL → 返回 422，detail 含 [solve_repair 也失败]。"""
+async def test_solve_repair_also_fails(client, auth_headers):
+    """两次 LLM 都给病态 DSL -> 返回 422，detail 含 [solve_repair 也失败]。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
@@ -150,11 +176,12 @@ async def test_solve_repair_also_fails(client):
 
     set_provider_override(MockProvider(handler=handler))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(f"/api/session/{sid}/chat",
-                              json={"nl": "冲突约束的画图请求"})
+                              json={"nl": "冲突约束的画图请求"},
+                              headers=auth_headers)
         assert r.status_code == 422
         detail = r.json()["detail"]
         assert "solve_repair" in (detail.get("detail") or "")
@@ -167,7 +194,7 @@ async def test_solve_repair_also_fails(client):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_small_residual_does_not_trigger_repair(client):
+async def test_small_residual_does_not_trigger_repair(client, auth_headers):
     """构造一个 solve_fail 但残差 < 1e-2 的 DSL：应直接返回 422，LLM 只调用一次。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -201,11 +228,12 @@ async def test_small_residual_does_not_trigger_repair(client):
 
     set_provider_override(MockProvider(handler=handler))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         r = await client.post(f"/api/session/{sid}/chat",
-                              json={"nl": "画等边三角形"})
+                              json={"nl": "画等边三角形"},
+                              headers=auth_headers)
         assert r.status_code == 200
         body = r.json()
         assert body["ok"] is True

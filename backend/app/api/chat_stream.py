@@ -43,10 +43,13 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..audit import actions, repository as audit_repo
+from ..auth.deps import CurrentUser, get_current_user
 from ..dsl import DSL, DSLPatchError, apply_patch
 from ..llm import LLMError, get_router, is_retryable
 from ..llm.base import LLMProvider
 from ..llm.extractor import ExtractResult, extract_dsl, extract_dsl_streaming
+from ..payment.entitlement import QuotaExceededError, ensure_user_can_send_chat
 from ..render import render_svg
 from ..session import repo as repo_mod
 from ..solver import SolveError, solve
@@ -139,7 +142,9 @@ async def _extract_with_fallback_streaming(
 
 
 async def _run_chat_stream(
-    sid: str, req: ChatReq, db: AsyncSession
+    sid: str, req: ChatReq, db: AsyncSession,
+    user: CurrentUser | None = None,
+    ent=None,
 ) -> AsyncIterator[str]:
     """主流程生成器：每个阶段 yield SSE 帧。"""
     await require_session(db, sid)
@@ -388,17 +393,44 @@ async def _run_chat_stream(
     })
     await asyncio.sleep(0)
 
+    # V2-F.2：审计 chat.send（fire-and-forget，含配额信息）
+    if user is not None:
+        audit_repo.fire_and_forget(
+            actions.CHAT_SEND,
+            actor_id=user.id,
+            actor_email=user.email,
+            target_type="session",
+            target_id=sid,
+            metadata={
+                "nl_length": len(req.nl),
+                "provider": result.provider,
+                "plan": ent.plan_code if ent else "unknown",
+                "used_today": (ent.used_today + 1) if ent else 0,
+                "daily_limit": ent.daily_limit if ent else 0,
+            },
+        )
+
 
 @router.post("/session/{sid}/chat/stream")
 async def chat_stream(
-    sid: str, req: ChatReq, db: AsyncSession = Depends(db_dep)
+    sid: str,
+    req: ChatReq,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(db_dep),
 ) -> StreamingResponse:
     """SSE 流式 chat：每阶段进度推送给前端。"""
+    # V2-F.2：配额检查（在开始流式前同步执行）
+    try:
+        ent = await ensure_user_can_send_chat(db, user.id)
+    except QuotaExceededError as e:
+        fe = classify(e)
+        raise HTTPException(422, detail=to_dict(fe))
+
     queue: asyncio.Queue[str | None] = asyncio.Queue()
 
     async def producer():
         try:
-            async for chunk in _run_chat_stream(sid, req, db):
+            async for chunk in _run_chat_stream(sid, req, db, user, ent):
                 await queue.put(chunk)
         except Exception as e:
             await queue.put(_sse("error", {"code": "unknown", "message": str(e)[:200]}))

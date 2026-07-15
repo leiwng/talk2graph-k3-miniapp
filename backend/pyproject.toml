@@ -21,7 +21,9 @@ dependencies = [
     # V2-F.1：用户管理
     "bcrypt>=4.0",      # 密码哈希
     "pyjwt>=2.8",       # JWT HS256
-    "email-validator>=2.0",  # pydantic EmailStr 校验
+    "email-validator>=2.0",  # pydantic EmailStr 校验需要
+    # V2-F.2：付费 + 配额
+    "cryptography>=42.0",     # Alipay RSA2 签名
 ]
 
 [project.optional-dependencies]

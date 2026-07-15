@@ -162,3 +162,52 @@ export interface AuditLogListResp {
   limit: number
   offset: number
 }
+
+// ===================== V2-F.2: 付费 + 配额 =====================
+
+export interface Plan {
+  code: string
+  name: string
+  description: string | null
+  feature_bullets: string[]
+  price_cents: number
+  currency: string
+  period: string
+  daily_graph_limit: number
+  sort_order: number
+}
+
+export interface Entitlement {
+  plan_code: string
+  plan_name: string
+  status: 'free' | 'active' | 'expired'
+  daily_limit: number  // 0 = 无限
+  used_today: number
+  remaining: number  // -1 = 无限
+}
+
+export interface Subscription {
+  plan: Plan
+  entitlement: Entitlement
+  current_period_start: string | null
+  current_period_end: string | null
+}
+
+export interface Order {
+  id: string
+  plan_code: string
+  amount_cents: number
+  currency: string
+  status: 'pending' | 'paid' | 'expired' | 'closed' | 'refunded' | 'failed'
+  provider: string
+  provider_out_trade_no: string
+  created_at: string
+  paid_at: string | null
+  expires_at: string | null
+  closed_at: string | null
+}
+
+export interface CreateOrderResp {
+  order: Order
+  pay_url: string
+}

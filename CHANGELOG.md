@@ -6,6 +6,43 @@
 
 ---
 
+## V2-F.2 - 付费 + 配额限流 + 安全加固（当前版本，2026-07-15）
+
+**测试状态**：219/219 通过（V2-F.1 205 + V2-F.2 14 新增）
+
+**目标**：Alipay 电脑网站支付（沙箱）+ 配额限流（free 5/天 / pro 无限）+ 强制登录 + API Key 泄露防护。
+
+### 新增
+
+**后端 - Payment 模块**：plans.py / repository.py / alipay.py / subscription.py / entitlement.py
+**后端 - API**：payment.py（6 端点）+ webhooks.py（Alipay notify）
+**后端 - DB**：+3 表（SubscriptionPlan/Order/UserSubscription with daily_graph_limit_override）
+**后端 - 配额**：chat.py + chat_stream.py 加 ensure_user_can_send_chat + audit 含 plan/used_today
+**前端**：PricingPage + SubscriptionPage + api/payment.ts + 路由 /pricing + /account/subscription
+**安全**：.githooks/pre-commit + docs/security.md + .gitignore 加 model_config*.md
+
+### 变更
+
+- session/chat/export 路由：Optional -> 强制登录（删除匿名试用）
+- 既有测试 5 文件加 auth_headers fixture
+
+### 修复
+
+- count_user_snapshots_today：SQLAlchemy 2.0 查询语法
+- _compute_period / _is_subscription_active：timezone-aware/naive datetime 混合比较
+
+### 安全事件复盘
+
+2026-07-08 DeepSeek Key 泄露：model_config.md 含明文 Key 被 git push -> 被刷 ¥881。
+止血：BFG 重写历史 + 重置 4 家 Key。防护：pre-commit hook + 配额限流 + 强制登录。
+
+### 下一步候选
+
+- V2-F.3：邮箱验证码 + WeChat OAuth + SMTP
+- Alipay 正式应用上线后切正式环境
+
+---
+
 ## V2-F.1 — 用户体系 + 审计骨架（当前版本，2026-07-07）
 
 **测试状态**：205/205 通过（V2-E 173 + V2-F.1 32 新增；前端 `npm run build` 通过）

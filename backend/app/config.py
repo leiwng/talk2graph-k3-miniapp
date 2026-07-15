@@ -74,6 +74,30 @@ class Settings:
     bootstrap_admin_password: str | None = field(
         default_factory=lambda: os.getenv("T2G_BOOTSTRAP_ADMIN_PASSWORD") or None
     )
+    # V2-F.2：Alipay 电脑网站支付
+    alipay_app_id: str = field(default_factory=lambda: os.getenv("ALIPAY_APP_ID", ""))
+    alipay_app_private_key_file: str = field(
+        default_factory=lambda: os.getenv("ALIPAY_APP_PRIVATE_KEY_FILE", "")
+    )
+    alipay_public_key_file: str = field(
+        default_factory=lambda: os.getenv("ALIPAY_PUBLIC_KEY_FILE", "")
+    )
+    alipay_notify_url: str = field(
+        default_factory=lambda: os.getenv(
+            "ALIPAY_NOTIFY_URL", "https://t2g.yinhour.com/api/webhooks/alipay"
+        )
+    )
+    alipay_return_url: str = field(
+        default_factory=lambda: os.getenv(
+            "ALIPAY_RETURN_URL", "https://t2g.yinhour.com/account/subscription"
+        )
+    )
+    alipay_gateway_url: str = field(
+        default_factory=lambda: os.getenv(
+            "ALIPAY_GATEWAY_URL",
+            "https://openapi-sandbox.dl.alipaydev.com/gateway.do",  # 默认沙箱
+        )
+    )
 
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,30 @@
+1 画两条平行线 AB 与 CD，直线 EF 与 AB 交于 G，与 CD 交于 H，标出 ∠AGE=100°
+2 画圆 O，点 A、B、C 在圆 O 上，连接 OB、OC、AB、AC，标注 ∠BAC=54°
+3 画正方形 ABCD，AB=2，E 是 BC 中点，在 BC 延长线上取点 F 使 EF=ED，过 F 作 FG⊥ED，交 ED 于 M，交 AB 于 G，交 CD 于 N
+4 画等腰直角三角形 ABC，∠A=90°，BC=4，分别以 B、C 为圆心，BC 的一半为半径作圆弧，交 AB、BC、AC 于 D、E、F
+5 画矩形 ABCD，点 E 在 BC 上，点 F 在 AD 上，AF=EC，连接 AE、CF 得到四边形 AECF
+6 画平行四边形 ABCD，AD=5，AB=12，过点 D 作 DE⊥AB 于 E，连接 CE
+7 画 AB∥CD，∠B=∠D，直线 EF 分别交 AD、BC 的延长线于点 E、F
+8 画四边形 ABCD，AD∥BC，∠ABC=90°，AD=CD，O 为对角线 AC 的中点，连接 BO 并延长交 CD 于点 E
+9 画圆 O，AB 为直径，C 为圆上一点，AC=3，作∠ABC 的平分线交 AC 于 D，CD=1
+10 画圆 O，弦 AB 长为 4，圆心 O 到弦 AB 的距离为 2
+11 画圆 O，AB 是弦，C 是弧 AB 的中点，OC 交 AB 于点 D，AB=8，CD=2
+12 画圆 O，PA、PB 是圆 O 的两条切线，A、B 是切点，标出 ∠P=50°
+13 画圆 O 及其弦 AB，D、C 为弧 ACB 的三等分点，连接 AC、BC、BE，AC∥BE
+14 画圆 O，AB 为直径，C、D 是圆上两点且 C 是弧 BD 的中点，过 C 作 AD 的垂线，垂足为 E，连接 AC 交 BD 于 F
+15 已知圆 O 外一点 P，过点 P 作圆 O 的一条切线
+16 画平行四边形 ABCD，将△ABC 沿 AC 折叠得到△AB'C，B'C 交 AD 于 E，连接 B'D，其中 ∠B=60°，∠ACB=45°，AC=6
+17 画两条相交于点 O 的直线 l 和 m，取直线外一点 P，OP=2.8，作 P 关于 l 的对称点 P1 和关于 m 的对称点 P2
+18 画三角形 ABC，D、E 分别在 BC、AC 上，将三角形 CDE 沿 DE 翻折得到三角形 FDE，连接 BF、CF，∠BFC=90°，EF∥AB
+19 画平行四边形 ABCD，AB=3，BC=4，将其绕点 A 逆时针旋转得到平行四边形 A'B'C'D'，使 B' 落在 BC 上且 BB'=1，B'C' 与 CD 交于点 E
+20 画边长为 1 的正方形 ABCD，E 为 AD 中点，连接 BE，将△ABE 沿 BE 翻折得到△FBE，BF 交对角线 AC 于 G
+21 在平面直角坐标系中画三角形 AOB，标出 AO 的中点 C 和 AB 的中点 D
+22 画正比例函数 y=kx 与反比例函数 y=k/x 的图象，交于 A、B 两点，过 B 作 BC 平行于 x 轴，过 A 作 AC 平行于 y 轴，交于点 C
+23 在坐标系中画 2 号机的飞行路径：从原点 O 沿 45° 方向上升到 A(4,4)，再水平飞行 1 分钟到 B(7,4)，然后沿直线降到 C(10,3)
+24 在平面直角坐标系中画矩形 OABC，C 在 x 轴正半轴，A 在 y 轴正半轴，D 为 AB 的中点，画一次函数 y=-3x+k 经过 C、D，画反比例函数 y=k/x（x>0）经过 B
+25 画抛物线 y²=4x 及其焦点 F 和准线，点 A 在抛物线上，过 A 作准线的垂线，垂足为 B，连接 BF
+26 画二次函数 y=x²-(m+1)x+m 的图象（取 m=2），与 x 轴交于 A、B 两点，对称轴与 x 轴交于 C，D 在对称轴上第一象限内且 OD⊥BD，E 在 x 轴正半轴上且 OC=EC，连接 ED 并延长交 y 轴于 F，连接 AF
+27 画圆 O，作两条相等的弦 AB 和 CD 相交于点 P，E、F 分别为 AB、CD 的中点，连接 OP、EF、AF、AC、CE，其中 AF∥OP
+28 画圆 O，半径为 6，将圆周 12 等分，等分点为 A1 到 A12，过 A7 作圆 O 的切线交 A1A11 的延长线于点 P，连接 A7A11
+29 画以 AB 为直径的半圆，圆心为 O，M、N 在 AB 上，四边形 MNPQ 为内接正方形（P、Q 在半圆上），点 C 在弧 PQ 上，连接 BC 并延长交 MQ 延长线于 D，连接 AC 交 MQ 于 E，连接 OQ
+30 画矩形 ABCD，EF 平行于 AD，GH 平行于 AB，EF 与 GH 交于点 P，在 PF 上取 P1 使 PP1=PG，在 PH 上取 P2 使 PP2=PE，连接 P1H 与 P2F 交于点 Q，其中 AG:GD=AE:EB=1:2

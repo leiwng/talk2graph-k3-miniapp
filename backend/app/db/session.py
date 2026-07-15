@@ -95,7 +95,7 @@ async def _bootstrap_admin(session: AsyncSession) -> None:
 
 
 async def init_db() -> None:
-    """开发期：create_all + 自动迁移补列 + bootstrap 用户。生产期同样适用 SQLite。"""
+    """开发期：create_all + 自动迁移补列 + bootstrap 用户 + seed plans。生产期同样适用 SQLite。"""
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     # create_all 不会给已存在表加新列，需要单独走 ensure_schema
@@ -105,6 +105,9 @@ async def init_db() -> None:
         await _bootstrap_anonymous_user(s)
         await _attach_orphan_sessions(s)
         await _bootstrap_admin(s)
+        # V2-F.2：seed 订阅套餐（free / pro / enterprise），幂等
+        from ..payment.plans import seed_plans_if_empty
+        await seed_plans_if_empty(s)
 
 
 @asynccontextmanager

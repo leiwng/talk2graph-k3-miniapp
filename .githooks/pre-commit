@@ -1,0 +1,46 @@
+#!/bin/bash
+# pre-commit hook: 阻止疑似 API Key 被提交
+#
+# 检测 staged changes 里是否有 sk- / ark- 开头 20+ 字符的字符串
+# 命中则拒绝 commit + 提示
+#
+# 启用方式：clone 后执行一次
+#   git config core.hooksPath .githooks
+#
+# 或者全局配置（团队统一）：
+#   git config --global core.hooksPath ~/.git-hooks-template
+
+set -euo pipefail
+
+# 检查 staged diff 里是否有疑似 API Key
+# sk- 开头 20+ 字符：DeepSeek / Moonshot / 智谱 / OpenAI 等
+# ark- 开头 20+ 字符：火山方舟
+if git diff --cached | grep -qE '(sk|ark)-[a-zA-Z0-9]{20,}'; then
+    echo ""
+    echo "❌ 检测到疑似 API Key，拒绝 commit"
+    echo ""
+    echo "   匹配到的疑似 Key 行："
+    git diff --cached | grep -nE '(sk|ark)-[a-zA-Z0-9]{20,}' | head -5
+    echo ""
+    echo "   如果这是占位符（如 sk-xxxxx），请改为更短的形式（< 20 字符）"
+    echo "   如果这是真实 Key，请立即从代码中移除并轮换该 Key"
+    echo ""
+    exit 1
+fi
+
+# 检查是否有 .env / model_config*.md 被意外 stage
+STAGED_SENSITIVE=$(git diff --cached --name-only | grep -E '(^|/)\.env$|model_config.*\.md$|_private_key.*\.pem$' || true)
+if [ -n "$STAGED_SENSITIVE" ]; then
+    echo ""
+    echo "❌ 检测到敏感文件被 stage，拒绝 commit"
+    echo ""
+    echo "   敏感文件："
+    echo "$STAGED_SENSITIVE"
+    echo ""
+    echo "   .env / model_config.md / *.pem 不应提交到 git"
+    echo "   如果是误操作，请 git reset HEAD <file> 取消 stage"
+    echo ""
+    exit 1
+fi
+
+exit 0

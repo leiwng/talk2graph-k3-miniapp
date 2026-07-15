@@ -193,6 +193,31 @@ async def client():
         yield c
 
 
+@pytest_asyncio.fixture
+async def auth_headers(client):
+    """创建普通用户 + 登录拿 token。"""
+    import uuid
+    from app.auth.password import hash_password
+    from app.auth.repository import create_user
+    from app.db.session import get_session
+
+    email = f"test-{uuid.uuid4().hex[:8]}@example.com"
+    async with get_session() as db:
+        await create_user(
+            db,
+            email=email,
+            username="testuser",
+            hashed_password=hash_password("password123"),
+            role="user",
+            status="active",
+        )
+
+    r = await client.post("/api/auth/login", json={"email": email, "password": "password123"})
+    assert r.status_code == 200, r.text
+    token = r.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 @pytest.mark.asyncio
 async def test_api_health(client):
     r = await client.get("/api/health")
@@ -219,8 +244,8 @@ async def test_api_providers(client):
 
 
 @pytest.mark.asyncio
-async def test_api_chat_full_flow(client):
-    """完整流程：创建会话 → chat（mock LLM 返回 DSL）→ 求解 → 渲染 → undo → redo → export.svg。"""
+async def test_api_chat_full_flow(client, auth_headers):
+    """完整流程：创建会话 -> chat（mock LLM 返回 DSL）-> 求解 -> 渲染 -> undo -> redo -> export.svg。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
@@ -258,13 +283,14 @@ async def test_api_chat_full_flow(client):
     set_provider_override(MockProvider(handler=handler))
     try:
         # 创建会话
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         assert r.status_code == 200
         sid = r.json()["id"]
 
         # 第一轮：完整 DSL
         r = await client.post(f"/api/session/{sid}/chat",
-                              json={"nl": "画一个等边三角形 边长 4"})
+                              json={"nl": "画一个等边三角形 边长 4"},
+                              headers=auth_headers)
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["ok"] is True
@@ -275,37 +301,38 @@ async def test_api_chat_full_flow(client):
 
         # 第二轮：patch
         r = await client.post(f"/api/session/{sid}/chat",
-                              json={"nl": "把边长改成 6"})
+                              json={"nl": "把边长改成 6"},
+                              headers=auth_headers)
         assert r.status_code == 200, r.text
         body2 = r.json()
         assert body2["seq"] == 2
         assert body2["dsl"]["constraints"][1]["value"] == 6
 
         # 获取当前 DSL
-        r = await client.get(f"/api/session/{sid}/dsl")
+        r = await client.get(f"/api/session/{sid}/dsl", headers=auth_headers)
         assert r.json()["seq"] == 2
 
         # 历史
-        r = await client.get(f"/api/session/{sid}/history")
+        r = await client.get(f"/api/session/{sid}/history", headers=auth_headers)
         assert r.json()["seqs"] == [1, 2]
 
         # 撤销
-        r = await client.post(f"/api/session/{sid}/undo")
+        r = await client.post(f"/api/session/{sid}/undo", headers=auth_headers)
         assert r.json()["seq"] == 1
         assert r.json()["dsl"]["constraints"][1]["value"] == 4
 
         # 重做
-        r = await client.post(f"/api/session/{sid}/redo")
+        r = await client.post(f"/api/session/{sid}/redo", headers=auth_headers)
         assert r.json()["seq"] == 2
 
         # 导出 SVG
-        r = await client.get(f"/api/export/{sid}.svg")
+        r = await client.get(f"/api/export/{sid}.svg", headers=auth_headers)
         assert r.status_code == 200
         assert r.headers["content-type"].startswith("image/svg")
         assert b"<svg" in r.content
 
         # 消息历史
-        r = await client.get(f"/api/session/{sid}/messages")
+        r = await client.get(f"/api/session/{sid}/messages", headers=auth_headers)
         msgs = r.json()
         # 2 user + 2 assistant
         assert len(msgs) == 4
@@ -313,9 +340,9 @@ async def test_api_chat_full_flow(client):
         assert roles == ["user", "assistant", "user", "assistant"]
 
         # 删除会话
-        r = await client.delete(f"/api/session/{sid}")
+        r = await client.delete(f"/api/session/{sid}", headers=auth_headers)
         assert r.status_code == 200
-        r = await client.get(f"/api/session/{sid}")
+        r = await client.get(f"/api/session/{sid}", headers=auth_headers)
         assert r.status_code == 404
 
     finally:
@@ -323,7 +350,7 @@ async def test_api_chat_full_flow(client):
 
 
 @pytest.mark.asyncio
-async def test_api_direct_patch(client):
+async def test_api_direct_patch(client, auth_headers):
     """属性面板：不走 LLM，直接 POST /patch。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -340,15 +367,16 @@ async def test_api_direct_patch(client):
     }
     set_provider_override(MockProvider(handler=lambda m: json.dumps(canned, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={})
+        r = await client.post("/api/session", json={}, headers=auth_headers)
         sid = r.json()["id"]
-        r = await client.post(f"/api/session/{sid}/chat", json={"nl": "线段 AB 长 5"})
+        r = await client.post(f"/api/session/{sid}/chat", json={"nl": "线段 AB 长 5"}, headers=auth_headers)
         assert r.json()["seq"] == 1
 
         # 属性面板：改长度
         r = await client.post(
             f"/api/session/{sid}/patch",
             json={"ops": [{"op": "replace", "path": "/constraints/0/value", "value": 11}]},
+            headers=auth_headers,
         )
         assert r.status_code == 200, r.text
         body = r.json()

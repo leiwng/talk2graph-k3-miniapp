@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import admin, audit_log, auth, chat, chat_stream, export, providers, session
+from .api import admin, audit_log, auth, chat, chat_stream, export, payment, providers, session, webhooks
 from .config import settings
 from .db.session import init_db
 from .logging_setup import setup_logging
@@ -42,6 +42,9 @@ def create_app() -> FastAPI:
     # V2-F.1：用户管理 + 审计
     app.include_router(auth.router)
     app.include_router(audit_log.router)
+    # V2-F.2：付费 + webhook
+    app.include_router(payment.router)
+    app.include_router(webhooks.router)
 
     @app.get("/api/health")
     async def health() -> dict:

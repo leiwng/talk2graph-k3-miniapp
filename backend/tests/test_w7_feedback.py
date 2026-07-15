@@ -56,12 +56,37 @@ async def admin_headers(client):
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest_asyncio.fixture
+async def auth_headers(client):
+    """创建普通用户 + 登录拿 token。"""
+    import uuid
+    from app.auth.password import hash_password
+    from app.auth.repository import create_user
+    from app.db.session import get_session
+
+    email = f"test-{uuid.uuid4().hex[:8]}@example.com"
+    async with get_session() as db:
+        await create_user(
+            db,
+            email=email,
+            username="testuser",
+            hashed_password=hash_password("password123"),
+            role="user",
+            status="active",
+        )
+
+    r = await client.post("/api/auth/login", json={"email": email, "password": "password123"})
+    assert r.status_code == 200, r.text
+    token = r.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 # ---------------------------------------------------------------------------
 # error_kind 分类
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_refuse_error_kind_in_message(client):
+async def test_refuse_error_kind_in_message(client, auth_headers):
     """LLM 输出 {"error": ...} 时，assistant 消息应带 error_kind=refuse。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -70,9 +95,9 @@ async def test_refuse_error_kind_in_message(client):
         MockProvider(handler=lambda m: json.dumps({"error": "暂不支持抛物线及其准线"}, ensure_ascii=False))
     )
     try:
-        r = await client.post("/api/session", json={})
+        r = await client.post("/api/session", json={}, headers=auth_headers)
         sid = r.json()["id"]
-        r = await client.post(f"/api/session/{sid}/chat", json={"nl": "画抛物线 y²=2x"})
+        r = await client.post(f"/api/session/{sid}/chat", json={"nl": "画抛物线 y²=2x"}, headers=auth_headers)
         assert r.status_code == 200
         body = r.json()
         assert body["ok"] is False
@@ -81,7 +106,7 @@ async def test_refuse_error_kind_in_message(client):
         assert "话图" in body["error"]  # 产品话术
 
         # 消息列表里 assistant 消息应该带 error_kind
-        msgs = (await client.get(f"/api/session/{sid}/messages")).json()
+        msgs = (await client.get(f"/api/session/{sid}/messages", headers=auth_headers)).json()
         last_assistant = [m for m in msgs if m["role"] == "assistant"][-1]
         assert last_assistant["error_kind"] == "refuse"
     finally:
@@ -89,7 +114,7 @@ async def test_refuse_error_kind_in_message(client):
 
 
 @pytest.mark.asyncio
-async def test_solve_error_kind_in_message(client):
+async def test_solve_error_kind_in_message(client, auth_headers):
     """求解失败时，message.error_kind = solve。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -111,12 +136,12 @@ async def test_solve_error_kind_in_message(client):
         MockProvider(handler=lambda m: json.dumps(contradictory, ensure_ascii=False))
     )
     try:
-        r = await client.post("/api/session", json={})
+        r = await client.post("/api/session", json={}, headers=auth_headers)
         sid = r.json()["id"]
-        r = await client.post(f"/api/session/{sid}/chat", json={"nl": "矛盾指令"})
+        r = await client.post(f"/api/session/{sid}/chat", json={"nl": "矛盾指令"}, headers=auth_headers)
         assert r.status_code == 422
 
-        msgs = (await client.get(f"/api/session/{sid}/messages")).json()
+        msgs = (await client.get(f"/api/session/{sid}/messages", headers=auth_headers)).json()
         last_assistant = [m for m in msgs if m["role"] == "assistant"][-1]
         assert last_assistant["error_kind"] == "solve"
     finally:
@@ -128,7 +153,7 @@ async def test_solve_error_kind_in_message(client):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_feedback_good(client, admin_headers):
+async def test_feedback_good(client, auth_headers, admin_headers):
     """成功画图后老师点 👍。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
@@ -145,13 +170,14 @@ async def test_feedback_good(client, admin_headers):
     }
     set_provider_override(MockProvider(handler=lambda m: json.dumps(canned, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={})
+        r = await client.post("/api/session", json={}, headers=auth_headers)
         sid = r.json()["id"]
-        await client.post(f"/api/session/{sid}/chat", json={"nl": "AB=5"})
+        await client.post(f"/api/session/{sid}/chat", json={"nl": "AB=5"}, headers=auth_headers)
 
         r = await client.post(
             f"/api/session/{sid}/feedback",
             json={"rating": "good"},
+            headers=auth_headers,
         )
         assert r.status_code == 200
         body = r.json()
@@ -170,7 +196,7 @@ async def test_feedback_good(client, admin_headers):
 
 
 @pytest.mark.asyncio
-async def test_feedback_bad_with_comment(client, admin_headers):
+async def test_feedback_bad_with_comment(client, auth_headers, admin_headers):
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
@@ -186,13 +212,14 @@ async def test_feedback_bad_with_comment(client, admin_headers):
     }
     set_provider_override(MockProvider(handler=lambda m: json.dumps(canned, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={})
+        r = await client.post("/api/session", json={}, headers=auth_headers)
         sid = r.json()["id"]
-        await client.post(f"/api/session/{sid}/chat", json={"nl": "线段 AB=7"})
+        await client.post(f"/api/session/{sid}/chat", json={"nl": "线段 AB=7"}, headers=auth_headers)
 
         r = await client.post(
             f"/api/session/{sid}/feedback",
             json={"rating": "bad", "comment": "线段画反了"},
+            headers=auth_headers,
         )
         assert r.status_code == 200
 
@@ -206,18 +233,19 @@ async def test_feedback_bad_with_comment(client, admin_headers):
 
 
 @pytest.mark.asyncio
-async def test_feedback_invalid_rating(client):
-    r = await client.post("/api/session", json={})
+async def test_feedback_invalid_rating(client, auth_headers):
+    r = await client.post("/api/session", json={}, headers=auth_headers)
     sid = r.json()["id"]
     r = await client.post(
         f"/api/session/{sid}/feedback",
         json={"rating": "love"},  # 非法
+        headers=auth_headers,
     )
     assert r.status_code == 400
 
 
 @pytest.mark.asyncio
-async def test_feedback_jsonl_export(client, admin_headers):
+async def test_feedback_jsonl_export(client, auth_headers, admin_headers):
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
@@ -230,10 +258,10 @@ async def test_feedback_jsonl_export(client, admin_headers):
     }
     set_provider_override(MockProvider(handler=lambda m: json.dumps(canned, ensure_ascii=False)))
     try:
-        r = await client.post("/api/session", json={})
+        r = await client.post("/api/session", json={}, headers=auth_headers)
         sid = r.json()["id"]
-        await client.post(f"/api/session/{sid}/chat", json={"nl": "AB=3"})
-        await client.post(f"/api/session/{sid}/feedback", json={"rating": "good"})
+        await client.post(f"/api/session/{sid}/chat", json={"nl": "AB=3"}, headers=auth_headers)
+        await client.post(f"/api/session/{sid}/feedback", json={"rating": "good"}, headers=auth_headers)
 
         r = await client.get("/api/admin/feedback.jsonl?days=1", headers=admin_headers)
         assert r.status_code == 200

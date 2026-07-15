@@ -245,3 +245,6 @@ frontend/tsconfig.tsbuildinfo
 secrets/
 *.pem
 *_private_key*.txt
+
+# V2-F.2：防御性 -- 防止含明文 Key 的配置文件再次被提交
+backend/model_config*.md

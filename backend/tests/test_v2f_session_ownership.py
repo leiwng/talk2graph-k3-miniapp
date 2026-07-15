@@ -101,21 +101,15 @@ async def test_list_sessions_filtered_by_user(client):
 
 
 @pytest.mark.asyncio
-async def test_anonymous_session_accessible(client):
-    """未登录用户创建的 session（user_id=anonymous）任何人持 sid 可访问。
+async def test_anonymous_access_blocked(client):
+    """V2-F.2：未登录用户不能创建/访问 session（强制登录）。
 
-    F.1 保留试用体验：未登录用户在落地页就能用，不需要注册。
+    F.1 时保留试用体验允许匿名访问；F.2 后取消，所有端点要求 Bearer token。
     """
-    # 未登录创建 session
+    # 未登录创建 session -> 401
     r = await client.post("/api/session", json={})
-    assert r.status_code == 200, r.text
-    sid = r.json()["id"]
+    assert r.status_code == 401
 
-    # 不带 token 也能访问
-    r2 = await client.get(f"/api/session/{sid}")
-    assert r2.status_code == 200
-
-    # 登录用户也能访问（虽然不是自己的）
-    token, _ = await _register(client)
-    r3 = await client.get(f"/api/session/{sid}", headers=_auth_headers(token))
-    assert r3.status_code == 200  # anonymous session 不做归属校验
+    # 未登录访问任何 session -> 401
+    r2 = await client.get("/api/session/any-sid")
+    assert r2.status_code == 401

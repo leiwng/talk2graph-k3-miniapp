@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from ..dsl.diff import DSLPatchError
 from ..dsl.validator import DSLValidationError
 from ..llm.base import LLMError
+from ..payment.entitlement import QuotaExceededError
 from ..solver.engine import SolveError
 
 
@@ -110,6 +111,24 @@ def classify(exc: Exception) -> FriendlyError:
             "dsl_invalid",
             "AI 输出的图形描述不合法（已自动重试 2 次）。",
             hint="请尝试换个说法，或切换 Provider",
+            detail=s,
+        )
+
+    if isinstance(exc, QuotaExceededError):
+        limit = exc.limit
+        used = exc.used
+        plan = exc.plan_code
+        if plan == "free":
+            return FriendlyError(
+                "quota_exceeded",
+                f"今日免费配额已用完（{used}/{limit} 张图）。",
+                hint="升级月度会员享无限画图",
+                detail=s,
+            )
+        return FriendlyError(
+            "quota_exceeded",
+            f"今日画图配额已用完（{used}/{limit} 张图）。",
+            hint="联系管理员调整配额",
             detail=s,
         )
 

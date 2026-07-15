@@ -32,6 +32,31 @@ async def client():
         yield c
 
 
+@pytest_asyncio.fixture
+async def auth_headers(client):
+    """创建普通用户 + 登录拿 token。"""
+    import uuid
+    from app.auth.password import hash_password
+    from app.auth.repository import create_user
+    from app.db.session import get_session
+
+    email = f"test-{uuid.uuid4().hex[:8]}@example.com"
+    async with get_session() as db:
+        await create_user(
+            db,
+            email=email,
+            username="testuser",
+            hashed_password=hash_password("password123"),
+            role="user",
+            status="active",
+        )
+
+    r = await client.post("/api/auth/login", json={"email": email, "password": "password123"})
+    assert r.status_code == 200, r.text
+    token = r.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 # ---------------------------------------------------------------------------
 # 1) DB 自动迁移
 # ---------------------------------------------------------------------------
@@ -141,8 +166,8 @@ _REDRAW_DSL = {
 
 
 @pytest.mark.asyncio
-async def test_patch_fallback_succeeds(client):
-    """坏 patch → 自动 fallback 为全量重画 → ok=true, fallback=true。"""
+async def test_patch_fallback_succeeds(client, auth_headers):
+    """坏 patch -> 自动 fallback 为全量重画 -> ok=true, fallback=true。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
@@ -160,18 +185,20 @@ async def test_patch_fallback_succeeds(client):
 
     set_provider_override(MockProvider(handler=handler))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         # 第一轮：建初始图
         r = await client.post(f"/api/session/{sid}/chat",
-                              json={"nl": "画等边三角形 边长 4"})
+                              json={"nl": "画等边三角形 边长 4"},
+                              headers=auth_headers)
         assert r.status_code == 200
         assert r.json()["fallback"] is False
 
         # 第二轮：触发 fallback
         r = await client.post(f"/api/session/{sid}/chat",
-                              json={"nl": "边长改成 6"})
+                              json={"nl": "边长改成 6"},
+                              headers=auth_headers)
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["ok"] is True
@@ -180,7 +207,7 @@ async def test_patch_fallback_succeeds(client):
         assert body["dsl"]["constraints"][1]["value"] == 6
 
         # 验证 message 表里 fallback 列被持久化
-        r = await client.get(f"/api/session/{sid}/messages")
+        r = await client.get(f"/api/session/{sid}/messages", headers=auth_headers)
         msgs = r.json()
         assistant_msgs = [m for m in msgs if m["role"] == "assistant"]
         # 第二轮 assistant 消息应当 fallback=True
@@ -192,8 +219,8 @@ async def test_patch_fallback_succeeds(client):
 
 
 @pytest.mark.asyncio
-async def test_patch_fallback_also_fails(client):
-    """坏 patch + fallback 也失败（LLM 返回 error）→ 返回 422，detail 含两次错误。"""
+async def test_patch_fallback_also_fails(client, auth_headers):
+    """坏 patch + fallback 也失败（LLM 返回 error）-> 返回 422，detail 含两次错误。"""
     from app.api.chat import set_provider_override
     from app.llm.mock import MockProvider
 
@@ -210,14 +237,16 @@ async def test_patch_fallback_also_fails(client):
 
     set_provider_override(MockProvider(handler=handler))
     try:
-        r = await client.post("/api/session", json={"llm_provider": "mock"})
+        r = await client.post("/api/session", json={"llm_provider": "mock"}, headers=auth_headers)
         sid = r.json()["id"]
 
         await client.post(f"/api/session/{sid}/chat",
-                          json={"nl": "画等边三角形"})
+                          json={"nl": "画等边三角形"},
+                          headers=auth_headers)
 
         r = await client.post(f"/api/session/{sid}/chat",
-                              json={"nl": "试图删除一个被引用的点"})
+                              json={"nl": "试图删除一个被引用的点"},
+                              headers=auth_headers)
         assert r.status_code == 422
         body = r.json()
         # FastAPI 会把 dict 包成 {"detail": {...}}

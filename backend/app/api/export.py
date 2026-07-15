@@ -1,6 +1,6 @@
 """导出路由：SVG / PNG / PDF（基于当前 DSL+solution）。
 
-V2-F.1：所有路由加 session 归属校验。
+V2-F.2：所有路由加 session 归属校验 + 强制登录。
 注意：浏览器 window.open 无法带 Authorization header，前端用 fetch + Blob 下载。
 """
 from __future__ import annotations
@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth.deps import CurrentUser, get_current_user_optional
+from ..auth.deps import CurrentUser, get_current_user
 from ..render import render_svg
 from ..session import repo as repo_mod
 from .deps import db_dep, require_session
@@ -36,16 +36,15 @@ def _load_cairosvg():
 
 
 async def _current_svg(
-    db: AsyncSession, sid: str, user: Optional[CurrentUser]
+    db: AsyncSession, sid: str, user: CurrentUser
 ) -> str:
     """加载 session + 校验归属 + 渲染当前 SVG。"""
     s = await require_session(db, sid)
-    # V2-F.1：归属校验（同 session.py 的 _require_session_with_owner 逻辑）
-    from ..db.models import ANONYMOUS_USER_ID
-
-    if s.user_id is not None and s.user_id != ANONYMOUS_USER_ID:
-        if user is None or s.user_id != user.id:
-            raise HTTPException(404, detail=f"session not found: {sid}")
+    # V2-F.2：归属校验（强制登录，cross-user 404 防探测）
+    if s.user_id is None or s.user_id == user.id:
+        pass
+    else:
+        raise HTTPException(404, detail=f"session not found: {sid}")
 
     snap = await repo_mod.current_snapshot(db, sid)
     if snap is None or snap.solution is None:
@@ -72,7 +71,7 @@ async def _current_svg(
 @router.get("/{sid}.svg")
 async def export_svg(
     sid: str,
-    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(db_dep),
 ) -> Response:
     svg = await _current_svg(db, sid, user)
@@ -82,7 +81,7 @@ async def export_svg(
 @router.get("/{sid}.png")
 async def export_png(
     sid: str,
-    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(db_dep),
 ) -> Response:
     cairosvg = _load_cairosvg()
@@ -95,7 +94,7 @@ async def export_png(
 @router.get("/{sid}.pdf")
 async def export_pdf(
     sid: str,
-    user: Optional[CurrentUser] = Depends(get_current_user_optional),
+    user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(db_dep),
 ) -> Response:
     cairosvg = _load_cairosvg()
