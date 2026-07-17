@@ -32,12 +32,15 @@ def _read_key(path: str, *, is_private: bool) -> str:
     """读取密钥文件内容。支持 PEM 格式（含 BEGIN/END 头）和裸 base64 字符串。
 
     is_private: True=私钥，False=公钥。用于裸 base64 时正确包装 PEM 头。
+    - 私钥裸 base64 统一用 PKCS#8 格式（-----BEGIN PRIVATE KEY-----）
+      Alipay 密钥工具生成的私钥是 PKCS#8（非 PKCS#1）
+    - 公钥裸 base64 用 X.509 SubjectPublicKeyInfo 格式（-----BEGIN PUBLIC KEY-----）
     """
     content = Path(path).read_text(encoding="utf-8").strip()
     if "BEGIN" not in content:
         # 裸 base64 -> 包装成 PEM 格式
         if is_private:
-            content = "-----BEGIN RSA PRIVATE KEY-----\n" + content + "\n-----END RSA PRIVATE KEY-----"
+            content = "-----BEGIN PRIVATE KEY-----\n" + content + "\n-----END PRIVATE KEY-----"
         else:
             content = "-----BEGIN PUBLIC KEY-----\n" + content + "\n-----END PUBLIC KEY-----"
     return content
