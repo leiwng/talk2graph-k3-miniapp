@@ -34,14 +34,14 @@ PLAN_SEEDS: list[dict[str, Any]] = [
     {
         "code": "pro",
         "name": "月度会员",
-        "description": "无限画图，老师推荐",
+        "description": "每日 30 张图，老师推荐",
         "feature_bullets_json": json.dumps(
-            ["无限画图", "全部几何约束", "SVG / PNG / PDF 导出", "优先使用最佳模型"], ensure_ascii=False
+            ["每日 30 张图", "全部几何约束", "SVG / PNG / PDF 导出", "优先使用最佳模型"], ensure_ascii=False
         ),
         "price_cents": 2900,  # ¥29
         "currency": "CNY",
         "period": "calendar_month",
-        "daily_graph_limit": 0,  # 0 = 无限
+        "daily_graph_limit": 30,
         "status": "active",
         "sort_order": 2,
     },

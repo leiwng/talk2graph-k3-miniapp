@@ -228,10 +228,10 @@ async def test_plans_listed_publicly(client):
     assert "pro" in codes
     assert "enterprise" in codes
 
-    # pro 价格 2900 分 = 29 元
+    # pro 价格 2900 分 = 29 元，每日 30 张
     pro = next(p for p in plans if p["code"] == "pro")
     assert pro["price_cents"] == 2900
-    assert pro["daily_graph_limit"] == 0  # 无限
+    assert pro["daily_graph_limit"] == 30
 
     # free 5/天
     free = next(p for p in plans if p["code"] == "free")

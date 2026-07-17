@@ -247,7 +247,7 @@ async def test_webhook_verify_success_and_activate(client):
     sub = r3.json()
     assert sub["entitlement"]["plan_code"] == "pro"
     assert sub["entitlement"]["status"] == "active"
-    assert sub["entitlement"]["daily_limit"] == 0  # pro 无限
+    assert sub["entitlement"]["daily_limit"] == 30  # pro 每日 30 张
 
 
 @pytest.mark.asyncio
