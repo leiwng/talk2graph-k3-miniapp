@@ -33,12 +33,14 @@ async function request<T>(
     throw new Error('请先登录')
   }
   if (!r.ok) {
-    let detail: any = ''
+    // 只读一次 body（避免 "body stream already read" 错误）
+    const bodyText = await r.text()
+    let detail: any = bodyText
     try {
-      const j = await r.json()
-      detail = j.detail ?? j.error ?? j
+      const parsed = JSON.parse(bodyText)
+      detail = parsed.detail ?? parsed.error ?? parsed
     } catch {
-      detail = await r.text()
+      // body 不是 JSON，保持 detail = bodyText
     }
     // 后端 friendly error 是对象 {code, message, hint, detail}
     if (detail && typeof detail === 'object' && 'message' in detail) {
@@ -115,8 +117,14 @@ export const api = {
     })
     if (!r.ok || !r.body) {
       // 兜底：非流式错误，复用 request 的错误归一
-      let detail: any = ''
-      try { detail = await r.json() } catch { detail = await r.text() }
+      const bodyText = await r.text()
+      let detail: any = bodyText
+      try {
+        const parsed = JSON.parse(bodyText)
+        detail = parsed.detail ?? parsed.error ?? parsed
+      } catch {
+        // body 不是 JSON，保持 detail = bodyText
+      }
       if (detail && typeof detail === 'object' && 'message' in detail) {
         const msg = detail.hint ? `${detail.message}（${detail.hint}）` : detail.message
         const err = new Error(msg) as Error & { code?: string; detail?: string }

@@ -8,6 +8,7 @@ services:
     volumes:
       - ./data/db:/app/data
       - ./data/logs:/app/logs
+      - ./secrets:/app/secrets:ro  # V2-F.2：Alipay 密钥文件（只读挂载）
     expose:
       - "8000"
     healthcheck:

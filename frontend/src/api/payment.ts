@@ -13,13 +13,23 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...options,
   })
   if (!r.ok) {
-    let detail: any = ''
+    // 只读一次 body（避免 "body stream already read" 错误）
+    const bodyText = await r.text()
+    let detail: any = bodyText
     try {
-      detail = (await r.json()).detail
+      const parsed = JSON.parse(bodyText)
+      detail = parsed.detail ?? parsed.error ?? parsed
     } catch {
-      detail = await r.text()
+      // body 不是 JSON，保持 detail = bodyText
     }
-    throw new Error(typeof detail === 'string' ? detail : detail?.message || 'request failed')
+    if (detail && typeof detail === 'object' && 'message' in detail) {
+      const msg = detail.hint ? `${detail.message}（${detail.hint}）` : detail.message
+      const err = new Error(msg) as Error & { code?: string; detail?: string }
+      err.code = detail.code
+      err.detail = detail.detail
+      throw err
+    }
+    throw new Error(typeof detail === 'string' ? detail : 'request failed')
   }
   return r.json() as Promise<T>
 }

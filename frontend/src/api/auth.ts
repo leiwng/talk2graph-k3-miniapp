@@ -57,12 +57,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new Error('请先登录')
   }
   if (!r.ok) {
-    let detail: any = ''
+    // 只读一次 body（避免 "body stream already read" 错误）
+    const bodyText = await r.text()
+    let detail: any = bodyText
     try {
-      const j = await r.json()
-      detail = j.detail ?? j.error ?? j
+      const parsed = JSON.parse(bodyText)
+      detail = parsed.detail ?? parsed.error ?? parsed
     } catch {
-      detail = await r.text()
+      // body 不是 JSON，保持 detail = bodyText
     }
     if (detail && typeof detail === 'object' && 'message' in detail) {
       const msg = detail.hint ? `${detail.message}（${detail.hint}）` : detail.message
