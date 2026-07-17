@@ -28,13 +28,15 @@ _COMMON_PARAMS = {
 }
 
 
-def _read_key(path: str) -> str:
-    """读取密钥文件内容。支持 PEM 格式（含 BEGIN/END 头）和裸 base64 字符串。"""
+def _read_key(path: str, *, is_private: bool) -> str:
+    """读取密钥文件内容。支持 PEM 格式（含 BEGIN/END 头）和裸 base64 字符串。
+
+    is_private: True=私钥，False=公钥。用于裸 base64 时正确包装 PEM 头。
+    """
     content = Path(path).read_text(encoding="utf-8").strip()
     if "BEGIN" not in content:
         # 裸 base64 -> 包装成 PEM 格式
-        # 自动判断是公钥还是私钥：公钥通常较短，私钥较长
-        if "PRIVATE KEY" in path.upper():
+        if is_private:
             content = "-----BEGIN RSA PRIVATE KEY-----\n" + content + "\n-----END RSA PRIVATE KEY-----"
         else:
             content = "-----BEGIN PUBLIC KEY-----\n" + content + "\n-----END PUBLIC KEY-----"
@@ -44,13 +46,13 @@ def _read_key(path: str) -> str:
 def _get_app_private_key() -> str:
     if not settings.alipay_app_private_key_file:
         raise RuntimeError("ALIPAY_APP_PRIVATE_KEY_FILE 未配置")
-    return _read_key(settings.alipay_app_private_key_file)
+    return _read_key(settings.alipay_app_private_key_file, is_private=True)
 
 
 def _get_alipay_public_key() -> str:
     if not settings.alipay_public_key_file:
         raise RuntimeError("ALIPAY_PUBLIC_KEY_FILE 未配置")
-    return _read_key(settings.alipay_public_key_file)
+    return _read_key(settings.alipay_public_key_file, is_private=False)
 
 
 def _sign(data: str) -> str:
