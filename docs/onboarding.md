@@ -24,7 +24,7 @@ cd backend
 .venv/bin/pytest -q
 ```
 
-预期：与 CHANGELOG 顶部记录的测试数一致（V2-F.1 = 205 个）。如不一致：
+预期：与 CHANGELOG 顶部记录的测试数一致（V2-F.2 = 219 个）。如不一致：
 - 测试**失败** → 报告失败项，**不要随意修复**，等用户指示
 - 测试**数变少** → 可能新代码丢了测试，对照 CHANGELOG 排查
 - 测试**数变多** → 上次对话有人忘了更新 CHANGELOG
@@ -98,13 +98,37 @@ rm backend/data/talk2graph.db
 
 ## 当前里程碑（手动更新此值，每次 W 完成后改）
 
-**V2-F.1 — 用户体系 + 审计骨架**（2026-07-07 完成）
+**V2-F.2 — 付费 + 配额限流 + 安全加固**（2026-07-17 完成）
+
+- 测试：219/219 通过（V2-F.1 205 + V2-F.2 14 新增）
+- 目标：Alipay 电脑网站支付（沙箱）+ 配额限流（free 5/天 / pro 30/天）+ 强制登录 + API Key 泄露防护
+- 关键设计：
+  - **Alipay 电脑网站支付**：RSA2 签名 + 异步 webhook（幂等 + 月续期）；密钥文件挂载到容器 `/app/secrets/`
+  - **配额限流**：free 5/天 / pro 30/天；按当日 snapshot 数计数（LLM 失败不扣配额）
+  - **per-user 配额覆盖**：`UserSubscription.daily_graph_limit_override` 字段，admin 可 SQL 调整
+  - **强制登录**：所有 session/chat/export 端点要求 Bearer token（删除匿名试用体验，防外部滥用）
+  - **安全事件防护**：`.githooks/pre-commit` 阻止 sk-/ark- 开头 20+ 字符的 Key 被提交
+- 后端：新增 `app/payment/`（plans/alipay/subscription/entitlement/repository）+ `app/api/payment.py` + `app/api/webhooks.py`；DB 加 3 张表
+- 前端：PricingPage + SubscriptionPage + api/payment.ts；路由加 `/pricing` + `/account/subscription`
+- 安全：`.githooks/pre-commit` + `docs/security.md` + `.gitignore` 加 `model_config*.md`
+- 既有改造：session/chat/export 路由强制登录；admin 端点加 `require_admin`
+- LLM：火山方舟 GLM-5.2
+- DB schema：新增 3 张表；不删现有 DB，`create_all` 自动建；现有 DB 的 plan 配额需手动 SQL 更新
+- 配置：新增 6 个 Alipay env（`ALIPAY_APP_ID` / `ALIPAY_APP_PRIVATE_KEY_FILE` / `ALIPAY_PUBLIC_KEY_FILE` / `ALIPAY_NOTIFY_URL` / `ALIPAY_RETURN_URL` / `ALIPAY_GATEWAY_URL`）
+- 不含：邮箱验证码（F.3）/ WeChat OAuth（F.3）
+- 下一步候选：V2-F.3（邮箱验证码 + WeChat OAuth + SMTP）/ Alipay 正式应用上线后切正式环境 / admin 管理界面
+
+---
+
+## 历史里程碑
+
+**V2-F.1 - 用户体系 + 审计骨架**（2026-07-07 完成）
 
 - 测试：205/205 通过（V2-E 173 + V2-F.1 32 新增）
 - 目标：邮箱+密码注册/登录、JWT + auth_version 失效机制、审计日志（含每次 chat 作图）、Session 归属校验、Admin 权限保护、前端路由 + 登录页
 - 关键设计：
-  - **JWT in localStorage** + `auth_version` claim：改密后 `password_changed_at` 更新 → 旧 token 立即失效（无 token 黑名单）
-  - **匿名会话保留试用体验**：未登录仍可用，归属内置 anonymous 用户；登录用户只能访问自己的 session（cross-user 404 防探测）
+  - **JWT in localStorage** + `auth_version` claim：改密后 `password_changed_at` 更新 -> 旧 token 立即失效（无 token 黑名单）
+  - **匿名会话保留试用体验**（F.2 后取消）：未登录仍可用，归属内置 anonymous 用户；登录用户只能访问自己的 session（cross-user 404 防探测）
   - **审计 best-effort**：所有写入 try/except + logger.warning，永不阻塞主流程；chat.send 走 `asyncio.create_task` fire-and-forget
   - **Bootstrap admin**：首次启动按 env 创建管理员（账号创建后 env 可删除）
 - 后端：新增 `app/auth/`（password/jwt_token/deps/repository）+ `app/audit/`（actions/repository）+ `app/api/auth.py` + `app/api/audit_log.py`；DB 加 2 张表（user / audit_log），session 加 user_id 列（ensure_schema 自动 ALTER）
@@ -114,8 +138,7 @@ rm backend/data/talk2graph.db
 - LLM：火山方舟 GLM-5.2
 - DB schema：新增 2 张表 + session.user_id 列；开发期 `rm backend/data/talk2graph.db` 重建，生产期启动自动迁移
 - 配置：新增 3 个 env（`T2G_JWT_SECRET` / `T2G_BOOTSTRAP_ADMIN_EMAIL` / `T2G_BOOTSTRAP_ADMIN_PASSWORD`）
-- 不含：邮箱验证码（F.3）/ WeChat OAuth（F.3）/ Alipay（F.2）/ 配额限流（F.2）
-- 下一步候选：V2-F.2（付费 + 配额）/ V2-F.3（邮箱验证码 + WeChat OAuth）/ 历史会话侧抽屉
+- 下一步候选：~~V2-F.2（付费 + 配额）~~ 已完成 / V2-F.3（邮箱验证码 + WeChat OAuth）/ 历史会话侧抽屉
 
 ---
 

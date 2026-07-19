@@ -1,7 +1,7 @@
 # 话图 T2G 部署指南（腾讯云轻量应用服务器）
 
-> 当前状态：**V2-F.1 - 用户体系 + 审计骨架**（2026-07-07）。
-> 域名：t2g.yinhour.com（已备案）；公网 IP：49.233.15.73；端口：8080 试用期 / 443 正式。
+> 当前状态：**V2-F.2 - 付费 + 配额限流 + 安全加固**（2026-07-17）。
+> 域名：t2g.yinhour.com（已备案）；公网 IP：49.233.15.73；端口：8080 试用期 / 443 正式（HTTPS）。
 
 ---
 
@@ -283,22 +283,58 @@ docker system prune -af
 
 ---
 
-## 10. DB Schema 当前状态（V2-F.1）
+## 10. DB Schema 当前状态（V2-F.2）
 
 ```
-user           (id, email UNIQUE, username, hashed_password, role, status,
-                password_changed_at, last_login_at, created_at, updated_at)
-session        (id, title, llm_provider, user_id FK, created_at, updated_at, meta_json)
-message        (id, session_id, role, content, dsl_patch_json, llm_provider,
-                tokens_in, tokens_out, latency_ms, error_kind, fallback, created_at)
-dsl_snapshot   (id, session_id, seq, dsl_json, solution_json, created_at)
-feedback       (id, session_id, snapshot_seq, rating, comment, nl,
-                dsl_json, llm_provider, created_at)
-audit_log      (id, actor_id INDEX, actor_email, action INDEX, target_type,
-                target_id, metadata_json, ip_address, user_agent, created_at INDEX)
+user              (id, email UNIQUE, username, hashed_password, role, status,
+                   password_changed_at, last_login_at, created_at, updated_at)
+session           (id, title, llm_provider, user_id FK, created_at, updated_at, meta_json)
+message           (id, session_id, role, content, dsl_patch_json, llm_provider,
+                   tokens_in, tokens_out, latency_ms, error_kind, fallback, created_at)
+dsl_snapshot      (id, session_id, seq, dsl_json, solution_json, created_at)
+feedback          (id, session_id, snapshot_seq, rating, comment, nl,
+                   dsl_json, llm_provider, created_at)
+audit_log         (id, actor_id INDEX, actor_email, action INDEX, target_type,
+                   target_id, metadata_json, ip_address, user_agent, created_at INDEX)
+subscription_plan (code PK, name, description, feature_bullets_json, price_cents,
+                   currency, period, daily_graph_limit, status, sort_order)
+subscription_order (id, user_id FK, plan_id FK, amount_cents, status, provider,
+                    provider_out_trade_no UNIQUE, provider_payload_json,
+                    paid_at, expires_at, closed_at)
+user_subscription (id, user_id FK UNIQUE, plan_id FK, plan_code, status,
+                   daily_graph_limit_override, current_period_start, current_period_end,
+                   source_order_id FK)
 ```
 
-启动时自动建 anonymous user（固定 ID，禁用登录）+ 把 NULL session 归属到 anonymous + 按 env 建 bootstrap admin。
+启动时自动：
+- 建 anonymous user（固定 ID，禁用登录）
+- 把 NULL session 归属到 anonymous
+- 按 env 建 bootstrap admin
+- seed 3 个 plan（free 5/天 / pro 30/天 / enterprise 无限）
+
+**调整配额**（不需要重启 backend，立即生效）：
+
+```bash
+# 改全局 free 配额
+docker compose exec backend python3 -c "
+import sqlite3
+conn = sqlite3.connect('/app/data/talk2graph.db')
+conn.execute('UPDATE subscription_plan SET daily_graph_limit = 30 WHERE code = \"free\"')
+conn.commit()
+"
+
+# 改单个用户的配额（per-user 覆盖）
+docker compose exec backend python3 -c "
+import sqlite3, uuid
+conn = sqlite3.connect('/app/data/talk2graph.db')
+c = conn.cursor()
+uid = c.execute(\"SELECT id FROM user WHERE email='user@example.com'\").fetchone()[0]
+c.execute('''INSERT OR REPLACE INTO user_subscription
+  (id, user_id, plan_id, plan_code, status, daily_graph_limit_override)
+  VALUES (?, ?, 'free', 'free', 'free', 100)''', (uuid.uuid4().hex, uid))
+conn.commit()
+"
+```
 
 生产期 schema 升级当前未上 Alembic；要在线升级请：
 1. 停机 `docker compose down`

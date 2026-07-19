@@ -6,15 +6,17 @@
 
 ---
 
-## V2-F.2 - 付费 + 配额限流 + 安全加固（当前版本，2026-07-15）
+## V2-F.2 - 付费 + 配额限流 + 安全加固（当前版本，2026-07-17）
 
-**测试状态**：219/219 通过（V2-F.1 205 + V2-F.2 14 新增）
+**测试状态**：219/219 通过（V2-F.1 205 + V2-F.2 14 新增；前端 `npm run build` 通过）
 
-**目标**：Alipay 电脑网站支付（沙箱）+ 配额限流（free 5/天 / pro 无限）+ 强制登录 + API Key 泄露防护。
+**目标**：Alipay 电脑网站支付（沙箱）+ 配额限流（free 5/天 / pro 30/天）+ 强制登录 + API Key 泄露防护。
+
+**背景**：V2-F.1 上线后 DeepSeek API Key 在 `backend/model_config.md` 中明文提交到 GitHub（private 仓库），导致 7 月 8 日一天被刷 ¥636。BFG 重写 git 历史后，V2-F.2 加 pre-commit hook + 配额限流防止再次发生。
 
 ### 新增
 
-**后端 - Payment 模块**：plans.py / repository.py / alipay.py / subscription.py / entitlement.py
+**后端 - Payment 模块（`app/payment/`）**：plans.py / repository.py / alipay.py / subscription.py / entitlement.py
 **后端 - API**：payment.py（6 端点）+ webhooks.py（Alipay notify）
 **后端 - DB**：+3 表（SubscriptionPlan/Order/UserSubscription with daily_graph_limit_override）
 **后端 - 配额**：chat.py + chat_stream.py 加 ensure_user_can_send_chat + audit 含 plan/used_today
@@ -23,27 +25,92 @@
 
 ### 变更
 
-- session/chat/export 路由：Optional -> 强制登录（删除匿名试用）
+- session/chat/export 路由：Optional -> 强制登录（删除匿名试用体验，防外部滥用）
 - 既有测试 5 文件加 auth_headers fixture
+- pro 套餐配额从无限（0）改为每日 30 张（plans.py PLAN_SEEDS + 现有 DB 需 SQL 更新）
+- docker-compose.yml：加 `./secrets:/app/secrets:ro` 挂载 Alipay 密钥文件
+- backend/.env：Alipay 密钥路径从 `/opt/t2g/secrets/` 改为容器内 `/app/secrets/`
 
 ### 修复
 
-- count_user_snapshots_today：SQLAlchemy 2.0 查询语法
-- _compute_period / _is_subscription_active：timezone-aware/naive datetime 混合比较
+- `count_user_snapshots_today`：SQLAlchemy 2.0 查询语法（`func.count().select()` -> `select(func.count()).select_from()`）
+- `_compute_period` / `_is_subscription_active`：处理 timezone-aware/naive datetime 混合比较（SQLite 返回 naive）
+- 前端 `request<T>` 三处（payment.ts / auth.ts / client.ts）的 "body stream already read" bug：先 `r.text()` 一次再 `JSON.parse`，避免 `r.json()` 失败后 `r.text()` 二次读取 body
+- `alipay.py::_read_key` 路径检测 bug：`"PRIVATE KEY" in path.upper()` 永远为 False（路径含下划线 `PRIVATE_KEY` 而非空格 `PRIVATE KEY`），改为显式 `is_private` 参数
+- `alipay.py::_read_key` PKCS#8 格式 bug：Alipay 工具生成的私钥是 PKCS#8 格式（以 `MIIEvgIBADAN` 开头），裸 base64 包装时必须用 `-----BEGIN PRIVATE KEY-----`（非 `-----BEGIN RSA PRIVATE KEY-----` PKCS#1）
+- `nginx.conf`：`/api/` 用 `^~` 前缀匹配（优先于正则），避免 `/api/export/*.svg|.png` 被静态资源缓存规则误匹配返回 404
 
 ### 安全事件复盘
 
-2026-07-08 DeepSeek Key 泄露：model_config.md 含明文 Key 被 git push -> 被刷 ¥881。
-止血：BFG 重写历史 + 重置 4 家 Key。防护：pre-commit hook + 配额限流 + 强制登录。
+2026-07-08 DeepSeek Key 泄露：`model_config.md` 含明文 Key 被 git push -> 被刷 ¥881（7/8 ¥636 + 7/9 ¥245）。
+止血：BFG Repo-Cleaner 重写历史 + 重置 4 家 Key（DeepSeek / 火山 / MiniMax / Moonshot）。
+防护：pre-commit hook 阻止 Key 提交 + 配额限流（即使 Key 泄露也有上限）+ 强制登录（防外部滥用）。
+
+### DB Schema 升级
+
+V2-F.1 -> V2-F.2：
+- 新增 3 张表（`subscription_plan` / `subscription_order` / `user_subscription`）-- `create_all` 自动建
+- 启动时 seed 3 个 plan（free 5/天 / pro 30/天 / enterprise 无限），幂等
+- **不删除现有 DB**（保留用户 + 会话数据）
+- **升级方式**：直接部署，`create_all` 自动建新表；现有 DB 的 plan 配额需手动 SQL 更新
+
+### 配置说明
+
+新增 6 个环境变量（开发期 `.env`，生产期 Docker env）：
+
+```bash
+# Alipay（沙箱开发期用沙箱地址，生产期切正式）
+ALIPAY_APP_ID=2021000123456789
+ALIPAY_APP_PRIVATE_KEY_FILE=/app/secrets/app_private_key.pem
+ALIPAY_PUBLIC_KEY_FILE=/app/secrets/alipay_public_key.pem
+ALIPAY_NOTIFY_URL=https://t2g.yinhour.com/api/webhooks/alipay
+ALIPAY_RETURN_URL=https://t2g.yinhour.com/account/subscription
+ALIPAY_GATEWAY_URL=https://openapi-sandbox.dl.alipaydev.com/gateway.do
+# 生产期改为：https://openapi.alipay.com/gateway.do
+```
+
+### 调整配额的运维命令
+
+DB 中的 `daily_graph_limit` 可通过 SQL 立即调整，不需要重启 backend：
+
+```bash
+# 改全局 free 配额（所有 free 用户生效）
+docker compose exec backend python3 -c "
+import sqlite3
+conn = sqlite3.connect('/app/data/talk2graph.db')
+conn.execute('UPDATE subscription_plan SET daily_graph_limit = 30 WHERE code = "free"')
+conn.commit()
+"
+
+# 改单个用户的配额（per-user 覆盖，仍为 free 用户）
+docker compose exec backend python3 -c "
+import sqlite3, uuid
+conn = sqlite3.connect('/app/data/talk2graph.db')
+c = conn.cursor()
+uid = c.execute("SELECT id FROM user WHERE email='user@example.com'").fetchone()[0]
+c.execute('''INSERT OR REPLACE INTO user_subscription
+  (id, user_id, plan_id, plan_code, status, daily_graph_limit_override)
+  VALUES (?, ?, 'free', 'free', 'free', 100)''', (uuid.uuid4().hex, uid))
+conn.commit()
+"
+```
+
+### 测试
+
+新增 14 个测试（205 -> 219），分布在 2 个文件：
+
+- `tests/test_v2f_quota.py`（6 个）：free 5 张后拦截 / 无限配额 override / 匿名访问被拒 / 配额按 snapshot 计数（refuse 不扣）/ 新用户默认 free / 公开 plans 列表
+- `tests/test_v2f_payment.py`（8 个）：创建订单返回 pay_url / 关闭订单 / webhook 验签通过+激活 / 验签失败拒绝 / 金额不匹配拒绝 / 幂等（重复通知）/ 月续期从 period_end 续 / 订单查询防探测 404
 
 ### 下一步候选
 
-- V2-F.3：邮箱验证码 + WeChat OAuth + SMTP
-- Alipay 正式应用上线后切正式环境
+- **V2-F.3**：邮箱验证码 + WeChat OAuth + SMTP/Resend 集成
+- Alipay 正式应用上线后切正式环境（改 .env 即可）
+- admin 管理界面（调整 per-user 配额）
 
 ---
 
-## V2-F.1 — 用户体系 + 审计骨架（当前版本，2026-07-07）
+## V2-F.1 — 用户体系 + 审计骨架（2026-07-07）
 
 **测试状态**：205/205 通过（V2-E 173 + V2-F.1 32 新增；前端 `npm run build` 通过）
 

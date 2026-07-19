@@ -63,11 +63,16 @@
 
 | 现象 | 原因 / 处理 |
 |---|---|
-| 后端报 LLM 网络错误 | uvicorn 没重启；`--reload` 不重读 `.env` → 让用户重启 |
-| 火山 LLM 返回 400 `response_format.type` | coding/v3 不支持 json_object → `VolcengineProvider.supports_json_mode=False`（已处理，不要回退）|
-| 升级后旧会话打不开 | DB schema 变了 → 开发期删 DB，生产期手动 SQL |
+| 后端报 LLM 网络错误 | uvicorn 没重启；`--reload` 不重读 `.env` -> 让用户重启 |
+| 火山 LLM 返回 400 `response_format.type` | coding/v3 不支持 json_object -> `VolcengineProvider.supports_json_mode=False`（已处理，不要回退）|
+| 升级后旧会话打不开 | DB schema 变了 -> 开发期删 DB，生产期手动 SQL |
 | LLM 拒绝抛物线 | 不是 bug，MVP 不支持圆锥曲线 |
 | 测试 `default_provider` 失败 | env 影响；测试只断言在三家之一，别硬编码 |
+| 前端报 "body stream already read" | request<T> 函数先 r.json() 失败后又 r.text() -> 已修复（V2-F.2），改为只 r.text() 一次再 JSON.parse |
+| Alipay 报 ASN.1 parsing error | 密钥文件是裸 base64 + PKCS#8 格式 -> _read_key 已处理（V2-F.2），不要回退到 PKCS#1 |
+| 导出 SVG/PNG 返回 404 | nginx.conf 静态缓存规则误匹配 /api/export/*.svg -> 已用 ^~ 前缀修复（V2-F.2） |
+| 改 .env 后不生效 | docker compose up -d backend 重建容器；改代码要加 --build |
+| 配额超限 422 | free 5/天 / pro 30/天；改 DB 立即生效不需要重启 |
 
 ## 紧急回退
 
@@ -85,9 +90,11 @@ rm backend/data/talk2graph.db  # DB 回退（开发期）
 | `README.md` | 项目入口、结构总览 |
 | `CHANGELOG.md` | **每次完成变更后必须更新** |
 | `docs/onboarding.md` | 详细行为约束 |
+| `docs/security.md` | API Key 安全管理规范（V2-F.2） |
 | `docs/teacher-guide.md` | 老师使用手册 |
 | `frontend/README.md` | 前端开发上手 |
 | `deploy/README.md` | 生产部署 |
+| `.githooks/pre-commit` | API Key 泄露检测（V2-F.2） |
 
 ## 当前 LLM Provider 配置
 
@@ -97,3 +104,13 @@ rm backend/data/talk2graph.db  # DB 回退（开发期）
 - 备选：智谱直连
 
 完整配置示例在 `backend/.env.example`。
+
+## 当前套餐配置（V2-F.2）
+
+| code | 价格 | 周期 | daily_graph_limit | 说明 |
+|---|---|---|---|---|
+| free | ¥0 | free | 5 | 试用，每日 5 张图 |
+| pro | ¥29/月 | calendar_month | 30 | 老师推荐 |
+| enterprise | ¥0 | contract | 0（无限） | 联系销售 |
+
+**调整配额**：改 DB 立即生效，不需要重启 backend（详见 `deploy/README.md` 第 10 节）。
