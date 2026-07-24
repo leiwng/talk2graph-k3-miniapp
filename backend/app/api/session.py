@@ -25,21 +25,34 @@ class CreateSessionReq(BaseModel):
     title: str | None = None
 
 
+class UpdateSessionReq(BaseModel):
+    title: str
+
+
 class SessionOut(BaseModel):
     id: str
     title: str | None
     llm_provider: str | None
     created_at: str
     updated_at: str
+    # P0：会话抽屉展示需要
+    message_count: int = 0
+    last_user_nl: str | None = None
 
 
-def _to_out(s) -> SessionOut:
+def _to_out(
+    s,
+    message_count: int = 0,
+    last_user_nl: str | None = None,
+) -> SessionOut:
     return SessionOut(
         id=s.id,
         title=s.title,
         llm_provider=s.llm_provider,
         created_at=s.created_at.isoformat(),
         updated_at=s.updated_at.isoformat(),
+        message_count=message_count,
+        last_user_nl=last_user_nl,
     )
 
 
@@ -75,9 +88,9 @@ async def list_sessions(
     user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(db_dep),
 ) -> list[SessionOut]:
-    """列出当前用户的会话。"""
+    """列出当前用户的会话（含消息数 + 最后一条 user NL）。"""
     items = await repo_mod.list_sessions(db, user_id=user.id)
-    return [_to_out(s) for s in items]
+    return [_to_out(s, cnt, nl) for s, cnt, nl in items]
 
 
 @router.get("/session/{sid}", response_model=SessionOut)
@@ -88,6 +101,24 @@ async def get_session(
 ) -> SessionOut:
     s = await _require_session_with_owner(db, sid, user)
     return _to_out(s)
+
+
+@router.patch("/session/{sid}", response_model=SessionOut)
+async def update_session(
+    sid: str,
+    req: UpdateSessionReq,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(db_dep),
+) -> SessionOut:
+    """P0：重命名会话。校验归属；title 截断到 200 字。"""
+    s = await _require_session_with_owner(db, sid, user)
+    title = (req.title or "").strip()
+    if not title:
+        raise HTTPException(400, detail="title 不能为空")
+    updated = await repo_mod.update_session_title(db, s.id, title)
+    if updated is None:
+        raise HTTPException(404, detail="session not found")
+    return _to_out(updated)
 
 
 @router.delete("/session/{sid}")

@@ -46,6 +46,8 @@ export function TopBar() {
   const newSession = useStore((s) => s.newSession)
   const undo = useStore((s) => s.undo)
   const redo = useStore((s) => s.redo)
+  const setDrawerOpen = useStore((s) => s.setDrawerOpen)
+  const sessionsCount = useStore((s) => s.sessions.length)
   const [exportOpen, setExportOpen] = useState(false)
 
   const canExport = !!sessionId && seq > 0
@@ -53,6 +55,20 @@ export function TopBar() {
 
   return (
     <div className="topbar">
+      <button
+        className="drawer-toggle-btn"
+        onClick={() => setDrawerOpen(true)}
+        title="历史会话"
+        aria-label="打开历史会话"
+      >
+        <span className="hamburger" />
+        <span className="hamburger" />
+        <span className="hamburger" />
+        {sessionsCount > 0 && (
+          <span className="drawer-badge">{sessionsCount}</span>
+        )}
+      </button>
+
       <Link to="/" className="brand">
         <span className="logo">话</span>
         <span className="name">话图 T2G</span>

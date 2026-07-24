@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { authApi, loadStoredAuth, storeAuth, clearStoredAuth, getStoredToken } from '../api/auth'
 import type { User } from '../api/types'
+import { useStore } from './index'
 
 const AUTH_CHECK_TTL_MS = 30_000  // 30s 缓存：避免每次切路由都打 /me
 
@@ -59,6 +60,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     clearStoredAuth()
     set({ user: null, token: null, isAuthenticated: false, lastAuthCheck: 0 })
+    // P0：清空 app store 的 sessions 缓存（避免下次登录看到上一个账号的会话列表）
+    try {
+      useStore.setState({
+        sessions: [],
+        sessionId: null,
+        messages: [],
+        dsl: null,
+        solution: null,
+        svg: null,
+        seq: 0,
+        drawerOpen: false,
+      })
+      localStorage.removeItem('t2g.current_session_id')
+    } catch {
+      /* ignore */
+    }
   },
 
   checkAuth: async () => {

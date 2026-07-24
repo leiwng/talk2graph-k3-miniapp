@@ -14,7 +14,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Optional
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..dsl import DSL
@@ -66,22 +66,91 @@ async def get_session_by_id(db: AsyncSession, sid: str) -> Session | None:
 
 async def list_sessions(
     db: AsyncSession, limit: int = 50, user_id: str | None = None
-) -> list[Session]:
-    """列出会话。传入 user_id 时只返回该用户的会话（含 anonymous 用户的）。
+) -> list[tuple[Session, int, str | None]]:
+    """列出会话。返回元组 (session, message_count, last_user_nl)。
+
+    传入 user_id 时只返回该用户的会话（含 anonymous 用户的）。
 
     V2-F.1：登录用户列表只看到自己的；未登录用户看到 anonymous 会话。
+    P0：扩展返回字段，让前端抽屉能展示消息数 + 最后一条 NL（截断 30 字）。
     """
-    if user_id is not None:
-        stmt = (
-            select(Session)
-            .where(Session.user_id == user_id)
-            .order_by(Session.updated_at.desc())
-            .limit(limit)
+    # 子查询：每个 session 的消息数 + 最后一条 user 消息内容
+    msg_count_sub = (
+        select(
+            Message.session_id.label("sid"),
+            func.count(Message.id).label("cnt"),
         )
-    else:
-        stmt = select(Session).order_by(Session.updated_at.desc()).limit(limit)
+        .group_by(Message.session_id)
+        .subquery()
+    )
+    # 最后一条 user message - 用 max(id) 取一次
+    last_user_sub = (
+        select(
+            Message.session_id.label("sid"),
+            func.max(Message.id).label("max_id"),
+        )
+        .where(Message.role == "user")
+        .group_by(Message.session_id)
+        .subquery()
+    )
+
+    base = select(
+        Session,
+        func.coalesce(msg_count_sub.c.cnt, 0).label("message_count"),
+        Message.content.label("last_user_nl"),
+    ).outerjoin(
+        msg_count_sub, msg_count_sub.c.sid == Session.id
+    ).outerjoin(
+        last_user_sub, last_user_sub.c.sid == Session.id
+    ).outerjoin(
+        Message, Message.id == last_user_sub.c.max_id
+    )
+
+    if user_id is not None:
+        base = base.where(Session.user_id == user_id)
+
+    stmt = base.order_by(Session.updated_at.desc()).limit(limit)
     res = await db.execute(stmt)
-    return list(res.scalars())
+    rows: list[tuple[Session, int, str | None]] = []
+    for s, cnt, last_nl in res.all():
+        # 截断 last_user_nl 到 30 字（前端展示需要）
+        truncated = last_nl[:30] if last_nl else None
+        rows.append((s, int(cnt or 0), truncated))
+    return rows
+
+
+async def update_session_title(
+    db: AsyncSession, sid: str, title: str
+) -> Session | None:
+    """更新会话标题。返回更新后的 Session，或 None（会话不存在）。"""
+    s = await db.get(Session, sid)
+    if s is None:
+        return None
+    # 截断 title 到 200 字（schema 限制）
+    s.title = title[:200]
+    await db.commit()
+    await db.refresh(s)
+    return s
+
+
+async def maybe_set_session_title(db: AsyncSession, sid: str, nl: str) -> None:
+    """P0：首次 chat 成功后自动写入 title（取首条 NL 前 200 字）。
+
+    best-effort：失败仅 logger.warning，不阻塞 chat 主流程。
+    若 title 已存在则不覆盖（用户已重命名过）。
+    """
+    import logging
+
+    log = logging.getLogger(__name__)
+    try:
+        s = await db.get(Session, sid)
+        if s is None or s.title:
+            return
+        s.title = (nl or "").strip()[:200] or "新会话"
+        await db.commit()
+    except Exception as e:
+        log.warning("[session] set title failed: sid=%s err=%s", sid, e)
+        # 不 re-raise，chat 主流程不受影响
 
 
 async def delete_session(db: AsyncSession, sid: str) -> bool:

@@ -1,18 +1,19 @@
 import { create } from 'zustand'
 import { api } from '../api/client'
 import { getStoredToken } from '../api/auth'
-import type { DSL, Message, PatchOp, Solution } from '../api/types'
+import type { DSL, Message, PatchOp, SessionInfo, Solution } from '../api/types'
 
 const LS = {
   currentSessionId: 't2g.current_session_id',
   providerName: 't2g.provider',
-  sessionsCache: 't2g.sessions',
 }
 
 interface SessionsCacheItem {
   id: string
   title: string | null
   updated_at: string
+  message_count?: number
+  last_user_nl?: string | null
 }
 
 export interface AppState {
@@ -36,12 +37,16 @@ export interface AppState {
 
   activeTab: 'chat' | 'canvas' | 'objects'
   debugUI: boolean
+  drawerOpen: boolean
 
   // actions
   init: () => Promise<void>
   newSession: () => Promise<void>
   switchSession: (sid: string) => Promise<void>
   deleteSession: (sid: string) => Promise<void>
+  renameSession: (sid: string, title: string) => Promise<void>
+  loadSessions: () => Promise<void>
+  setDrawerOpen: (open: boolean) => void
   sendChat: (nl: string) => Promise<void>
   applyPatch: (ops: PatchOp[]) => Promise<void>
   undo: () => Promise<void>
@@ -53,26 +58,9 @@ export interface AppState {
   sendFeedback: (rating: 'good' | 'bad', comment?: string) => Promise<void>
 }
 
-function readJSON<T>(key: string, fallback: T): T {
-  try {
-    const v = localStorage.getItem(key)
-    return v ? (JSON.parse(v) as T) : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function writeJSON(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* ignore */
-  }
-}
-
 export const useStore = create<AppState>((set, get) => ({
   sessionId: null,
-  sessions: readJSON<SessionsCacheItem[]>(LS.sessionsCache, []),
+  sessions: [],
   providerName: localStorage.getItem(LS.providerName) || 'zhipu',
   availableProviders: [],
   defaultProvider: 'zhipu',
@@ -91,6 +79,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   activeTab: 'chat',
   debugUI: false,
+  drawerOpen: false,
 
   async init() {
     set({ loading: true })
@@ -119,6 +108,8 @@ export const useStore = create<AppState>((set, get) => ({
 
     // V2-F.1：仅登录用户恢复会话；未登录用户在落地页不需要 session
     if (getStoredToken()) {
+      // P0：拉取后端会话列表（替换旧的 localStorage 缓存）
+      await get().loadSessions()
       const sid = localStorage.getItem(LS.currentSessionId)
       if (sid) {
         try {
@@ -134,6 +125,23 @@ export const useStore = create<AppState>((set, get) => ({
     set({ loading: false })
   },
 
+  async loadSessions() {
+    try {
+      const items = await api.listSessions()
+      set({
+        sessions: items.map((s) => ({
+          id: s.id,
+          title: s.title,
+          updated_at: s.updated_at,
+          message_count: s.message_count ?? 0,
+          last_user_nl: s.last_user_nl ?? null,
+        })),
+      })
+    } catch {
+      /* 后端不可用，保持现有 state */
+    }
+  },
+
   async newSession() {
     set({ busy: true, errorBanner: null })
     try {
@@ -141,10 +149,15 @@ export const useStore = create<AppState>((set, get) => ({
       localStorage.setItem(LS.currentSessionId, s.id)
       // 更新本地会话缓存
       const list = [
-        { id: s.id, title: s.title, updated_at: s.updated_at },
+        {
+          id: s.id,
+          title: s.title,
+          updated_at: s.updated_at,
+          message_count: 0,
+          last_user_nl: null,
+        },
         ...get().sessions.filter((x) => x.id !== s.id),
       ]
-      writeJSON(LS.sessionsCache, list)
       set({
         sessionId: s.id,
         sessions: list,
@@ -163,7 +176,7 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   async switchSession(sid: string) {
-    set({ busy: true, errorBanner: null })
+    set({ busy: true, errorBanner: null, drawerOpen: false })
     try {
       await api.getSession(sid)
       localStorage.setItem(LS.currentSessionId, sid)
@@ -190,12 +203,26 @@ export const useStore = create<AppState>((set, get) => ({
   async deleteSession(sid: string) {
     await api.deleteSession(sid)
     const remaining = get().sessions.filter((s) => s.id !== sid)
-    writeJSON(LS.sessionsCache, remaining)
     set({ sessions: remaining })
     if (get().sessionId === sid) {
       localStorage.removeItem(LS.currentSessionId)
       await get().newSession()
     }
+  },
+
+  async renameSession(sid: string, title: string) {
+    const updated = await api.renameSession(sid, title)
+    set({
+      sessions: get().sessions.map((s) =>
+        s.id === sid
+          ? { ...s, title: updated.title, updated_at: updated.updated_at }
+          : s
+      ),
+    })
+  },
+
+  setDrawerOpen(open: boolean) {
+    set({ drawerOpen: open })
   },
 
   async sendChat(nl: string) {
@@ -369,7 +396,7 @@ export const useStore = create<AppState>((set, get) => ({
       const msgs = await api.getMessages(sid)
       set({ messages: msgs })
 
-      // 更新会话缓存
+      // 更新会话缓存（P0：拉最新 session 状态，含 title 和 message_count）
       try {
         const session = await api.getSession(sid)
         const list = [
@@ -377,10 +404,11 @@ export const useStore = create<AppState>((set, get) => ({
             id: session.id,
             title: session.title || nl.slice(0, 20),
             updated_at: session.updated_at,
+            message_count: session.message_count ?? 0,
+            last_user_nl: session.last_user_nl ?? null,
           },
           ...get().sessions.filter((x) => x.id !== sid),
         ]
-        writeJSON(LS.sessionsCache, list)
         set({ sessions: list })
       } catch {
         /* ignore */

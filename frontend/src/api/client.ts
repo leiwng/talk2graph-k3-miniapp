@@ -68,8 +68,17 @@ export const api = {
       body: JSON.stringify({ llm_provider: provider ?? null }),
     })
   },
+  listSessions(): Promise<SessionInfo[]> {
+    return request('/sessions')
+  },
   getSession(sid: string): Promise<SessionInfo> {
     return request(`/session/${sid}`)
+  },
+  renameSession(sid: string, title: string): Promise<SessionInfo> {
+    return request(`/session/${sid}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ title }),
+    })
   },
   deleteSession(sid: string): Promise<{ deleted: string }> {
     return request(`/session/${sid}`, { method: 'DELETE' })
