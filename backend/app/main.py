@@ -22,8 +22,8 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(
         title="话图 T2G",
-        version="0.3.0",
-        description="用自然语言画数学图形（K12 平面几何）",
+        version="3.5.0",
+        description="用自然语言画数学图形（K12 平面几何 + 立体几何 + 统计图表）",
         lifespan=lifespan,
     )
     app.add_middleware(

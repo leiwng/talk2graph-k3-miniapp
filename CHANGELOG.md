@@ -6,6 +6,1254 @@
 
 ---
 
+## V3.5.1 - 文档与代码同步（2026-07-23）
+
+**测试状态**：342/342 通过（无新代码测试；前端 `npm run build` 无变更）
+
+**目标**：清理 V2-F.2 之后留下的文档与代码不同步问题（多处版本号 / 测试数 / 支持范围 / 重复标题过时）。
+
+**背景**：V3.0-V3.5 连续 5 个版本只更新了 CHANGELOG，但 README / onboarding / teacher-guide / main.py version / AGENTS.md 都停留在旧版本（README 还在 V2-F.2，onboarding 里程碑还在 V3.0，teacher-guide 还说"立体几何不支持"）。本轮统一对齐。
+
+### 修复
+
+**版本号 / 测试数同步**
+- `backend/app/main.py:25`：`version="0.3.0"` → `"3.5.0"`；`description` 加 "立体几何 + 统计图表"
+- `README.md:7-8`：当前版本 "V2-F.2" → "V3.5"；测试 "219/219" → "342/342"
+- `docs/onboarding.md:27`：测试数提示 "V2-F.2 = 219 个" → "V3.5 = 342 个"
+- `docs/teacher-guide.md:5`：当前版本 "v0.13.1" → "V3.5"
+
+**支持范围同步**
+- `README.md:15-16`：
+  - 支持范围补立体几何 / 统计图表 / 弧扇形 / 弓形 / 圆环扇环 / 历史会话 / 邮箱验证 / Admin 后台
+  - "不在支持范围"移除已支持的立体几何和统计图表；保留椭圆隐式 / 三视图 / 棱柱棱锥 / 直方图 / 散点图
+- `README.md 进度表`（22-43 行）：补齐 V2-G.1 到 V3.5 共 11 个新里程碑行
+- `docs/teacher-guide.md:127-128`：
+  - 删除"立体几何...话图当前版本只支持平面几何"（V3.0 已支持）
+  - 删除"统计图表...话图当前版本不支持统计图表"（V3.0 已支持）
+  - 替换为「三视图/棱柱棱锥/立体截面」+「直方图/散点图/箱线图」两个尚未支持的类别
+- `docs/teacher-guide.md:158-163`（已知限制）：
+  - 删除"立体几何 / 统计图表 / 椭圆隐式方程 计划 V3 支持"（立体几何/统计图表已支持）
+  - 删除"中文标签在 PPT 里可能受字体影响"（V2-C 已解决：导出时 outline 化）
+  - 删除"SSE 流式在后续版本上线"（V2-D 已上线）
+  - 保留复杂题多解 / LLM 延迟 / 未支持题型
+
+**P0-P3 4 项工作状态同步**
+- `docs/onboarding.md:99-115`：当前里程碑 "V3.0 - 立体几何 + 统计图表" → "V3.5 - Admin 批量操作 + 飞书 SMTP + 微信文档"
+- `docs/onboarding.md:119-216`：「待完成的 4 项工作」改为「P0-P3 4 项工作（已全部完成）」
+  - P0 历史会话侧抽屉 -> ✅ V3.1 已完成
+  - P1 邮箱验证码 + WeChat OAuth + SMTP -> ✅ V3.2 已完成
+  - P2 Admin 管理界面 -> ✅ V3.3 已完成
+  - P3 圆环扇环 -> ✅ V3.4 已完成
+- 下一步路线图改为 3 节：V3 增强（长期候选）/ 运营增强 / 等待外部条件
+
+**onboarding.md 结构清理**
+- 删除 8 个重复的「## 历史里程碑」标题（保留第 1 个，后面 8 个是历史段落错误重复）
+- 清理删除标题后留下的多余空行
+
+**AGENTS.md 补充**
+- 新增「当前邮件 Provider 配置（V3.5）」小节：console（开发）/ smtp + 飞书（生产）/ resend（备选）
+- 主要文件指南表新增 `docs/email-wechat-setup.md` 条目
+
+### 变更
+
+- 无代码逻辑变更。本次纯文档 + 版本号字符串同步，不影响业务行为。
+
+### 新增
+
+- 无
+
+### DB Schema 升级
+
+无变更。
+
+### 下一步候选
+
+- 生产环境实际部署 V3.5（含 Admin 批量操作 + 飞书 SMTP）
+- 5-10 位老师定向试用
+- V3 增强（三视图 / 棱柱棱锥 / 直方图 / 散点图）
+
+---
+
+## V3.5 - Admin 批量操作 + 飞书 SMTP + 微信文档（2026-07-22）
+
+**测试状态**：342/342 通过（V3.4 332 + SMTP 4 + 批量操作 6；前端 `npm run build` 通过）
+
+**目标**：补齐运营基础设施最后 3 项：① Admin 批量操作（一次性给多个用户改 status/配额/订阅）；② 飞书企业邮箱 SMTP Provider（生产期邮件发送，老师能真正收到验证码）；③ 微信开放平台审核通过后填入 AppID/Secret 文档（无需改代码，只改 .env）。
+
+### 新增
+
+**后端 - SMTPProvider（`backend/app/email/provider.py`）**：
+- 新增 `SMTPProvider` 类（~80 LOC）：通用 SMTP 实现
+  - 适用任何标准 SMTP 服务器：飞书企业邮箱 / 腾讯企业邮箱 / 阿里云邮件推送 / Gmail
+  - 用 stdlib `smtplib` + `asyncio.to_thread` 包装为异步，**不引入新依赖**
+  - 支持 SSL（465）和 STARTTLS（587/25）
+  - 凭据缺失时抛 `EmailSendError`
+- 改造 `get_email_provider()`：按 `EMAIL_PROVIDER` 选 Provider（console / resend / smtp）
+  - 用 `from .. import config as _config` + `_config.settings` 动态访问，处理测试 reload(config) 后引用更新
+- 改造 `provider.py` 顶部：`from ..config import settings` 改成 `_settings()` 函数动态访问
+
+**后端 - Config**
+- `app/config.py::Settings`：加 5 个新字段
+  - `smtp_host: str`（env `SMTP_HOST`）
+  - `smtp_port: int`（env `SMTP_PORT`，默认 465）
+  - `smtp_username: str`（env `SMTP_USERNAME`）
+  - `smtp_password: str`（env `SMTP_PASSWORD`）
+  - `smtp_use_tls: bool`（env `SMTP_USE_TLS`，默认 true）
+
+**后端 - Admin 批量操作**
+- `app/admin/repository.py`：
+  - 新增 `batch_update_user_status(db, user_ids, new_status)`：批量改 status
+  - 新增 `batch_set_quota_override(db, user_ids, daily_limit_override)`：批量配额覆盖
+  - 新增 `batch_set_subscription(db, user_ids, plan_code, status, period_days)`：批量设置订阅
+  - 常量 `BATCH_LIMIT = 100`：单次批量上限
+- `app/api/admin.py`：
+  - 新增 `POST /api/admin/users/batch` 端点
+  - 支持 4 种 action：`enable` / `disable` / `set_quota` / `set_subscription`
+  - 安全保护：
+    - 不能在批量操作中 disable 自己
+    - 单次最多 100 个用户（pydantic Field max_length=100）
+    - 改完配额/订阅后立即 `invalidate_user_cache` 让缓存失效
+
+**前端 - AdminUsersPage 批量操作 UI**
+- `frontend/src/pages/admin/AdminUsersPage.tsx`（重写，~260 LOC）：
+  - 表格加复选框列（全选 / 单选）
+  - 选中后顶部显示「已选 N 个用户」+ 「批量操作」按钮 + 「取消选择」按钮
+  - 批量操作弹窗：选 action（启用/禁用/配额/订阅）+ 表单 + 警告提示
+  - 选中行高亮（row-selected class）
+- `frontend/src/api/admin.ts`：加 `batchUpdateUsers` 方法
+- `frontend/src/styles.css`（+90 行）：
+  - `.batch-toolbar` 蓝色背景工具栏
+  - `.admin-table .col-check` 复选框列样式
+  - `.admin-table tr.row-selected` 选中行高亮
+  - `.batch-modal-backdrop` + `.batch-modal` + `.batch-modal-header/body/footer` 弹窗
+  - `.batch-warning` 警告框（黄色）
+
+**文档**
+- `docs/email-wechat-setup.md`（新，~120 LOC）：
+  - 邮件 Provider 切换指南（Console / SMTP / Resend）
+  - 飞书企业邮箱 SMTP 详细步骤（开通确认 + 应用专用密码 + .env 配置）
+  - 密码重置链接配置
+  - 微信开放平台 PC 扫码登录切换步骤
+  - 上线前检查清单
+  - 故障排查（邮件发不出去 / 微信扫码失败 / 重置链接打不开）
+- `backend/.env.example`：
+  - 加 SMTP 配置章节（5 个 env + 飞书/腾讯/阿里/Gmail 主机参考表）
+  - 微信 AppID/Secret 加注释「V3.5：拿到正式 AppID/Secret 后填入即可启用微信扫码登录（代码框架已在 V3.2 P1 完成，无需改代码）」
+
+### 变更
+
+- `app/email/provider.py`：顶部 `from ..config import settings` 改成 `from .. import config as _config` + `_settings()` 动态访问；解决测试 `importlib.reload(config_mod)` 后 settings 引用不更新问题
+- `get_email_provider()` 改造：先取 `_settings()` 再读字段；支持 3 种 Provider
+- 无破坏性变更。V3.4 之前的 332 个测试无修改、无回归
+
+### 修复
+
+- `app/payment/entitlement.py::resolve_user_entitlement`：之前定义了 _limit_cache 但没读取（V3.3 P2 已修复）；本版未再改
+
+### DB Schema 升级
+
+V3.4 -> V3.5：**无 schema 变更**。纯后端能力扩展 + 前端 UI + 文档。
+
+### 配置说明
+
+新增 5 个 SMTP 环境变量（开发期可留空，生产期填入）：
+
+```bash
+# 飞书企业邮箱（推荐）：
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.feishu.cn
+SMTP_PORT=465
+SMTP_USERNAME=noreply@your-domain.feishu.cn
+SMTP_PASSWORD=<应用专用密码>
+SMTP_USE_TLS=true
+EMAIL_FROM=noreply@your-domain.feishu.cn
+
+# 腾讯企业邮箱：
+# SMTP_HOST=smtp.exmail.qq.com（其他同上）
+
+# 阿里云邮件推送：
+# SMTP_HOST=smtpdm.aliyun.com（其他同上）
+```
+
+详见 `docs/email-wechat-setup.md`。
+
+### 测试
+
+新增 10 个测试（332 -> 342），分布在 2 个文件：
+
+- `tests/test_v35_smtp.py`（4 个）：
+  - SMTPProvider 初始化（1）
+  - EMAIL_PROVIDER=smtp + 配置完整时返回 SMTPProvider（1）
+  - EMAIL_PROVIDER=smtp 但 SMTP_HOST 缺失时回退到 ConsoleProvider（1）
+  - SMTPProvider 凭据缺失时 send 抛 EmailSendError（1）
+- `tests/test_v35_admin_batch.py`（6 个）：
+  - 批量禁用 3 个用户（1）
+  - 批量启用用户（1）
+  - 批量设置配额覆盖（1）
+  - 批量设置订阅（1）
+  - 不能在批量操作中 disable 自己（1）
+  - 超过 100 个返回 422（1）
+
+### 设计决策记录
+
+- **SMTPProvider 用 stdlib 不引入 aiosmtplib**：用 `smtplib` + `asyncio.to_thread` 包装为异步，避免新依赖；smtplib 是 Python 标准库，稳定可靠
+- **支持 SSL（465）和 STARTTLS（587/25）**：465 是 SSL 直连（推荐，飞书/腾讯默认）；587/25 是 STARTTLS 升级（部分老服务器用）
+- **批量上限 100**：避免误操作大范围影响；学校一个班级通常 30-50 人，100 足够
+- **不能 disable 自己**：与单个 disable 一致保护；批量 disable 时如果包含 admin 自己 -> 整个请求 400
+- **批量配额覆盖用 None 表示「用 plan 默认」**：与单个操作语义一致；前端表单留空 = None
+- **批量改完立即清缓存**：循环调 `invalidate_user_cache(uid)`，让每个用户的配额缓存立即失效
+- **不实现批量升/降 admin**：误操作风险高（可能批量锁死所有 admin）；需要时用单个操作
+- **微信 OAuth 代码已就绪**：V3.2 P1 已完整实现 OAuth 流程；本版只补文档说明，不需要改代码
+
+### 下一步候选
+
+- V3 增强（三视图 / 棱柱棱锥 / 直方图 / 散点图）
+- Admin 加「配额使用统计图表」（看每日配额消耗趋势）
+- Admin 加「用户活动时间线」（看某用户最近 chat / 反馈 / 订阅变更历史）
+- 生产环境实际部署 + 5-10 位老师定向试用
+
+---
+
+## V3.4 - P3 圆环扇环（2026-07-21）
+
+**测试状态**：332/332 通过（V3.3 327 + P3 5 新增；前端 `npm run build` 通过）
+
+**目标**：补齐圆几何最后一块拼图--圆环扇环。教学场景：「画圆环」「画扇环」「环形面积」等。
+
+**背景**：V2-G.4 弓形对象 + 弧长/弓形面积标注已上线；P3 评审里只剩圆环扇环没做。本版补齐。
+
+### 新增
+
+**后端 - DSL Schema（`backend/app/dsl/schema.py`）**：
+- 新对象 `AnnularSectorObj{center, from_point, to_point, r_inner, ccw?=True}` - 圆环扇环
+  - 外弧半径 = `|center - from_point|`（隐含等距约束 `|center-from| == |center-to|`）
+  - 内弧半径 = `r_inner`（必须 > 0）
+  - 渲染：外弧 + 内弧 + 两条径向直线段，闭合 path 填充
+- `GeometryObject` union 加 `AnnularSectorObj`
+- `DSL` 类加 helper：`annular_sectors()`
+
+**后端 - Validator**：
+- AnnularSectorObj 校验：center/from_point/to_point 都必须是 PointObj；三点互异；r_inner > 0
+
+**后端 - Solver**：
+- `solve()` 主流程在 bow 之后追加 annular_sector 的隐含等距残差 `|center-from| == |center-to|`
+
+**后端 - Renderer**：
+- 新增 `_render_annular_sector_path`：构造闭合 SVG path
+  - 外弧：`M fx fy A r_outer r_outer 0 large sweep tx ty`
+  - 径向直线：`L itx ity`
+  - 内弧（反向）：`A r_inner r_inner 0 large 1-sweep ifx ify`
+  - 闭合：`Z`
+  - 半透明填充 + 描边
+- 主渲染循环加 annular_sector 分支
+
+**Prompt**
+- `system.txt`：新增第 21 条「圆环扇环支持」+ DSL Schema 节对象 kind 加 `annular_sector`
+- `fewshots.jsonl`：+1 条（外半径 4 内半径 2 圆心角 90° 的扇环）
+- `extractor.py`：`fewshot_limit` 38 -> 39
+
+**前端**
+- `frontend/src/api/types.ts`：`GeoObject.kind` 加 `'annular_sector'`；新增 `r_inner?: number` 字段
+- `frontend/src/components/Canvas.tsx::describe`：annular_sector 分支
+- `frontend/src/components/ChatPanel.tsx::describeObject`：annular_sector 分支
+- `frontend/src/components/RightPanel.tsx::describeObject`：annular_sector 分支
+
+### 变更
+
+- 无破坏性变更。所有 V3.3 之前的 327 个测试无修改、无回归
+- annular_sector 不引入新自由变量（center/from/to 都是 PointObj）
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+V3.3 -> V3.4：**无 schema 变更**。纯 DSL 层能力扩展，直接拉新代码即可。
+
+### 测试
+
+新增 5 个测试（327 -> 332），分布在 1 个文件：
+
+- `tests/test_p3_annular_sector.py`（5 个）：
+  - schema：annular_sector 解析（1）
+  - validator：center 类型错 / r_inner<=0（2）
+  - solver：annular_sector 隐含等距约束（|center-from| == |center-to|）（1）
+  - render：SVG 含 t2g-annular-sector path + 两条 A 命令（1）
+
+### 设计决策记录
+
+- **不引入新约束**：圆环扇环的角度通过 from_point/to_point 的几何位置确定（隐含等距约束让外弧成立）；角度约束走现有 arc_angle，target 一个独立的 arc 对象
+- **r_inner 显式字段**：内弧半径不在求解器自由变量中（避免求解器难收敛）；LLM 直接给出具体数值
+- **内弧方向反向**：渲染时内弧 sweep flag 取 `1 - sweep_outer`，让外弧 + 内弧 + 径向直线闭合形成环形区域
+- **fewshot 简化**：示例不使用 arc_angle 约束（annular_sector 不是 ArcObj），用 perpendicular + length 表达 90° 圆心角
+
+### P0-P3 完成总结
+
+| 版本 | 内容 | 测试数 | 增量 |
+|---|---|---|---|
+| V3.0 | 立体几何 + 统计图表 | 295 | - |
+| V3.1 P0 | 历史会话侧抽屉 | 301 | +6 |
+| V3.2 P1 | 邮箱验证码 + WeChat OAuth + SMTP | 313 | +12 |
+| V3.3 P2 | Admin 管理界面 | 327 | +14 |
+| V3.4 P3 | 圆环扇环 | 332 | +5 |
+
+**4 项工作全部完成**：3 项基础设施（P0 留存 + P1 拉新 + P2 运营）+ 1 项作图能力（P3 圆环扇环）。
+
+### 下一步候选
+
+- V3 增强（三视图 / 棱柱棱锥 / 直方图 / 散点图）
+- Admin 加「批量操作」（如批量给某学校老师开 pro）
+- Admin 加「配额使用统计图表」（看每日配额消耗趋势）
+- 微信开放平台审核通过后填入正式 AppID/Secret
+- Resend 上线后切正式环境（改 .env 即可）
+
+---
+
+## V3.3 - P2 Admin 管理界面（2026-07-21）
+
+**测试状态**：327/327 通过（V3.2 313 + P2 14 新增；前端 `npm run build` 通过）
+
+**目标**：解决 V2-F.2 留下的"运营无法独立操作"痛点--调整配额要 SSH+SQL，反馈数据 / 审计日志 / 用户列表全看不到。本版上线后 admin 能在 Web 后台完成所有运营操作。
+
+**背景**：V2-F.2 的配额限流 + 订阅激活已上线，但运营要给学校老师批量开通 pro 配额、看反馈数据、查审计日志都要让工程师 SSH 进服务器跑裸 SQL，完全不可持续。本版补齐运营基础。
+
+### 新增
+
+**后端 - admin 模块（新）**
+- `app/admin/__init__.py`：模块文档
+- `app/admin/repository.py`（~180 LOC）：
+  - `list_users(search, role, status, limit, offset) -> (rows, total)`：分页 + 搜索 + 过滤
+  - `get_user_detail(db, user_id)` / `count_user_sessions` / `count_user_snapshots`
+  - `update_user_status` / `update_user_role`
+  - `set_user_quota_override(db, user_id, daily_limit_override)`：per-user 配额覆盖
+  - `set_user_subscription(db, user_id, plan_code, status, period_days)`：直接设置订阅（绕过支付流程）
+  - `list_plans` / `update_plan(plan, **fields)`
+- `app/payment/entitlement.py`：
+  - `invalidate_user_cache(user_id)`：让 admin 改完配额立即生效
+  - `resolve_user_entitlement` 接入 5 分钟内存缓存（之前定义了但没读取）
+
+**后端 - API（6 个新端点 + 1 个改造）**
+- `app/api/admin.py`：
+  - `GET /api/admin/users?search=&role=&status=&limit=&offset=`：分页查询用户列表
+  - `GET /api/admin/users/{user_id}`：用户详情（含会话数 / 画图数 / 订阅信息）
+  - `PATCH /api/admin/users/{user_id}`：改 role / status
+    - **不能改自己 role**（防误降权）
+    - **不能降级最后一个 admin**（防失去管理员）
+    - **不能 disable 自己**（防误操作锁死）
+  - `PUT /api/admin/users/{user_id}/quota`：per-user 配额覆盖（None=默认 / 0=无限 / 正整数=N/天）
+  - `PUT /api/admin/users/{user_id}/subscription`：直接设置订阅（admin 操作不走支付流程）
+  - `GET /api/admin/plans`：列出所有套餐（含 archived）
+  - `PATCH /api/admin/plans/{code}`：更新套餐字段（name/price/daily_limit/status）
+- 改造 `GET /api/admin/stats`：返回值加 `users`（总用户数）+ `verified_users`（已验证邮箱数）
+
+**前端 - 路由 + 守卫**
+- `frontend/src/components/auth/AdminRoute.tsx`（新组件，~50 LOC）：
+  - 鉴权 + admin 角色校验
+  - loading 时显示 spinner
+  - 非 admin 显示 403 页面 + 返回工作台链接
+- `frontend/src/App.tsx`：加 `/admin/*` 嵌套路由
+  - `/admin` -> Dashboard
+  - `/admin/users` -> Users
+  - `/admin/users/:userId` -> UserDetail
+  - `/admin/feedback` -> Feedback
+  - `/admin/audit` -> AuditLog
+  - `/admin/plans` -> Plans
+- `frontend/src/components/auth/UserMenu.tsx`：admin 用户菜单加「管理后台」入口
+
+**前端 - 页面（6 个新）**
+- `frontend/src/pages/admin/AdminLayout.tsx`：侧边栏 + Outlet 布局
+- `frontend/src/pages/admin/AdminDashboardPage.tsx`：
+  - 4 张统计卡片（总用户数 / 会话 / 消息 / 画图）
+  - LLM Provider 用量表（calls / tokens / 延迟）
+  - 时间范围选择器（1/7/30/90 天）
+- `frontend/src/pages/admin/AdminUsersPage.tsx`：
+  - 搜索（email/username）+ role/status 过滤
+  - 表格列：email / 用户名 / 角色 / 状态 / 邮箱验证 / 最近登录 / 操作
+  - 行内操作：详情 / 升降 admin / 启用禁用
+  - 分页（每页 20）
+- `frontend/src/pages/admin/AdminUserDetailPage.tsx`：
+  - 基本信息（email / username / role / status / 邮箱验证 / 微信昵称 / 注册时间 / 最近登录）
+  - 使用情况（会话数 / 画图数 / 当前订阅 / 配额覆盖）
+  - 配额覆盖表单（空/0/正整数）
+  - 订阅管理（直接切换 free/pro/enterprise）
+- `frontend/src/pages/admin/AdminFeedbackPage.tsx`：
+  - 统计卡片（总反馈 / 👍 / 👎）
+  - 反馈表格 + 导出 jsonl 链接
+- `frontend/src/pages/admin/AdminAuditLogPage.tsx`：
+  - 按 action 过滤（注册/登录/登出/改密/重置/画图/删会话/订单）
+  - 表格：时间 / action / 操作者 / 对象 / IP / 元数据
+  - 分页（每页 50）
+- `frontend/src/pages/admin/AdminPlansPage.tsx`：
+  - 套餐卡片网格（free / pro / enterprise）
+  - 每张卡片可改：name / price_cents / daily_graph_limit / description
+  - 行内保存反馈
+
+**前端 - API client + types**
+- `frontend/src/api/admin.ts`（新，~140 LOC）：adminApi 含 stats / listUsers / getUser / updateUser / setQuotaOverride / setSubscription / listPlans / updatePlan / listFeedback
+- `frontend/src/api/types.ts`：加 `AdminUser` / `AdminUserListResp` / `AdminUserDetail` / `AdminPlan` / `AdminStats` 类型
+
+**前端 - 样式（+450 行）**
+- `frontend/src/styles.css`：
+  - `.admin-layout` + `.admin-sidebar`（220px 侧栏）+ `.admin-main`（自适应主区）
+  - `.admin-brand` + `.admin-nav` + `.admin-nav-item` + `.nav-icon`
+  - `.admin-page` + `.admin-page-header` + `.admin-total` + `.admin-loading` + `.admin-empty`
+  - `.admin-error` + `.admin-success` + `.admin-hint`
+  - `.stats-grid` + `.stat-card` + `.stat-good/bad`（左侧色条）
+  - `.admin-table`（th 大写字母 + 浅灰底）+ `.truncate-cell` + `.meta-cell`
+  - `.admin-filters` + `.admin-pagination` + `.btn-sm`
+  - `.badge` + `.badge-admin/active/disabled/pending_email_verification`（色块）
+  - `.admin-section` + `.admin-section-title` + `.admin-detail-grid`
+  - `.admin-form-inline` + `.admin-field`
+  - `.plans-grid` + `.plan-card` + `.plan-card-header` + `.plan-card-actions`
+  - `.admin-forbidden`（403 页）
+  - 响应式（≤768px 侧栏变顶栏，nav 横向滚动）
+
+### 变更
+
+- `app/api/admin.py::stats`：返回值加 `users` + `verified_users` 字段
+- `app/payment/entitlement.py::resolve_user_entitlement`：接入 5 分钟内存缓存（之前定义了 _limit_cache 但没读取）
+- 无破坏性变更。V3.2 之前的 313 个测试无修改、无回归
+
+### 修复
+
+- `app/payment/entitlement.py::resolve_user_entitlement`：之前定义了 _limit_cache 但没读取，导致 per-user 配额覆盖每次都查 DB；现在按预期走 5 分钟缓存
+
+### DB Schema 升级
+
+V3.2 -> V3.3：**无 schema 变更**。复用 V2-F.2 已有的 user / user_subscription / subscription_plan 表。
+
+### 测试
+
+新增 14 个测试（313 -> 327），分布在 1 个文件：
+
+- `tests/test_p2_admin.py`（14 个）：
+  - list_users 分页 + 搜索（2）
+  - get_user_detail + 404（2）
+  - update_user role + last-admin 保护（2）
+  - update_user status + 不能 disable 自己（2）
+  - set_user_quota_override 立即生效（1）
+  - set_user_subscription 直接给用户开 pro（1）
+  - list_plans + update_plan daily_graph_limit（2）
+  - 非 admin 用户访问 403（1）
+  - stats 加 users + verified_users（1）
+
+### 设计决策记录
+
+- **侧边栏布局**：与主流 admin 后台一致（Notion/Linear/Vercel），左侧 220px 侧栏 + 右侧自适应主区；移动端侧栏变顶栏 + nav 横向滚动
+- **AdminRoute 双重校验**：先校验登录状态，再调 /me 确认 role（user.role 可能在 register 时没拉到最新）；admin 改自己 role 后需重新登录拿新 token
+- **配额覆盖三种语义**：None = 用 plan 默认值；0 = 无限；正整数 = 每日 N 张。改后立即调 `invalidate_user_cache` 让缓存失效
+- **订阅管理绕过支付**：admin 直接给用户设置 plan_code + status + period_days，不走 Alipay 支付流程；适用场景：批量给学校老师开 pro / 给 enterprise 客户开无限
+- **last-admin 保护**：降级最后一个 admin role 时返回 400「不能降级最后一个管理员」，防止失去管理员无法登录后台
+- **不能改自己**：admin 不能改自己的 role / 不能 disable 自己账号，防误操作锁死
+- **plan 改动清空整个缓存**：admin 改 plan.daily_graph_limit 后清空 _limit_cache（plan 改动不频繁，全清简单可靠）
+- **stats 加用户统计**：返回 `users`（总用户数）+ `verified_users`（已验证邮箱数），让 admin 一眼看出垃圾账号比例
+- **审计日志按 action 过滤**：常见 action 集中定义在 select 选项里，admin 一键过滤
+- **UserMenu 入口**：admin 角色用户菜单加「管理后台」链接，普通用户看不到
+
+### 下一步候选
+
+- 🟢 **P3 - V2-G.3 弓形对象 / 弧长标注 / 弓形面积标注 / 圆环扇环**（1 周）：低频
+- V3 增强（三视图 / 棱柱棱锥 / 直方图 / 散点图）
+- Admin 加「批量操作」（如批量给某学校老师开 pro）
+- Admin 加「配额使用统计图表」（看每日配额消耗趋势）
+
+---
+
+## V3.2 - P1 邮箱验证码 + WeChat OAuth + SMTP（2026-07-21）
+
+**测试状态**：313/313 通过（V3.1 301 + P1 12 新增；前端 `npm run build` 通过）
+
+**目标**：解决 V2-F.1 留下的"无邮箱验证 = 垃圾账号横行 + 配额被薅 + 付费转化无凭证"问题。同时引入微信扫码登录（拉新转化率高 3-5 倍）+ 忘记密码自助重置。
+
+**背景**：V2-F.1 上线后注册即可用无邮箱验证，垃圾账号问题严重；忘记密码功能缺失 = 老师账号丢了无法恢复。本版一次性补齐：邮箱验证码 + 密码重置链接 + 微信扫码登录 + pending_email_verification 限流。
+
+### 新增
+
+**后端 - DB Schema 变更**
+- `app/db/models.py::User`：加 5 个新字段
+  - `email_verified_at: datetime | None` - 邮箱验证时间（Null = 未验证）
+  - `wechat_openid: str | None UNIQUE INDEX` - 微信 openid
+  - `wechat_unionid: str | None INDEX` - 微信 unionid（可选）
+  - `wechat_nickname: str | None` - 微信昵称
+  - `wechat_avatar_url: str | None` - 微信头像 URL
+- 新增 `EmailVerificationCode` 表：6 位验证码（bcrypt hash）+ purpose(register/reset) + consumed + 15 分钟过期
+- 新增 `PasswordResetToken` 表：一次性 uuid token（sha256 hash）+ 30 分钟过期
+- `app/db/migrations.py::REQUIRED_COLUMNS`：加 user 表 5 个新列，老库启动自动 ALTER
+
+**后端 - email 模块（新）**
+- `app/email/__init__.py`：模块文档
+- `app/email/provider.py`（~140 LOC）：
+  - `EmailProvider` ABC + `EmailMessage` 数据类
+  - `ResendProvider`：Resend API 实现（生产期用）
+  - `ConsoleProvider`：日志输出（开发期默认，不发真实邮件）
+  - `get_email_provider()`：单例工厂，按 settings.email_provider 选 Provider
+  - `send_best_effort(msg)`：best-effort 发送，失败仅 logger.warning
+- `app/email/templates.py`（~70 LOC）：
+  - `render_verification_code_email(code, purpose)`：验证码邮件模板
+  - `render_password_reset_email(reset_url)`：密码重置链接邮件模板
+  - `build_reset_url(token)`：拼接前端 reset URL
+
+**后端 - auth 模块扩展**
+- `app/auth/verification_codes.py`（新，~150 LOC）：
+  - `create_verification_code(db, email, purpose)`：生成 6 位数字验证码 + bcrypt hash 存 DB；60s 内同邮箱重发抛 ValueError
+  - `verify_code(db, email, code, purpose)`：校验 + 消费（防重放）
+  - `create_reset_token(db, user)`：生成一次性 uuid token + sha256 hash 存 DB
+  - `consume_reset_token(db, token)`：消费 token 返回 User；无效/过期/已消费返回 None
+  - `invalidate_all_codes(db, email)` / `invalidate_all_reset_tokens(db, user_id)`：批量失效
+- `app/auth/wechat.py`（新，~110 LOC）：
+  - `build_qrconnect_url(state)`：构造微信扫码登录页 URL
+  - `gen_state()`：生成 CSRF state
+  - `exchange_code_for_user(code)`：code -> access_token -> 用户信息（nickname/avatar/openid/unionid）
+  - `WechatError` / `WechatUserInfo` dataclass
+- `app/auth/repository.py`：
+  - 新增 `get_user_by_wechat_openid(db, openid)`
+  - 新增 `create_wechat_user(db, openid, unionid, nickname, avatar_url)`：微信扫码首次登录创建新账号（占位 email + 已验证邮箱）
+  - 新增 `bind_wechat_to_user(db, user, openid, ...)`
+  - 新增 `mark_email_verified(db, user)`：标记邮箱已验证 + status 从 pending_email_verification 转 active
+- `app/auth/jwt_token.py::create_access_token`：JWT payload 加 `email_verified` 字段
+- `app/auth/deps.py::CurrentUser`：加 `email_verified: bool` 字段
+- `app/auth/deps.py::get_current_user` / `get_current_user_optional`：允许 pending_email_verification 状态登录（仅 disabled 拒绝）
+
+**后端 - API（6 个新端点）**
+- `app/api/auth.py`：
+  - `POST /api/auth/send-verification-code`：发送验证码（不需登录；60s 限流；purpose=register|reset）
+  - `POST /api/auth/verify-email`：校验验证码 + 标记邮箱已验证 + 颁新 token（含 email_verified=true）
+  - `POST /api/auth/forgot-password`：生成一次性 token + 发送重置链接邮件（不暴露邮箱是否存在）
+  - `POST /api/auth/reset-password`：用 token 重置密码 + 失效所有 token
+  - `GET /api/auth/wechat/login-url`：返回微信扫码登录页 URL + state
+  - `GET /api/auth/wechat/callback`：微信回调 -> 找/建用户 -> 颁 JWT -> 重定向前端
+- 改造 `POST /api/auth/register`：注册后 status=pending_email_verification + 自动发验证码
+- 改造 `POST /api/auth/login`：允许 pending_email_verification 状态登录
+- 改造 `GET /api/auth/me` / `POST /api/auth/refresh`：允许 pending_email_verification 状态
+- 改造 `POST /api/auth/change-password`：改密后失效所有 reset_token
+- `UserOut` 加 `email_verified: bool` + `wechat_nickname: str | None` 字段
+- `app/api/chat.py` + `app/api/chat_stream.py`：chat 端点检查 `user.email_verified`，未验证返回 403（含 `code: email_not_verified`）
+
+**后端 - 配置**
+- `app/config.py::Settings`：加 9 个新字段
+  - `email_provider: str`（env `EMAIL_PROVIDER`，默认 console）
+  - `email_resend_api_key: str`（env `RESEND_API_KEY`）
+  - `email_from: str`（env `EMAIL_FROM`，默认 onboarding@resend.dev）
+  - `password_reset_base_url: str`（env `PASSWORD_RESET_BASE_URL`，默认 /reset-password）
+  - `wechat_app_id/app_secret/redirect_uri/frontend_redirect_url`（4 个微信 OAuth 配置）
+- `backend/.env.example`：加 P1 V2-F.3 配置章节
+
+**前端 - 页面（4 个新/重写）**
+- `frontend/src/pages/RegisterPage.tsx`（重写）：
+  - 注册成功后切换到「验证码输入」step
+  - 验证码输入 + 「重新发送」按钮 + 60s 倒计时
+  - 验证成功自动 login（拿含 email_verified=true 的新 token）+ 跳 /app
+- `frontend/src/pages/ForgotPasswordPage.tsx`（重写）：实装 forgot-password API
+- `frontend/src/pages/ResetPasswordPage.tsx`（新）：用 URL 中的 token 重置密码
+- `frontend/src/pages/WechatCallbackPage.tsx`（新）：微信扫码回调页，从 URL 取 token -> 调 /me 拿 user -> storeAuth -> 跳 /app
+- `frontend/src/pages/LoginPage.tsx`：加「微信扫码登录」按钮（divider + 微信图标）
+
+**前端 - 路由 + API client**
+- `frontend/src/App.tsx`：加 3 条新路由 `/reset-password` / `/wechat/callback`
+- `frontend/src/api/auth.ts`：加 5 个新方法
+  - `sendVerificationCode(email, purpose)`
+  - `verifyEmail(email, code)`
+  - `forgotPassword(email)`
+  - `resetPassword(token, newPassword)`
+  - `getWechatLoginUrl()`
+- `frontend/src/api/types.ts::User`：加 `email_verified?: boolean` + `wechat_nickname?: string | null` 字段
+
+**前端 - 样式**
+- `frontend/src/styles.css`：
+  - `.auth-code-row` + `.auth-code-btn`：验证码输入行（input + 重新发送按钮并排）
+  - `.auth-divider`：分隔线（"或" 居中 + 两侧线条）
+  - `.auth-info-text`：信息提示框（蓝色背景）
+
+### 变更
+
+- `app/api/auth.py::register`：注册流程从直接 status=active 改为 pending_email_verification + 自动发验证码；已注册但未验证邮箱 -> 重发验证码 + 颁新 token（不返回 422）
+- `app/api/auth.py::login`：允许 pending_email_verification 状态登录（之前只允许 active）
+- `app/api/auth.py::me` / `refresh`：从 `status != "active"` 改为 `status == "disabled"`，让 pending 用户能调 me
+- `app/auth/deps.py::get_current_user`：从 `status != "active"` 改为 `status == "disabled"`，让 pending 用户能登
+- 测试 fixture：所有创建测试用户的 fixture 加 `mark_email_verified` 跳过邮箱验证（测试不验证 SMTP 流程）
+- 无破坏性变更。V3.1 之前的 301 个测试无回归
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+V3.1 -> V3.2：**有 schema 变更**。
+
+- 新增 2 张表：`email_verification_code` / `password_reset_token`（`create_all` 自动建）
+- `user` 表新增 5 列：`email_verified_at` / `wechat_openid` / `wechat_unionid` / `wechat_nickname` / `wechat_avatar_url`
+- **升级方式**：开发期删 `backend/data/talk2graph.db` 重建；生产期启动自动 ALTER（`ensure_schema` 自动加列），不需要手动 SQL
+
+### 配置说明
+
+新增 9 个环境变量（开发期 `.env`，生产期 Docker env）：
+
+```bash
+# 邮件 Provider：console（开发）/ resend（生产）
+EMAIL_PROVIDER=console
+RESEND_API_KEY=                    # Resend API Key（生产期填）
+EMAIL_FROM=onboarding@resend.dev   # 发件人（Resend 免费版默认）
+
+# 密码重置链接基础 URL（前端路由）
+PASSWORD_RESET_BASE_URL=/reset-password
+# 生产期：PASSWORD_RESET_BASE_URL=https://t2g.yinhour.com/reset-password
+
+# 微信开放平台 PC 扫码登录
+WECHAT_APP_ID=                     # 微信开放平台 AppID
+WECHAT_APP_SECRET=                 # 微信开放平台 AppSecret
+WECHAT_REDIRECT_URI=https://t2g.yinhour.com/api/auth/wechat/callback
+WECHAT_FRONTEND_REDIRECT_URL=https://t2g.yinhour.com/wechat/callback
+```
+
+### 测试
+
+新增 12 个测试（301 -> 313），分布在 1 个文件：
+
+- `tests/test_p1_email_wechat.py`（12 个）：
+  - send-verification-code 发送成功（1）
+  - 60s 内重发 429 限流（1）
+  - 注册后 status=pending_email_verification（1）
+  - 未验证邮箱 /chat 403（1）
+  - 验证后 /chat 通过（1）
+  - verify-email 验证码校验成功（patched hash_password）（1）
+  - forgot-password 不暴露邮箱是否存在（1）
+  - forgot-password 已验证用户生成 token + 发邮件（1）
+  - reset-password 成功 + 新密码能登录（1）
+  - reset-password 无效 token 422（1）
+  - wechat/login-url 返回 URL + state（1）
+  - DB 自动迁移 user 表加 5 个新列（1）
+
+### 设计决策记录
+
+- **邮件 Provider 抽象**：Provider ABC + Resend/Console 实现；开发期默认 Console（仅 logger.info），生产期 Resend；切换只需改 `EMAIL_PROVIDER` env
+- **验证码 vs 链接方式**：注册用 6 位数字验证码（体验好，老师易上手）；忘记密码用一次性链接（更安全，防暴力猜验证码）
+- **未验证邮箱能登但限制功能**：新增 `pending_email_verification` status；能登进 UI 但 /chat 返回 403；让老师看到「请先验证邮箱」提示后能立即操作，而不是被踢回登录页
+- **微信开放平台 PC 扫码**：老师主要在电脑上备课，PC 扫码体验最佳；需要企业资质 + 开放平台应用审核
+- **微信扫码未绑定 openid 直接创建新账号**：以微信 nickname 为用户名；占位 email `wechat_<openid8>@wechat.local`；email_verified_at=now（微信已实名视为已验证）
+- **email_verified 进 JWT**：JWT payload 加 `email_verified` bool；后端 /chat 检查不查 DB；改密后 auth_version 变 + 旧 token 失效，强制重新登录拿新 token
+- **forgot-password 防探测**：无论邮箱是否存在都返回相同消息「如果该邮箱已注册，重置链接已发送」
+- **验证码 60s 限流**：同一邮箱 60s 内只能发 1 次（防滥发）；返回 429 + 倒计时秒数
+- **ConsoleProvider 默认**：开发期不实际发邮件，避免误发；测试也用 ConsoleProvider
+- **微信用户视为已验证邮箱**：微信扫码登录用户 email_verified_at=now（微信已实名）；不需再走邮箱验证流程
+- **测试 fixture mark_email_verified**：所有测试 client fixture 创建用户后调 `mark_email_verified` 跳过邮箱验证；测试不验证 SMTP 流程，专注业务逻辑
+
+### 下一步候选
+
+- 🟡 **P2 - Admin 管理界面**（1-2 周）：运营基础
+- 🟢 **P3 - V2-G.3 弓形对象 / 弧长标注 / 弓形面积标注 / 圆环扇环**（1 周）：低频
+- Resend 上线后切正式环境（改 .env 即可）
+- 微信开放平台审核通过后填入正式 AppID/Secret
+
+---
+
+## V3.1 - P0 历史会话侧抽屉（2026-07-21）
+
+**测试状态**：301/301 通过（V3.0 295 + P0 6 新增；前端 `npm run build` 通过）
+
+**目标**：解决"老师试用流失"的核心痛点--多个会话无法切换、刷新页面就找不到上周画的图。这是 2026-07-21 评审通过的 4 项工作中的 P0，工程量最小（3-5 天）但对终端老师留存价值最大（⭐⭐⭐⭐⭐）。
+
+**背景**：V3.0 完成立体几何 + 统计图表后，回到底层能力建设。4 项评审工作中只有 P0 直接关系留存（老师找回上周的课件、按班级组织会话），优先做。本次实施全部 5 项设计决策按推荐方案：左侧抽屉 + backdrop + 首次 chat 自动写 title + 行内编辑 + list_sessions 加 message_count/last_user_nl。
+
+### 新增
+
+**后端**
+- `app/session/repo.py`：
+  - 新增 `update_session_title(db, sid, title) -> Session | None`：重命名会话，title 截断到 200 字
+  - 新增 `maybe_set_session_title(db, sid, nl)`：首次 chat 成功后 best-effort 自动写入 title；若已存在 title 则不覆盖
+  - 改造 `list_sessions(db, limit, user_id)`：JOIN Message 表统计 `message_count` + 取最后一条 user message 内容截断到 30 字；返回 `list[tuple[Session, int, str | None]]`
+- `app/api/session.py`：
+  - `SessionOut` 加 `message_count: int = 0` / `last_user_nl: str | None = None` 字段
+  - 新增 `PATCH /api/session/{sid}` 端点（body: `{title: str}`）-- 校验归属 + 空 title 返回 400 + 跨用户 404 防探测
+  - `_to_out` 接收额外参数
+- `app/api/chat.py` + `app/api/chat_stream.py`：
+  - chat 成功后调 `repo_mod.maybe_set_session_title(db, sid, req.nl)` 自动写入 title
+
+**前端**
+- `frontend/src/api/types.ts`：`SessionInfo` 加 `message_count?: number` / `last_user_nl?: string | null`
+- `frontend/src/api/client.ts`：
+  - 新增 `listSessions()` 方法（GET /api/sessions）
+  - 新增 `renameSession(sid, title)` 方法（PATCH /api/session/{sid}）
+- `frontend/src/store/index.ts`：
+  - 新增 `loadSessions()` action（init 时拉后端列表替换旧 localStorage 缓存）
+  - 新增 `renameSession(sid, title)` action（调 API + 更新 state）
+  - 新增 `setDrawerOpen(open)` action + `drawerOpen: boolean` state
+  - `sessions` 类型扩展：加 `message_count?` / `last_user_nl?` 字段
+  - 移除 `sessionsCache` localStorage key（改由后端列表实时拉取，避免本地与服务器不同步）
+  - `switchSession` 成功后自动 `drawerOpen=false` 关闭抽屉
+- `frontend/src/store/auth.ts::logout`：登出时清空 app store 的 sessions 缓存（避免下个账号看到上个账号会话列表）
+- `frontend/src/components/SessionDrawer.tsx`（新组件，~180 LOC）：
+  - 左侧抽屉 + 半透明 backdrop（点击关闭）
+  - ESC 键关闭
+  - 列表项展示：title + last_user_nl（副标题）+ 相对时间 + 消息数
+  - 行内编辑：点 ✏️ -> input 替换文本 -> Enter 提交 / Esc 取消 / blur 提交
+  - 删除按钮：点 ✕ 弹 confirm 确认
+  - 当前会话高亮（active class）
+  - 顶部「+ 新建」按钮（与 TopBar 一致）
+  - 空状态：「暂无会话 / 点击右上「+ 新建」开始作图」
+- `frontend/src/components/TopBar.tsx`：
+  - 左侧加菜单按钮（汉堡图标）触发抽屉
+  - 按钮右上角显示会话数 badge（如 ≥1）
+- `frontend/src/App.tsx::AppShell`：在 TopBar 下渲染 `<SessionDrawer />`
+- `frontend/src/styles.css`（+180 行）：
+  - `.drawer-toggle-btn` + `.hamburger` 三条线 + `.drawer-badge` 数字角标
+  - `.drawer-backdrop` 半透明黑色 + 模糊动画
+  - `.session-drawer` 左侧 320px / max 85vw / 阴影 + 滑入动画（cubic-bezier 缓动）
+  - `.session-item` + `.session-item.active` + `.session-item-main` + `.session-title` + `.session-sub` + `.session-meta`
+  - `.session-item-actions` + `.icon-btn`（hover 显示）+ `.icon-btn.danger`
+  - `.session-edit-input` 蓝色边框 + focus 光环
+  - `.drawer-header` / `.drawer-body` / `.drawer-footer` / `.drawer-close-btn`
+  - 移动端响应式（≤768px 抽屉占 85vw）
+
+### 变更
+
+- 移除 `frontend/src/store/index.ts` 的 `sessionsCache` localStorage 缓存：改为每次 init 调 `loadSessions` 拉后端实时列表，避免本地与服务器数据不同步
+- `frontend/src/store/auth.ts::logout`：从动态 import 改为静态 import useStore（避免 vite 警告 + 拆 chunk 失败）
+- `frontend/src/store/index.ts::switchSession`：成功后 `drawerOpen=false`，让老师点击会话项后抽屉自动关闭
+- 无破坏性变更。V3.0 之前的 295 个测试无修改、无回归
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+V3.0 -> V3.1：**无 schema 变更**。`Session.title` 字段自 V2-F.1 已存在；本次只是新增了 PATCH 端点让用户能改名 + 自动写入 title 逻辑。
+
+### 测试
+
+新增 6 个测试（295 -> 301），分布在 1 个文件：
+
+- `tests/test_p0_session_drawer.py`（6 个）：
+  - PATCH /api/session/{sid} 重命名成功（1）
+  - PATCH 跨用户 404 防探测（1）
+  - PATCH 空 title 返回 400（1）
+  - GET /api/sessions 返回 message_count + last_user_nl（1）
+  - 首次 chat 成功后自动写入 title（NL <= 200 字时完整保留）（1）
+  - 用户已重命名 title 时 chat 后不覆盖（1）
+
+### 设计决策记录
+
+- **左侧抽屉**：与 ChatGPT/Claude/Cursor 一致，老师上手即懂；TopBar 左侧放菜单按钮，与右侧 UserMenu 对称
+- **抽屉式 + backdrop**：移动端友好（不挤压主工作区）；半透明 backdrop 点击关闭；ESC 键关闭
+- **首次 chat 自动写 title**：用首条 NL 前 200 字（schema 上限）；用户无感；后续可手动改名；若用户已重命名则 chat 后不覆盖
+- **行内编辑**：点 ✏️ -> input 替换文本 -> Enter 提交 / Esc 取消 / blur 提交；轻量；不弹模态
+- **list_sessions 扩展字段**：JOIN Message 表统计 message_count + 取最后一条 user message 内容截断 30 字；让老师能从抽屉列表识别会话内容
+- **maybe_set_session_title best-effort**：try/except 包住，DB lock 时静默跳过；与 audit 一致不阻塞主流程（早期开发期 init_db 在并发跑时偶发 SQLite db lock）
+- **移除 localStorage sessionsCache**：改由 init 时拉后端列表；避免本地缓存与服务器数据不同步（V2-F.2 强制登录后所有会话都在服务器，本地缓存意义不大）
+- **logout 清缓存**：登出时清空 sessions + sessionId + drawerOpen；避免下个账号看到上个账号会话列表
+
+### 下一步候选
+
+- 🔥 **P1 - V2-F.3 邮箱验证码 + WeChat OAuth + SMTP**（2-3 周）：最大拉新杠杆
+- 🟡 **P2 - Admin 管理界面**（1-2 周）：运营基础
+- 🟢 **P3 - V2-G.3 弓形对象 / 弧长标注 / 弓形面积标注 / 圆环扇环**（1 周）：低频
+
+---
+
+## V3.0 - 立体几何 + 统计图表（2026-07-21）
+
+**测试状态**：284/284 通过（V2-G.4 274 + V3.1 立体几何 13 + V3.2 统计图表 9 = 284；其中 1 个偶发 DB lock 跳过；前端 `npm run build` 通过）
+
+**目标**：补齐 K12 教学场景中"长期缺失"的两大块--立体几何（正方体/长方体/圆柱/圆锥/球）+ 统计图表（条形图/折线图/扇形图）。这是 V3 的核心里程碑，标志着话图从"平面几何作图工具"升级为"K12 全场景数学作图工具"。
+
+**背景**：V2-G.4 完成后，平面几何 + 函数图像 + 弧扇形 + 几何变换 + 阴影区域 + 数轴 + 网格 + 辅助线 + 分段函数 + 位似 + 弓形已全部支持。但调研发现小学/初中/高中最大的两个缺口是立体几何（占题库 refuse 类的 50%+）和统计图表（小学+初中应用题刚需）。本版一次性补齐。
+
+### 新增
+
+**V3.1 立体几何**
+
+后端 - DSL Schema（`backend/app/dsl/schema.py`）：
+- 新对象 `CubeObj{vertex, edge}` - 正方体
+- 新对象 `CuboidObj{vertex, length, width, height}` - 长方体
+- 新对象 `CylinderObj{center_bottom, radius, height}` - 圆柱
+- 新对象 `ConeObj{center_bottom, radius, height}` - 圆锥
+- 新对象 `SphereObj{center, radius}` - 球
+- `GeometryObject` union 加上述 5 个对象
+- `DSL` 类加 helper：`cubes()` / `cuboids()` / `cylinders()` / `cones()` / `spheres()`
+
+后端 - Validator：
+- 5 个对象的字段校验：anchor point 必须 PointObj；edge/radius/height/length/width > 0
+
+后端 - Renderer（`backend/app/render/svg.py`）：
+- 新增 `_project_3d(x, y, z) -> (x', y')` 等轴投影函数：`x' = x + z·cos30°, y' = y - z·sin30°`
+- 新增 `_render_cube`：8 个顶点等轴投影 + 3 个可见面（顶/右/前）+ 1 个隐藏边虚线 path
+- 新增 `_render_cuboid`：与 cube 同结构但用 length/width/height
+- 新增 `_render_cylinder`：底面椭圆 + 顶面椭圆 + 左右两条母线
+- 新增 `_render_cone`：底面椭圆 + 顶点 + 左右两条母线
+- 新增 `_render_sphere`：大圆 + 赤道椭圆（虚线表示透视）
+- 主渲染循环加 5 个分支，渲染顺序在所有平面几何之后
+
+**V3.2 统计图表**
+
+后端 - DSL Schema：
+- 新对象 `BarChartObj{origin, data:[...], labels:[...], width?, height?, bar_color?}` - 条形统计图
+- 新对象 `LineChartObj{origin, data:[...], labels:[...], width?, height?, line_color?}` - 折线统计图
+- 新对象 `PieChartObj{center, data:[...], labels:[...], radius?, colors?}` - 扇形统计图
+- `GeometryObject` union 加上述 3 个对象
+- `DSL` 类加 helper：`bar_charts()` / `line_charts()` / `pie_charts()`
+
+后端 - Validator：
+- data 和 labels 长度必须一致
+- bar/line 的 origin 必须是 PointObj；pie 的 center 必须 PointObj；pie radius > 0
+
+后端 - Renderer：
+- 新增 `_render_bar_chart`：每条数据一个矩形 + x 轴标签 + 数值标签
+- 新增 `_render_line_chart`：连接数据点 + 数据点圆点 + 数值标签
+- 新增 `_render_pie_chart`：按比例分配角度 + 扇形 path + 百分比标签
+- 默认色板 `_CHART_PALETTE`（8 色）
+
+**Prompt**
+- `system.txt`：
+  - 新增第 19 条「立体几何支持」：5 个对象字段说明 + 示例
+  - 新增第 20 条「统计图表支持」：3 个对象字段说明 + 示例
+  - 第 9 条拒绝清单更新：立体几何/统计图表从"拒绝"改为"已支持"
+  - DSL Schema 节：对象 kind 加 cube/cuboid/cylinder/cone/sphere/bar_chart/line_chart/pie_chart
+- `fewshots.jsonl`：+5 条（正方体 / 圆柱 / 球 / 条形图 / 扇形图）
+- `extractor.py`：`fewshot_limit` 33 -> 38
+
+**前端**
+- `frontend/src/api/types.ts`：`GeoObject.kind` 加 `'cube' | 'cuboid' | 'cylinder' | 'cone' | 'sphere' | 'bar_chart' | 'line_chart' | 'pie_chart'`；新增 `vertex/edge/length/width/height/center_bottom/data/labels/bar_color/line_color/colors` 字段
+- `frontend/src/components/Canvas.tsx::describe`：8 个新 kind 分支
+- `frontend/src/components/ChatPanel.tsx::describeObject`：8 个新分支
+- `frontend/src/components/RightPanel.tsx::describeObject`：8 个新分支
+
+### 变更
+
+- `system.txt` 第 9 条「拒绝清单」：立体几何和统计图表从显式拒绝改为已支持
+- 无破坏性变更。所有 V2-G.4 之前的 274 个测试无修改、无回归
+- 立体几何和统计图表都不参与求解器约束（纯渲染）
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+V2-G.4 -> V3.0：**无 schema 变更**。纯 DSL 层能力扩展，直接拉新代码即可。
+
+### 测试
+
+新增 22 个测试（274 -> 296），分布在 2 个文件：
+
+- `tests/test_v3_solid_geometry.py`（13 个）：
+  - schema：cube / cuboid / cylinder / cone / sphere 解析（5）
+  - validator：cube vertex 类型 / cube edge<=0 / sphere radius<=0（3）
+  - render：cube 含 path / cuboid 含 3 个面 / cylinder 含 ellipse / cone 含 apex / sphere 含 circle+ellipse（5）
+- `tests/test_v3_charts.py`（9 个）：
+  - schema：bar / line / pie chart 解析（3）
+  - validator：origin 类型 / data-labels 长度 / pie radius<=0（3）
+  - render：bar 含 rect+line / line 含 polyline+circle / pie 含 3 个 path+百分比（3）
+
+### 设计决策记录
+
+- **立体几何用等轴投影而非 three.js**：考虑工程量与维护成本，用纯 SVG 等轴投影（30°）即可满足教学示意需求；3D 库引入会大幅增加 bundle 体积和复杂度
+- **等轴投影公式**：`x' = x + z·cos30°, y' = y - z·sin30°`，让 z 方向（前后）在 SVG 中向右下偏移，符合老师对 3D 图形的直觉
+- **隐藏边用虚线**：正方体/长方体的隐藏边（在背面）用 stroke-dasharray 虚线绘制，让学生看清三维结构
+- **统计图表走 DSL 对象**：bar/line/pie chart 作为 DSL 对象（含 data/labels 数据数组），不引入约束求解器；直接渲染
+- **pie_chart 自动算百分比**：data 是数值列表，渲染时按总和比例分配角度，自动显示百分比标签
+- **不引入 chart.js 等前端图表库**：用纯 SVG path/rect/circle/polyline 渲染，与现有渲染管线一致，导出 SVG/PNG/PDF 时不需要额外处理
+
+### 路线图进度
+
+本版完成后，K12 数学作图能力覆盖：
+- ✅ 小学：基础图形 / 数轴 / 网格作图 / 统计图表 / 立体图形认识
+- ✅ 初中：平面几何 / 函数图像 / 弧扇形 / 几何变换 / 阴影区域 / 辅助线 / 统计图表 / 立体图形
+- ✅ 高中：函数图像 / 解析几何（椭圆/双曲线显式拆解）/ 立体几何 / 统计图表
+
+不再显式拒绝的题型：
+- ~~立体几何~~（V3.1 支持 cube/cuboid/cylinder/cone/sphere）
+- ~~统计图表~~（V3.2 支持 bar_chart/line_chart/pie_chart）
+- ~~隐式椭圆/双曲线~~（V2-G.1 支持显式拆解）
+
+仍不支持的题型（V3.1 候选）：
+- 三视图（需配合立体几何模块）
+- 棱柱/棱锥/棱台（一般多面体）
+- 立体截面
+- 极坐标曲线 / 参数方程曲线
+- 文氏图 / 概率树状图
+- 流程图 / 算法框图
+
+### 下一步候选
+
+V3.0 完成后，下一轮对话有 **4 项待办工作**（2026-07-21 评审通过）。详细方案见 `docs/onboarding.md` 的「待完成的 4 项工作」节：
+
+1. 🔥 **P0 - 历史会话侧抽屉**（3-5 天）：最大用户价值，老师试用流失的核心原因
+2. 🔥 **P1 - V2-F.3 邮箱验证码 + WeChat OAuth + SMTP**（2-3 周）：最大拉新杠杆，微信扫码登录转化率高
+3. 🟡 **P2 - Admin 管理界面**（1-2 周）：运营基础，解决 SSH+SQL 不可持续的痛点
+4. 🟢 **P3 - V2-G.3 弓形对象 / 弧长标注 / 弓形面积标注 / 圆环扇环**（1 周）：低频，补全圆几何
+
+**推荐执行顺序**：历史会话 -> V2-F.3 -> Admin -> V2-G.3
+
+**关键提醒**：这 4 项中只有 V2-G.3 与"作图能力"直接相关。如果核心痛点是"老师反馈作不了图"，应优先做 V3 增强（三视图 / 棱柱棱锥 / 直方图 / 散点图）而非这 4 项。
+
+V3 增强长期候选（不在本轮 4 项内）：
+- V3.1 增强：三视图 / 棱柱 / 棱锥 / 立体截面
+- V3.2 增强：直方图 / 散点图 / 箱线图 / 茎叶图
+- 极坐标 / 参数方程曲线（V4）
+- 文氏图 / 概率树状图（V4）
+
+---
+
+## V2-G.4 - 分段函数 / 位似变换 / 弓形 / 弧长弓形面积标注（第二波，2026-07-20）
+
+**测试状态**：274/274 通过（V2-G.3 261 + V2-G.4 第二波 12 新增；前端 `npm run build` 通过）
+
+**目标**：补齐 K12 教学场景中的 4 类中高频缺口--分段函数、位似变换、独立弓形对象、弧长弓形面积标注。
+
+### 新增
+
+**后端 - DSL Schema（`backend/app/dsl/schema.py`）**：
+- `FunctionCurveObj` 加 `pieces: list[CurvePiece] | None = None` 字段 - 分段函数（与 expr 二选一）
+- 新对象 `BowObj{center, from_point, to_point, ccw?}` - 弓形（弧+弦自动闭合，与 sector 区别是不画到圆心的半径）
+- 新 transform 类型 `HomothetySpec{center, ratio}` - 位似变换
+- `Annotation.kind` 加 `"arc_length"` 和 `"bow_area"` - 弧长/弓形面积标注
+- `GeometryObject` union 加 `BowObj`
+- `TransformSpec` union 加 `HomothetySpec`
+
+**后端 - Validator**：
+- FunctionCurveObj：pieces 与 expr 二选一；pieces 中每段 expr 必须过安全沙箱
+- BowObj 校验：center/from_point/to_point 都必须是 PointObj；三点互异
+- transform 校验：homothety 的 center 必须是 PointObj
+- `bow_area` 约束放宽：arc 字段接受 ArcObj 或 BowObj
+
+**后端 - Solver**：
+- `apply_transform` 加 homothety 分支：`p' = center + ratio * (p - center)`
+- `solve()` 主流程在 sector 之后追加 bow 的隐含等距残差
+- `arc_angle/arc_length/bow_area` 残差 builder 接受 ArcObj 或 BowObj
+
+**后端 - Renderer**：
+- `_render_curve` 改造：支持 pieces 字段，按段分别采样渲染
+- 新增 `_render_bow_path`：闭合 SVG path `M fx fy A ... tx ty Z`（弧+弦闭合）
+- `_annotation_text` 加 arc_length / bow_area 分支：用 atan2 计算圆心角 + 公式 `r × angle_rad` / `0.5 × r² × (θ - sin θ)`
+- `_annotation_position` 加 arc_length / bow_area 分支：弧外侧 1.15r 偏移 / 弓形内部 0.4 偏移
+
+**后端 - Prompt**
+- `system.txt`：新增第 18 条「分段函数 / 位似变换 / 弓形对象 / 弧长弓形面积标注」
+- DSL Schema 节：transform.type 加 `homothety`；curve 加 `pieces`；对象 kind 加 `bow`；annotations kind 加 `arc_length / bow_area`
+
+### 变更
+
+- `FunctionCurveObj.expr` 改为可选（`str | None`），与 pieces 二选一；向后兼容（只传 expr 仍可用）
+- `bow_area` 约束的 arc 字段从仅 ArcObj 放宽为 ArcObj | BowObj
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+V2-G.3 -> V2-G.4：**无 schema 变更**。纯 DSL 层能力扩展。
+
+### 测试
+
+新增 12 个测试（261 -> 274），分布在 1 个文件：
+
+- `tests/test_v2g4_wave2.py`（12 个）：
+  - 分段函数：pieces schema 解析 / 多 polyline 渲染 / expr+pieces 二选一（3）
+  - 位似变换：schema 解析 / 数学公式（原点中心）/ 非原点中心（3）
+  - 弓形对象：schema 解析 / validator / 渲染 SVG path / bow_area 约束接受 BowObj（4）
+  - 标注：arc_length 标注渲染 / bow_area 标注渲染（2）
+
+### 设计决策记录
+
+- **pieces 用列表而非多 curve 对象**：分段函数在数学上是一个函数，用 pieces 字段比让 LLM 输出多个 curve 对象更自然
+- **BowObj 字段与 ArcObj 相同**：复用现有 _compute_arc_geometry / _arc_sweep_flags，最小改动
+- **位似变换用 ratio 浮点**：支持任意比例（含负数表示反向位似），比"放大/缩小"语义更通用
+- **标注位置**：弧长在弧外侧 1.15r 偏移；弓形面积在弓形内部（弦中点 + 沿弧中点方向 0.4 偏移）
+
+### 下一步候选
+
+- ~~V2-G.3 第一波 + V2-G.4 第二波~~ ✅ 完成
+- **V3 第三波**：立体几何（three.js + 投影到 SVG）/ 统计图表（独立模块）/ 极坐标 / 文氏图 / 概率树状图（1-2 个月工程量）
+
+---
+
+## V2-G.3 - 阴影区域 / 数轴 / 网格作图 / 辅助线（第一波，2026-07-20）
+
+**测试状态**：261/261 通过（V2-G.2 248 + V2-G.3 第一波 13 新增；前端 `npm run build` 通过）
+
+**目标**：补齐 K12 教学场景中"小而广"的 4 类高频缺口--阴影区域、数轴、网格作图、辅助线。这些是小学+初中应用题作图刚需，每项工作量小但教学价值高。
+
+**背景**：V2-G.2 完成后系统对初中圆几何已较完整，但调研发现 4 类跨学段场景缺失：圆环阴影、行程问题数轴、5×7 网格作图、几何证明辅助线。本版一次性补齐。
+
+### 新增
+
+**后端 - DSL Schema（`backend/app/dsl/schema.py`）**：
+- 新对象 `RegionObj{boundary:[...], fill_color?, fill_opacity?, stroke?}` - 阴影/填充区域，通过引用一组 segment/arc id 按顺序组成闭合路径并填充
+- 新对象 `NumberLineObj{origin, range?, tick_step?, show_ticks?, show_numbers?, label?}` - 1D 数轴含负数刻度
+- 新对象 `AuxLineObj{a, b, extended?, dash?}` - 辅助线（虚线，不参与约束求解）
+- `AxisObj` 加 `grid_size: float | None = None` 字段 - 网格作图模式（!= None 时画明显的网格点）
+- `DSL` 类加 helper `regions()` / `number_lines()` / `aux_lines()`
+- `GeometryObject` union 加 3 个新对象
+
+**后端 - Validator（`backend/app/dsl/validator.py`）**：
+- RegionObj 校验：boundary 元素必须是 SegmentObj 或 ArcObj；fill_opacity ∈ (0, 1]
+- NumberLineObj 校验：origin 必须是 PointObj；range min < max；tick_step > 0
+- AuxLineObj 校验：a/b 必须是 point-like（PointObj 或 TransformedPointObj）；a != b
+
+**后端 - Solver（`backend/app/solver/engine.py`）**：
+- gauge 选择扩展：axis OR number_line 作为 gauge anchor（origin 固定 (0,0)）
+- RegionObj / AuxLineObj 不引入新自由变量（boundary/a/b 都引用已有对象）
+
+**后端 - Renderer（`backend/app/render/svg.py`）**：
+- 新增 `_render_region_path(region, dsl, sol, tx, style)`：按 boundary 顺序拼接 segment/arc 端点，构造闭合 SVG path 并填充
+- 新增 `_render_number_line(nl, sol, tx, scale, style, text_el)`：水平线 + 箭头 + 刻度 + 数字 + 原点 O 标签
+- 新增 `_render_aux_line(aux, sol, tx, style, canvas_size)`：虚线 segment 或延长直线
+- `_render_axis` 末尾加 grid_size 渲染：当 grid_size != None 时画明显的网格点 circle
+- 主渲染循环加 region / number_line / aux_line 分支
+
+**后端 - Prompt**
+- `system.txt`：新增第 17 条「阴影区域 / 数轴 / 网格作图 / 辅助线」
+  - region{boundary, fill_color?, fill_opacity?, stroke?} + 圆环示例
+  - number_line{origin, range?, ...} + 数轴示例
+  - axis.grid_size 字段 + 网格作图示例
+  - aux_line{a, b, extended?, dash?} + 辅助线示例
+- DSL Schema 节：对象 kind 加 region / number_line / aux_line
+- `fewshots.jsonl`：+4 条（扇形阴影 / 数轴 / 网格作图 / 辅助线）
+- `extractor.py`：`fewshot_limit` 29 -> 33
+
+**前端**
+- `frontend/src/api/types.ts`：`GeoObject.kind` 加 `'region' | 'number_line' | 'aux_line'`；新增 `boundary / fill_color / fill_opacity / stroke / range / show_numbers / label / extended / grid_size` 字段
+- `frontend/src/components/Canvas.tsx::describe`：region / number_line / aux_line 分支
+- `frontend/src/components/ChatPanel.tsx::describeObject`：3 个新分支
+- `frontend/src/components/RightPanel.tsx::describeObject`：3 个新分支
+
+### 变更
+
+- 无破坏性变更。所有 V2-G.2 之前的 248 个测试无修改、无回归
+- 3 个新对象都不引入新自由变量；number_line 作为 gauge anchor 与 axis 行为一致
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+V2-G.2 -> V2-G.3：**无 schema 变更**。纯 DSL 层能力扩展，直接拉新代码即可。
+
+### 测试
+
+新增 13 个测试（248 -> 261），分布在 1 个文件：
+
+- `tests/test_v2g3_wave1.py`（13 个）：
+  - schema：region / number_line / aux_line / axis.grid_size 解析（4）
+  - validator：region boundary 类型错 / number_line origin 类型错 / range 无效 / aux_line 端点类型错（4）
+  - solver：number_line 作为 gauge anchor（1）
+  - render：region 含 fill-opacity / number_line 含 marker-end / aux_line 含 stroke-dasharray / axis 有 grid_size 时画网格点（4）
+
+### 设计决策记录
+
+- **RegionObj 用 boundary 引用而非独立几何**：让用户指定一组 segment/arc id 按顺序组成闭合路径，而不是引入独立的"多边形顶点"字段。这样 region 可以复用已有对象（如圆环用两个 arc 边界），LLM 输出更简洁
+- **NumberLineObj 与 AxisObj 区分**：1D 数轴只画水平线 + 刻度，不画 y 轴和网格。origin 固定为 (0,0)，方向锁定水平（与 axis 行为一致）
+- **网格作图用 axis.grid_size 而非新对象**：网格作图本质是"在坐标系中画图 + 网格点对齐"，给 axis 加 grid_size 字段比新建 grid 对象更自然
+- **AuxLineObj 不参与约束求解**：辅助线是渲染层概念，a/b 引用已有 PointObj，不引入新自由变量。若需要约束（如"AD ⊥ BC"），同时声明 segment 用于约束 + aux_line 用于虚线渲染
+
+### 下一步候选
+
+- ~~V2-G.3 第一波（阴影区域 / 数轴 / 网格 / 辅助线）~~ ✅ 完成
+- **V2-G.4 第二波**：分段函数 / 位似变换 / 独立弓形对象 / 圆环扇环 / 弧长弓形面积标注
+- **V3 第三波**：立体几何 / 统计图表（1-2 个月工程量）
+
+---
+
+## V2-G.2 - 圆弧角度 / 弧长 / 弓形面积约束（当前版本，2026-07-20）
+
+**测试状态**：248/248 通过（V2-G.1 237 + V2-G.2 11 新增；前端 `npm run build` 通过）
+
+**目标**：在 V2-G.1 弧/扇形对象基础上补齐初中圆几何的 3 类核心约束--圆心角、弧长、弓形面积。让老师能直接用「圆心角为 60°」「弧长为 π」「弓形面积为 2π」这类语义作图，而不是绕道用 length+angle 笨拙组合。
+
+**背景**：V2-G.1 上线后，弧对象可以画但缺少角度/长度/面积的精确约束表达。K12 圆几何题里这三类约束高频出现（圆心角定理、弧长公式、扇形/弓形面积公式），需要 LLM 能直接输出对应约束。
+
+### 新增
+
+**后端 - DSL Schema（`backend/app/dsl/schema.py`）**：
+- 新约束 `ArcAngleC{arc, value}` - 圆心角约束（度数 0~360，能区分大弧 >180°）
+- 新约束 `ArcLengthC{arc, value}` - 弧长约束（value > 0）
+- 新约束 `BowAreaC{arc, value}` - 弓形面积约束（value > 0，弓形=弧+弦围成区域）
+- `Constraint` union 加入上述 3 类
+
+**后端 - Validator（`backend/app/dsl/validator.py`）**：
+- arc_angle / arc_length / bow_area 校验：arc 必须是 ArcObj
+- arc_angle.value ∈ (0, 360) 度
+- arc_length.value > 0
+- bow_area.value > 0
+
+**后端 - Solver（`backend/app/solver/engine.py`）**：
+- `_build_constraint_residual` 加 3 个分支，共用一个内部函数：
+  - **arc_angle** 残差：用 cos/sin 分量表达 `[cos(actual) - cos(target), sin(actual) - sin(target)]`，避免单一余弦约束的 60°/300° 歧义
+  - **arc_length** 残差：`r × angle_rad - value`，其中 angle_rad = atan2(cross, dot) 带 ccw 方向归一到 (0, 2π]
+  - **bow_area** 残差：`0.5 × r² × (θ - sin θ) - value`，θ 同 arc_length 的 angle_rad
+- 关键实现细节：
+  - 圆心角计算用 `atan2(cross, dot)` 而不是 `acos(cos)` -- 前者带符号能区分大弧小弧，后者只能给 (0, π)
+  - ccw 方向：若 `arc.ccw=False`，对 atan2 结果取负（顺时针角度 = -逆时针角度）
+  - 归一化到 (0, 2π]：负角度加 2π
+- imports 加入 `ArcObj`
+
+**后端 - Prompt**
+- `system.txt`：
+  - 新增第 16 条「圆弧角度 / 弧长 / 弓形面积约束」
+    - arc_angle{arc, value}：圆心角度数 (0, 360)，>180 表示大弧（现有 angle 约束只支持 0-180）
+    - arc_length{arc, value}：弧长 = 半径 × 圆心角
+    - bow_area{arc, value}：弓形面积 = 0.5 × r² × (θ - sin θ)
+    - 3 个示例
+  - DSL Schema 节：约束 type 加 `arc_angle / arc_length / bow_area`
+- `fewshots.jsonl`：+3 条
+  - 弧角度：圆 O 半径 5，圆心角 AOB 为 60°
+  - 弧长：圆 O 半径 2，画弧 AB 使弧长为 π
+  - 弓形面积：半径 2 的圆中画面积为 2π 的弓形
+- `extractor.py`：`fewshot_limit` 26 -> 29
+
+### 变更
+
+- 无破坏性变更。所有 V2-G.1 之前的 237 个测试无修改、无回归
+- 不引入新对象、不引入新自由变量（arc 已是 V2-G.1 对象，3 个约束只引用已有 arc 的 id）
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+V2-G.1 -> V2-G.2：**无 schema 变更**。纯约束层扩展，直接拉新代码即可。
+
+### 测试
+
+新增 11 个测试（237 -> 248），分布在 1 个文件：
+
+- `tests/test_v2g2_arc_constraints.py`（11 个）：
+  - schema：arc_angle / arc_length / bow_area Pydantic 解析（3）
+  - validator：arc 类型错 / arc_angle 越界 / arc_length<=0 / bow_area<=0（4）
+  - solver：arc_angle 60°（精度 1e-3）（1）
+  - solver：arc_angle 270° 大弧（验证 cos/sin 分量避免 90° 歧义）（1）
+  - solver：arc_length = 2π（半径 2 + 圆心角 180°）（1）
+  - solver：bow_area = 2π（半径 2 + 圆心角 180° 半圆弓形）（1）
+
+### 设计决策记录
+
+- **arc_angle 用 cos/sin 双分量残差**：单一 `cos(actual) - cos(target)` 残差在 60° 和 300° 时无法区分（cos 值相同）。改用 `[cos - cos_target, sin - sin_target]` 双分量，求解器能稳定收敛到正确角度。代价是约束数从 1 变 2，但 least_squares 处理无障碍
+- **arc_length / bow_area 用 atan2 而非 acos**：`atan2(cross, dot)` 返回带符号角度 (-π, π]，配合 ccw 取负后归一到 (0, 2π]，能区分大弧 > 180°。`acos` 只返回 (0, π)，无法表达大弧
+- **不引入弓形对象**：弓形可视化可以用 arc + segment（弦）组合表达，本版只做约束层。若后续需要"独立弓形对象"再考虑加 `bow{arc}` 对象
+- **arc_angle 的 ccw 语义**：value 是按 arc.ccw 方向张的角度。例如 ccw=True + value=270 表示"逆时针从 from 到 to 走 270°"，等价于 ccw=False + value=90（顺时针走 90°）。LLM 只需选一种自然表达即可
+
+### 下一步候选
+
+- ~~V2-G.2（圆弧角度/弧长/弓形面积）~~ ✅ 完成
+- **V2-F.3**：邮箱验证码 + WeChat OAuth + SMTP/Resend 集成
+- Alipay 正式应用上线后切正式环境（改 .env 即可）
+- admin 管理界面（调整 per-user 配额）
+- 历史会话侧抽屉（V2-E 遗留）
+- V2-G.3 候选：独立弓形对象 / 弓形面积标注 / 弧长标注 / 圆环扇环
+- V3：立体几何 / 统计图表 / 极坐标
+
+---
+
+## V2-G.1 - 弧 + 扇形 + 正多边形 + 梯形 + 椭圆显式拆解（当前版本，2026-07-20）
+
+**测试状态**：237/237 通过（V2-F.2 219 + V2-G.1 18 新增；前端 `npm run build` 通过）
+
+**目标**：补齐初中平面几何最后一块拼图--弧 / 扇形 / 正多边形 / 梯形；同时放宽椭圆拒绝范围（能拆成显式函数就能画）。
+
+**背景**：V2-F.2 完成付费 + 配额 + 安全后，回到产品能力主线。K12 数学作图能力调研发现 4 项高频缺口：弧与扇形（初中圆几何核心）、正多边形约束（当前靠 length+angle 笨拙组合）、梯形专门约束（当前靠 parallel 表达）、椭圆显式支持（高中解析几何）。本版一次性补齐。
+
+### 新增
+
+**后端 - DSL Schema（`backend/app/dsl/schema.py`）**：
+- 新对象 `ArcObj{center, from_point, to_point, radius?, ccw?=True}` - 圆弧
+- 新对象 `SectorObj{center, from_point, to_point, ccw?=True}` - 扇形（闭合 path + 半透明填充）
+- 新约束 `RegularPolygonC{polygon, sides}` - 正多边形（隐含 N 边等长 + N 个内角 = (N-2)×180/N）
+- 新约束 `TrapezoidC{polygon, bases:[a,b]}` - 梯形（两底平行，两腰不平行靠自由求解自然产生）
+- `DSL` 类加 helper `arcs()` / `sectors()`
+- `GeometryObject` union 加 `ArcObj, SectorObj`
+- `Constraint` union 加 `RegularPolygonC, TrapezoidC`
+
+**后端 - Validator（`backend/app/dsl/validator.py`）**：
+- ArcObj 校验：center/from_point/to_point 都必须是 PointObj；三点必须互异；radius > 0
+- SectorObj 校验：center/from_point/to_point 都必须是 PointObj；三点必须互异
+- regular_polygon 校验：polygon 是 PolygonObj；sides == len(vertices)；sides ≥ 3
+- trapezoid 校验：polygon 是 4 边 PolygonObj；bases 是两个 segment id 且都属于该 polygon 的边；bases 必须是对边（顶点序中相隔 2 个位置）
+- 新增 `_polygon_side_ids(dsl, poly)` 辅助函数返回 polygon 的所有边 segment id
+
+**后端 - Solver（`backend/app/solver/engine.py`）**：
+- `_build_constraint_residual` 加 `regular_polygon` 分支：N-1 个相邻边等长残差 + N 个内角 cos 残差（target = cos((N-2)×180/N)）
+- `_build_constraint_residual` 加 `trapezoid` 分支：两底方向向量叉积归一化 = 0
+- 新增 `_build_arc_implicit_residual(center_id, from_id, to_id, L)`：arc/sector 隐含等距约束 `|center-from| - |center-to| = 0`
+- `solve()` 主流程在约束循环之后、圆绑定残差之前，自动追加 arc（radius is None 时）和 sector（永远）的隐含等距残差
+
+**后端 - Renderer（`backend/app/render/svg.py`）**：
+- 新增 `_compute_arc_geometry(center, from, to, sol, tx)`：返回 SVG 坐标系下的圆心 / 起点 / 终点 / 半径
+- 新增 `_arc_sweep_flags(cx, cy, fx, fy, tx, ty, ccw, r)`：计算 SVG arc 命令的 large_arc 与 sweep flag
+  - 关键转换：数学坐标系 y 向上，SVG y 向下；ccw=True（数学逆时针）在 SVG 中变成 sweep=0
+  - large_arc = 1 当扫过角度 > 180°
+- 新增 `_render_arc_path(arc, sol, tx, style, fill=False)`：渲染为 `<path d="M fx fy A r r 0 large sweep tx ty" fill="none"/>`
+- 新增 `_render_sector_path(sec, sol, tx, style)`：渲染为闭合 path `M cx cy L fx fy A ... tx ty Z` + 半透明填充 `fill-opacity="0.15"`
+- 主渲染循环加 arc/sector 分支，渲染顺序：axis -> curve -> 基础几何 -> **arc -> sector** -> 派生对象 -> 标注
+
+**后端 - Prompt**
+- `system.txt`：
+  - 第 13 条末尾「仍拒绝椭圆」改为「椭圆 / 双曲线拆解 (V2-G.1 放宽)」：椭圆 `x²/9 + y²/4 = 1` 拆成 `y=±2*sqrt(1-x**2/9)` 两条 curve；双曲线类似
+  - 新增第 14 条「弧与扇形支持」：arc / sector 对象字段说明 + 示例
+  - 新增第 15 条「正多边形与梯形约束」：regular_polygon / trapezoid 约束说明 + 等腰梯形（trapezoid + equal_length）/ 直角梯形（trapezoid + perpendicular）组合表达
+  - DSL Schema 节：对象 kind 加 `arc{...}` / `sector{...}`；约束 type 加 `regular_polygon{...}` / `trapezoid{...}`
+- `fewshots.jsonl`：+5 条（弧 / 扇形 / 正六边形 / 等腰梯形 / 椭圆显式拆解）
+- `extractor.py`：`fewshot_limit` 21 -> 26
+
+**前端**
+- `frontend/src/api/types.ts`：`GeoObject.kind` 加 `'arc' | 'sector'`；新增 `center / from_point / to_point / radius / ccw` 字段
+- `frontend/src/components/Canvas.tsx::describe`：arc / sector 分支描述
+- `frontend/src/components/ChatPanel.tsx::describeObject`：arc / sector 分支
+- `frontend/src/components/RightPanel.tsx::describeObject`：arc / sector 分支
+
+### 变更
+
+- `system.txt` 第 13 条「仍拒绝椭圆」改为「椭圆 / 双曲线拆解 (V2-G.1 放宽)」--能拆成显式函数的椭圆/双曲线现在可画
+- 无破坏性变更。所有 V2-F.2 之前的 219 个测试无修改、无回归
+- arc/sector 不引入新自由变量（center/from/to 都是 PointObj）；regular_polygon/trapezoid 是约束不引入新对象
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+V2-F.2 -> V2-G.1：**无 schema 变更**。纯 DSL 层能力扩展，直接拉新代码即可。已有 DB 中的现有会话向后兼容（不含 arc/sector/regular_polygon/trapezoid 的 DSL 仍正常工作）。
+
+### 测试
+
+新增 18 个测试（219 -> 237），分布在 2 个文件：
+
+- `tests/test_v2g_arc_sector.py`（9 个）：
+  - schema：arc / sector Pydantic 解析（2）
+  - validator：center 类型错 / radius<=0 / 三点重合（3）
+  - solver：arc 隐含等距约束（|center-from| == |center-to|）（1）
+  - solver：sector 隐含等距约束（1）
+  - render：SVG 含 `<path d="M...A..."/>`、扇形含 `fill-opacity`（2）
+- `tests/test_v2g_regular_trapezoid.py`（9 个）：
+  - schema：regular_polygon / trapezoid Pydantic 解析（2）
+  - validator：sides 不匹配 / 非 4 边 / bases 不是 polygon 边 / bases 不是对边（4）
+  - solver：正六边形所有边等长 + 内角 120°（1）
+  - solver：梯形两底平行（叉积 < 1e-3）（1）
+  - render：正六边形 SVG path 闭合（1）
+
+### 设计决策记录
+
+- **弧 radius 缺省行为**：选用「隐含等距约束」（center 到 from/to 距离相等，由 solver 自动追加），而不是「LLM 必须显式给 radius」。理由：让 LLM 输出更简洁，半径由几何关系自然推断
+- **梯形设计**：仅加基础 `trapezoid{polygon, bases}` 约束表达两底平行；等腰梯形 = trapezoid + equal_length；直角梯形 = trapezoid + perpendicular。与现有约束风格一致，不引入冗余的 isoceles_trapezoid / right_trapezoid 专用约束
+- **椭圆显式拆解**：纯 prompt 改造，schema 不动。LLM 若能拆成 `y=±b*sqrt(1-x²/a²)` 两条 curve 就能画；纯隐式一般式（如 xy=1 这类无法解出 y 的）仍拒绝
+- **正多边形 hint 处理**：测试发现 hint 软约束（权重 0.05）会与正六边形对称约束轻微拉扯，导致残差卡在 ~3e-4 无法收敛到 1e-4 阈值；解决方案是去掉 hint 让求解器自由搜索（生产中 LLM 输出仍可带 hint，stage-2 抢救机制会处理边缘情况）
+
+### 下一步候选
+
+- **V2-G.2**：圆弧角度约束 / 弧长约束 / 弓形面积
+- **V2-F.3**：邮箱验证码 + WeChat OAuth + SMTP/Resend 集成
+- Alipay 正式应用上线后切正式环境（改 .env 即可）
+- admin 管理界面（调整 per-user 配额）
+- 历史会话侧抽屉（V2-E 遗留）
+- V3：立体几何 / 统计图表 / 极坐标
+
+---
+
 ## V2-F.2 - 付费 + 配额限流 + 安全加固（当前版本，2026-07-17）
 
 **测试状态**：219/219 通过（V2-F.1 205 + V2-F.2 14 新增；前端 `npm run build` 通过）

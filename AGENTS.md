@@ -91,6 +91,7 @@ rm backend/data/talk2graph.db  # DB 回退（开发期）
 | `CHANGELOG.md` | **每次完成变更后必须更新** |
 | `docs/onboarding.md` | 详细行为约束 |
 | `docs/security.md` | API Key 安全管理规范（V2-F.2） |
+| `docs/email-wechat-setup.md` | 邮件 / 微信 OAuth 切换指南（V3.5） |
 | `docs/teacher-guide.md` | 老师使用手册 |
 | `frontend/README.md` | 前端开发上手 |
 | `deploy/README.md` | 生产部署 |
@@ -104,6 +105,14 @@ rm backend/data/talk2graph.db  # DB 回退（开发期）
 - 备选：智谱直连
 
 完整配置示例在 `backend/.env.example`。
+
+## 当前邮件 Provider 配置（V3.5）
+
+- 开发期：`EMAIL_PROVIDER=console`（仅打日志，不发真实邮件）
+- 生产期：`EMAIL_PROVIDER=smtp` + 飞书企业邮箱（`smtp.feishu.cn:465`，应用专用密码）
+- 备选：`EMAIL_PROVIDER=resend` + Resend API Key
+
+详见 `docs/email-wechat-setup.md`。
 
 ## 当前套餐配置（V2-F.2）
 

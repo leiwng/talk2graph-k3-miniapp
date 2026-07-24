@@ -4,16 +4,16 @@
 
 > **在线试用**：https://t2g.yinhour.com（腾讯云 + HTTPS；首次访问按 Ctrl+F5 强制刷新）
 >
-> **当前版本**：V2-F.2 · 付费 + 配额限流 + 安全加固
-> **测试**：219/219 通过
+> **当前版本**：V3.5 · Admin 批量操作 + 飞书 SMTP + 微信文档
+> **测试**：342/342 通过
 
 - **后端**：Python + FastAPI + scipy（约束求解 + 自适应重启）+ AST 安全表达式沙箱
 - **前端**：React + TypeScript + Vite + Zustand + react-router-dom + SVG
 - **LLM**：火山方舟 GLM-5.2 / DeepSeek v4-flash / MiniMax-M3 / 智谱（可切换；当前默认火山方舟 GLM-5.2）
-- **存储**：SQLite（用户体系 + 会话持久化 + 审计日志 + 付费订阅 + 老师反馈；schema 变更自动迁移）
-- **用户体系**：邮箱+密码注册登录 / JWT 鉴权 / 配额限流（free 5/天 / pro 30/天）/ Alipay 电脑网站支付
-- **支持范围**：初中平面几何 + 直角坐标系 + 4 种几何变换 + 显式函数图像 + on_curve 硬约束 + 半平面方位 + patch fallback + solve repair
-- **不在支持范围**：立体几何 / 椭圆双曲线一般式（隐式）/ 统计图表 - AI 会主动拒绝并给出友好提示
+- **存储**：SQLite（用户体系 + 会话持久化 + 审计日志 + 付费订阅 + 邮箱验证码 + 密码重置令牌 + 老师反馈；schema 变更自动迁移）
+- **用户体系**：邮箱+密码注册登录 / 微信扫码登录 / JWT 鉴权 / 邮箱验证码 / 密码重置 / 配额限流（free 5/天 / pro 30/天）/ Alipay 电脑网站支付 / Admin 后台 + 批量操作
+- **支持范围**：初中平面几何 + 直角坐标系 + 4 种几何变换 + 显式函数图像 + on_curve 硬约束 + 半平面方位 + patch fallback + solve repair + 立体几何（cube/cuboid/cylinder/cone/sphere）+ 统计图表（条形/折线/扇形）+ 弧/扇形/弓形/圆环扇环
+- **不在支持范围**：椭圆双曲线一般式（隐式）/ 三视图 / 棱柱棱锥 / 立体截面 / 直方图 / 散点图 - AI 会主动拒绝并给出友好提示
 
 ## 当前进度
 
@@ -38,9 +38,19 @@
 | V2-D - SSE token-level 流式 | ✅ | - | LLM 阻塞期间实时推送 token + 已识别对象列表 |
 | V2-E - 多 Provider 评测 + UI/UX 打磨 + 自动 Fallback | ✅ | - | 5 家评测 + 教育蓝 UI + fallback chain |
 | V2-F.1 - 用户体系 + 审计骨架 | ✅ | - | JWT + 邮箱登录 + 审计 + admin 权限 |
-| **V2-F.2 - 付费 + 配额限流 + 安全加固** | ✅ | - | Alipay + 配额 + 强制登录 + pre-commit hook |
+| V2-F.2 - 付费 + 配额限流 + 安全加固 | ✅ | - | Alipay + 配额 + 强制登录 + pre-commit hook |
+| V2-G.1 - 弧 + 扇形 + 正多边形 + 梯形 | ✅ | - | arc/sector/regular_polygon/trapezoid |
+| V2-G.2 - 圆弧角度 / 弧长 / 弓形面积约束 | ✅ | - | arc_angle/arc_length/bow_area |
+| V2-G.3 - 阴影区域 / 数轴 / 网格 / 辅助线 | ✅ | - | region/number_line/aux_line + grid_size |
+| V2-G.4 - 分段函数 / 位似 / 弓形 / 标注 | ✅ | - | curve.pieces + homothety + bow + arc_length/bow_area 标注 |
+| V3.0 - 立体几何 + 统计图表 | ✅ | - | cube/cuboid/cylinder/cone/sphere + bar/line/pie chart |
+| V3.1 P0 - 历史会话侧抽屉 | ✅ | - | SessionDrawer + 行内编辑 + 自动 title |
+| V3.2 P1 - 邮箱验证码 + WeChat OAuth + SMTP | ✅ | - | 邮箱验证 + 密码重置 + 微信扫码 |
+| V3.3 P2 - Admin 管理界面 | ✅ | - | 6 个 admin 页面 + 配额覆盖 + 订阅管理 |
+| V3.4 P3 - 圆环扇环 | ✅ | - | annular_sector 对象 |
+| **V3.5 - Admin 批量操作 + 飞书 SMTP + 微信文档** | ✅ | - | 批量 4 种 action + SMTPProvider + 文档 |
 
-**累计 219 个测试通过。**
+**累计 342 个测试通过。**
 
 ## 后端快速上手
 

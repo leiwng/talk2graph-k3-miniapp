@@ -24,7 +24,7 @@ cd backend
 .venv/bin/pytest -q
 ```
 
-预期：与 CHANGELOG 顶部记录的测试数一致（V2-F.2 = 219 个）。如不一致：
+预期：与 CHANGELOG 顶部记录的测试数一致（V3.5 = 342 个）。如不一致：
 - 测试**失败** → 报告失败项，**不要随意修复**，等用户指示
 - 测试**数变少** → 可能新代码丢了测试，对照 CHANGELOG 排查
 - 测试**数变多** → 上次对话有人忘了更新 CHANGELOG
@@ -98,7 +98,151 @@ rm backend/data/talk2graph.db
 
 ## 当前里程碑（手动更新此值，每次 W 完成后改）
 
-**V2-F.2 — 付费 + 配额限流 + 安全加固**（2026-07-17 完成）
+**V3.5 - Admin 批量操作 + 飞书 SMTP + 微信文档**（2026-07-22 完成）
+
+- 测试：342/342 通过（V3.4 332 + SMTP 4 + 批量操作 6）
+- 目标：补齐运营基础设施最后 3 项
+  - ① Admin 批量操作（一次性给多个用户改 status/配额/订阅）
+  - ② 飞书企业邮箱 SMTP Provider（生产期邮件发送，老师能真正收到验证码）
+  - ③ 微信开放平台审核通过后填入 AppID/Secret 文档（无需改代码，只改 .env）
+- 关键设计：
+  - **SMTPProvider 用 stdlib**：`smtplib` + `asyncio.to_thread` 包装为异步，不引入新依赖；支持 SSL（465）和 STARTTLS（587/25）
+  - **批量操作 4 种 action**：enable / disable / set_quota / set_subscription；上限 100；不能 disable 自己
+  - **3 种邮件 Provider**：ConsoleProvider（开发）/ ResendProvider（备选）/ SMTPProvider（生产首选 - 飞书/腾讯/阿里/Gmail）
+- 后端：SMTPProvider 类 + 5 个 SMTP env + batch repository（3 函数）+ POST /api/admin/users/batch 端点
+- 前端：AdminUsersPage 复选框 + 全选 + 批量操作弹窗 + 警告框
+- 文档：`docs/email-wechat-setup.md`（邮件/微信切换指南）+ `.env.example` 加 SMTP 配置章节
+- LLM：火山方舟 GLM-5.2
+- DB schema：**无变更**
+- 不含：V3 增强（三视图 / 棱柱棱锥 / 直方图 / 散点图）
+- 下一步候选：见下方「下一步路线图」
+
+---
+
+## P0-P3 4 项工作（2026-07-21 评审通过，**已全部完成**）
+
+> 这 4 项工作是基于"老师反馈作不了图 / 拉新留存 / 运营效率"三维度的综合评审结果。所有 4 项已于 V3.1-V3.4 完成。
+
+### ✅ P0 - 历史会话侧抽屉（V3.1，已完成）
+
+**实施结果**：左侧抽屉 + backdrop + ESC 关闭 + 行内编辑 + 删除按钮；首次 chat 成功后自动写入 title（取首条 NL 前 200 字）；list_sessions 加 message_count + last_user_nl；移除 localStorage 缓存改后端实时拉取。
+
+### ✅ P1 - V2-F.3 邮箱验证码 + WeChat OAuth + SMTP（V3.2，已完成）
+
+**实施结果**：
+- DB schema：User 加 5 字段（email_verified_at / wechat_openid / wechat_unionid / wechat_nickname / wechat_avatar_url）+ 新增 EmailVerificationCode / PasswordResetToken 表
+- 6 个新端点：send-verification-code / verify-email / forgot-password / reset-password / wechat/login-url / wechat/callback
+- 注册流程改为 status=pending_email_verification；chat 检查 email_verified；微信扫码直接创建新账号
+- 9 个新 env（EMAIL_PROVIDER / RESEND_API_KEY / EMAIL_FROM / PASSWORD_RESET_BASE_URL / WECHAT_APP_ID/SECRET/REDIRECT_URI/FRONTEND_REDIRECT_URL）
+
+### ✅ P2 - Admin 管理界面（V3.3，已完成）
+
+**实施结果**：
+- 后端：admin 模块 + 6 个新端点（users 列表/详情/改 role+status / 配额覆盖 / 订阅覆盖 / plans 管理）+ stats 加 users/verified_users
+- 前端：AdminRoute 守卫 + AdminLayout 侧边栏 + 6 个页面（Dashboard / Users / UserDetail / Feedback / AuditLog / Plans）+ 450 行样式
+- 安全：last-admin 保护 + 不能改自己 role + 不能 disable 自己 + 配额改完立即清缓存
+
+### ✅ P3 - V2-G.3 圆环扇环（V3.4，已完成）
+
+**实施结果**：发现 V2-G.4 弓形对象 + arc_length/bow_area 标注已上线，本版只补圆环扇环。AnnularSectorObj{center, from_point, to_point, r_inner, ccw?} + 隐含等距约束 + 闭合 path 渲染。
+
+---
+
+## 下一步路线图
+
+### V3 增强（长期候选）
+
+- 三视图（需配合立体几何模块）
+- 棱柱 / 棱锥 / 棱台（一般多面体）
+- 立体截面
+- 直方图 / 散点图 / 箱线图 / 茎叶图
+- 极坐标 / 参数方程曲线
+- 文氏图 / 概率树状图
+
+### 运营增强
+
+- Admin 加「配额使用统计图表」（看每日配额消耗趋势）
+- Admin 加「用户活动时间线」（看某用户最近 chat / 反馈 / 订阅变更历史）
+- 生产环境实际部署 + 5-10 位老师定向试用
+
+### 等待外部条件
+
+- 微信开放平台审核通过后填入正式 AppID/Secret（改 .env 即可，代码已就绪）
+- Resend / 飞书 SMTP 上线后切正式环境（改 .env 即可）
+
+---
+
+## 历史里程碑
+
+**V2-G.4 - 分段函数 / 位似变换 / 弓形 / 弧长弓形面积标注（第二波）**（2026-07-20 完成）
+
+- 测试：274/274 通过（V2-G.3 261 + V2-G.4 第二波 12 新增）
+- 目标：补齐 K12 教学场景中的 4 类中高频缺口--分段函数、位似变换、独立弓形对象、弧长弓形面积标注
+- 关键设计：
+  - **curve.pieces**：分段函数（与 expr 二选一），按段分别采样渲染
+  - **HomothetySpec**：位似变换 `p' = center + ratio * (p - center)`，支持任意比例（含负数）
+  - **BowObj**：独立弓形对象，字段与 ArcObj 相同，渲染为闭合 SVG path（弧+弦）
+  - **arc_length / bow_area 标注**：扩展 Annotation.kind，渲染时在弧外侧 / 弓形内部显示数值
+- 后端：curve 加 pieces 字段；新 BowObj 对象；新 HomothetySpec transform；annotation kind 扩展
+- 前端：types.ts 加 pieces / bow / homothety；Canvas / ChatPanel / RightPanel 加 bow 分支
+- LLM：火山方舟 GLM-5.2
+- DB schema：**无变更**
+- 不含：V3 第三波（立体几何 / 统计图表 / 极坐标）
+- 下一步候选：V3 第三波（1-2 个月工程量）
+
+---
+
+**V2-G.3 - 阴影区域 / 数轴 / 网格作图 / 辅助线（第一波）**（2026-07-20 完成）
+
+- 测试：261/261 通过（V2-G.2 248 + V2-G.3 第一波 13 新增）
+- 目标：补齐 K12 教学场景中"小而广"的 4 类高频缺口--阴影区域、数轴、网格作图、辅助线
+- 关键设计：
+  - **RegionObj**：阴影区域，通过引用一组 segment/arc id 按顺序组成闭合路径并填充
+  - **NumberLineObj**：1D 数轴，含负数刻度，与 axis 区分（不画 y 轴/网格）
+  - **AuxLineObj**：辅助线，虚线，不参与约束求解
+  - **axis.grid_size**：网格作图模式，!= None 时画明显的网格点
+- 后端：新增 schema 3 对象 + axis 加字段；validator 3 分支；solver gauge 扩展；render 3 函数 + grid 点
+- 前端：types.ts 加 3 kind + 字段；Canvas / ChatPanel / RightPanel 加分支
+- LLM：火山方舟 GLM-5.2
+- DB schema：**无变更**。纯 DSL 层能力扩展
+- 不含：V2-G.4 第二波（分段函数 / 位似变换 / 弓形对象 / 圆环扇环 / 标注）/ V3 第三波（立体几何 / 统计图表）
+- 下一步候选：V2-G.4 第二波 / V3 第三波
+
+---
+
+**V2-G.2 - 圆弧角度 / 弧长 / 弓形面积约束**（2026-07-20 完成）
+
+- 测试：248/248 通过（V2-G.1 237 + V2-G.2 11 新增）
+- 目标：在 V2-G.1 弧/扇形对象基础上补齐初中圆几何的 3 类核心约束--圆心角、弧长、弓形面积
+- 关键设计：
+  - **ArcAngleC**：圆心角约束，度数 (0, 360)；用 cos/sin 双分量残差避免单一 cos 约束的 60°/300° 歧义
+  - **ArcLengthC**：弧长约束；残差 r × angle_rad - value，atan2 计算带符号角度
+  - **BowAreaC**：弓形面积约束；面积公式 0.5 × r² × (θ - sin θ)
+  - **不引入新对象**：弓形可视化用 arc + segment（弦）组合，本版只做约束层
+- 后端：新增 schema 3 约束；validator 3 个分支；solver residual builder（atan2 + cos/sin 分量）
+- 前端：无改动（约束已通过宽松类型表达）
+- LLM：火山方舟 GLM-5.2
+- DB schema：**无变更**。纯约束层扩展，直接拉新代码即可
+- 不含：独立弓形对象（V2-G.3 候选）/ 邮箱验证码（V2-F.3）
+- 下一步候选：V2-F.3（邮箱验证码 + WeChat OAuth + SMTP）/ admin 管理界面 / 历史会话侧抽屉 / V2-G.3（独立弓形对象 / 弧长标注）
+
+---
+
+**V2-G.1 - 弧 + 扇形 + 正多边形 + 梯形 + 椭圆显式拆解**（2026-07-20 完成）
+
+- 测试：237/237 通过（V2-F.2 219 + V2-G.1 18 新增）
+- 目标：补齐初中平面几何最后一块拼图--弧 / 扇形 / 正多边形 / 梯形；同时放宽椭圆拒绝范围（能拆成显式函数就能画）
+- 关键设计：
+  - **ArcObj / SectorObj**：新对象，center/from_point/to_point 三点确定；radius 缺省时 solver 自动追加隐含等距约束 |center-from| == |center-to|
+  - **RegularPolygonC**：新约束，隐含 N 边等长 + N 个内角 = (N-2)×180/N；只确定形状不固定尺寸，固定大小需加 length 约束
+  - **TrapezoidC**：新约束，两底平行；等腰梯形 = trapezoid + equal_length；直角梯形 = trapezoid + perpendicular
+  - **椭圆显式拆解**：纯 prompt 改造，schema 不动；LLM 拆 `x²/9+y²/4=1` 为 `y=±2*sqrt(1-x**2/9)` 两条 curve
+- 后端：新增 schema 2 对象 + 2 约束；validator 4 个分支；solver regular_polygon/trapezoid residual + arc 隐含等距约束；render `_render_arc_path` / `_render_sector_path`
+- 前端：types.ts 加 arc/sector kind + 字段；Canvas / ChatPanel / RightPanel 的 describeObject 加分支
+- LLM：火山方舟 GLM-5.2
+- DB schema：**无变更**。纯 DSL 层能力扩展，直接拉新代码即可
+- 不含：圆弧角度约束 / 弧长约束（V2-G.2）/ 邮箱验证码（V2-F.3）
+- 下一步候选：V2-G.2（圆弧角度/弧长/弓形面积）/ V2-F.3（邮箱验证码 + WeChat OAuth + SMTP）/ admin 管理界面 / 历史会话侧抽屉
 
 - 测试：219/219 通过（V2-F.1 205 + V2-F.2 14 新增）
 - 目标：Alipay 电脑网站支付（沙箱）+ 配额限流（free 5/天 / pro 30/天）+ 强制登录 + API Key 泄露防护
@@ -120,8 +264,6 @@ rm backend/data/talk2graph.db
 
 ---
 
-## 历史里程碑
-
 **V2-F.1 - 用户体系 + 审计骨架**（2026-07-07 完成）
 
 - 测试：205/205 通过（V2-E 173 + V2-F.1 32 新增）
@@ -142,8 +284,6 @@ rm backend/data/talk2graph.db
 
 ---
 
-## 历史里程碑
-
 **V2-E — 多 Provider 评测 + UI/UX 打磨 + 自动 Fallback**（2026-07-07 完成）
 
 - 测试：162/162 通过（W13-B.1 151 + V2-C 11）
@@ -157,8 +297,6 @@ rm backend/data/talk2graph.db
 - 下一步候选：求解器符号求解加速（V2 #8）/ 老师试用反馈 / SSE 流式
 
 ---
-
-## 历史里程碑
 
 **W13-B.1 — Provider 配置修补**（2026-07-06 完成）
 
@@ -205,8 +343,6 @@ rm backend/data/talk2graph.db
 
 ---
 
-## 历史里程碑
-
 **V2-B — 函数图像**（2026-07-01 完成、v0.12.0 已 tag）
 
 - 测试：134/134 通过（W11 115 + V2-B 19）
@@ -225,8 +361,6 @@ rm backend/data/talk2graph.db
 - V2 主线完成
 
 ---
-
-## 历史里程碑
 
 **W11 — 几何变换**（2026-07-01 完成、v0.11.0 已 tag）
 
