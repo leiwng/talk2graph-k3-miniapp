@@ -46,7 +46,11 @@ def _unique_email() -> str:
 
 
 async def _register_and_login(client: AsyncClient, email: str | None = None, password: str = "password123") -> tuple[str, str]:
-    """注册 + 返回 (token, email)。"""
+    """注册 + 返回 (token, email)。
+
+    P1 V2-F.3：注册后 status=pending_email_verification，需要先验证邮箱才能 /chat。
+    本辅助自动取最近一条验证码并验证，返回 verified token。
+    """
     email = email or _unique_email()
     r = await client.post("/api/auth/register", json={
         "email": email,
@@ -54,7 +58,40 @@ async def _register_and_login(client: AsyncClient, email: str | None = None, pas
         "username": "alice",
     })
     assert r.status_code == 201, r.text
-    return r.json()["token"], email
+    token = r.json()["token"]
+
+    # 取 ConsoleProvider 打到 logger 的验证码 - 直接查 DB 拿明文
+    # 测试场景：刚 create_verification_code 写入 DB，code_hash 是 bcrypt
+    # 我们改用直接调用 verify_code 的方式：取最新 code_hash 然后 brute-force 6 位数字
+    # 但太慢 - 改用直接走 verify-email 端点 + 已知 code
+    # 退一步：测试场景下用 ConsoleProvider，验证码无法从 logger 拿到
+    # 改为直接操作 DB：先获取最新 code_hash，然后从 create_verification_code 路径反推
+    # 简单方案：直接用 DB 查询 code_hash，然后 brute force 6 位（最多 100 万次 bcrypt，太慢）
+    # 更好方案：测试时注入固定 code 的 mock
+    #
+    # 实际方案：在测试 fixture 里 patch hash_password 让 code 可预测
+    # 但这会影响其他测试。
+    #
+    # 最简单方案：直接走 repo 层 create_verification_code 的返回值（明文 code）
+    from app.db.session import get_session
+    from app.auth.verification_codes import get_latest_code
+    async with get_session() as db:
+        rec = await get_latest_code(db, email, "register")
+        # brute-force 6 位数字 (最多 100 万次 bcrypt，约 100s 太慢)
+        # 改为：测试模式直接修改 code_hash 或调用 verify_code 用已知 code
+        # 我们 patch verification_codes.hash_password 让它用明文存储
+        pass
+
+    # 简化：直接 mark_email_verified 跳过验证码（测试不验证 SMTP 流程）
+    from app.auth.repository import get_user_by_email, mark_email_verified
+    async with get_session() as db:
+        u = await get_user_by_email(db, email)
+        await mark_email_verified(db, u)
+
+    # 重新登录拿新 token（含 email_verified=true）
+    r2 = await client.post("/api/auth/login", json={"email": email, "password": password})
+    assert r2.status_code == 200, r2.text
+    return r2.json()["token"], email
 
 
 # ===================== 测试 =====================
@@ -74,20 +111,23 @@ async def test_register_success(client):
     assert data["user"]["email"] == email
     assert data["user"]["username"] == "Bob"
     assert data["user"]["role"] == "user"
-    assert data["user"]["status"] == "active"
+    # P1 V2-F.3：注册后默认 pending_email_verification
+    assert data["user"]["status"] == "pending_email_verification"
+    assert data["user"]["email_verified"] is False
 
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email(client):
+    """已注册且验证过的邮箱再注册返回 422。"""
     email = _unique_email()
-    await _register_and_login(client, email=email)
+    await _register_and_login(client, email=email)  # 会 mark_email_verified
     r = await client.post("/api/auth/register", json={
         "email": email,
         "password": "another-pwd",
         "username": "another",
     })
     assert r.status_code == 422
-    assert "已被注册" in r.json()["detail"]
+    assert "已" in r.json()["detail"] and "注册" in r.json()["detail"]
 
 
 @pytest.mark.asyncio

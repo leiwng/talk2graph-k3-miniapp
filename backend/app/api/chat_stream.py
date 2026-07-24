@@ -375,6 +375,9 @@ async def _run_chat_stream(
         fallback=True if fallback_used else None,
     )
 
+    # P0：首次 chat 成功后自动写入 title（best-effort，不阻塞主流程）
+    await repo_mod.maybe_set_session_title(db, sid, req.nl)
+
     # 8. done
     yield _sse("done", {
         "ok": True,
@@ -419,6 +422,17 @@ async def chat_stream(
     db: AsyncSession = Depends(db_dep),
 ) -> StreamingResponse:
     """SSE 流式 chat：每阶段进度推送给前端。"""
+    # P1 V2-F.3：未验证邮箱用户不能 /chat
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "email_not_verified",
+                "message": "请先验证邮箱后再使用作图功能",
+                "hint": "在账号设置中点击「重新发送验证码」",
+            },
+        )
+
     # V2-F.2：配额检查（在开始流式前同步执行）
     try:
         ent = await ensure_user_can_send_chat(db, user.id)

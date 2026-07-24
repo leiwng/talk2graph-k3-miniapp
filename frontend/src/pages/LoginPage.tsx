@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthPageShell } from '../components/auth/AuthPageShell'
 import { useAuthStore } from '../store/auth'
+import { authApi } from '../api/auth'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -36,6 +37,17 @@ export function LoginPage() {
       setError(err.message || '登录失败')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const onWechatLogin = async () => {
+    setError(null)
+    try {
+      const r = await authApi.getWechatLoginUrl()
+      // 跳转到微信扫码页（PC 扫码）
+      window.location.href = r.url
+    } catch (err: any) {
+      setError(err.message || '微信登录暂不可用')
     }
   }
 
@@ -79,6 +91,14 @@ export function LoginPage() {
           <Link to="/register">注册新账号</Link>
         </div>
       </form>
+
+      <div className="auth-divider">
+        <span>或</span>
+      </div>
+
+      <button type="button" className="btn btn-ghost btn-block" onClick={onWechatLogin}>
+        <span style={{ fontSize: 16 }}>💬</span> 微信扫码登录
+      </button>
     </AuthPageShell>
   )
 }

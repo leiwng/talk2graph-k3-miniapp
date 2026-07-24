@@ -48,6 +48,8 @@ def create_access_token(user: User) -> str:
         "role": user.role,
         "status": user.status,
         "auth_version": auth_version(user),
+        # P1 V2-F.3：邮箱验证状态进 JWT，后端 /chat 检查不查 DB
+        "email_verified": user.email_verified_at is not None,
         "iat": now,
         "exp": now + settings.jwt_expiry_seconds,
     }

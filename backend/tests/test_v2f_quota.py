@@ -53,7 +53,20 @@ async def _register(client: AsyncClient) -> tuple[str, str]:
         "email": email, "password": "password123", "username": "testuser",
     })
     assert r.status_code == 201, r.text
-    return r.json()["token"], email
+    token = r.json()["token"]
+
+    # P1 V2-F.3：测试场景跳过邮箱验证
+    from app.auth.repository import get_user_by_email, mark_email_verified
+    from app.db.session import get_session
+    async with get_session() as db:
+        u = await get_user_by_email(db, email)
+        if u is not None:
+            await mark_email_verified(db, u)
+
+    # 重新登录拿含 email_verified=true 的 token
+    r2 = await client.post("/api/auth/login", json={"email": email, "password": "password123"})
+    assert r2.status_code == 200, r2.text
+    return r2.json()["token"], email
 
 
 async def _make_chat(client: AsyncClient, token: str, sid: str, nl: str = "画一个等边三角形 ABC，边长为 4"):
@@ -125,6 +138,9 @@ async def test_unlimited_quota_for_override(client):
             username="unlimited",
             hashed_password=hash_password("password123"),
         )
+        # P1 V2-F.3：测试场景跳过邮箱验证
+        from app.auth.repository import mark_email_verified
+        await mark_email_verified(db, u)
         db.add(UserSubscription(
             id=uuid.uuid4().hex,
             user_id=u.id,

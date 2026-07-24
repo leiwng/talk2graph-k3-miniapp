@@ -51,6 +51,9 @@ async def client():
                     role="user",
                     status="active",
                 )
+                # P1 V2-F.3：测试场景跳过邮箱验证，直接标记 verified
+                from app.auth.repository import mark_email_verified
+                await mark_email_verified(db, u)
                 # 给测试用户 enterprise 配额（无限），避免 9 个测试累计超 free 5/天
                 db.add(UserSubscription(
                     id=uuid.uuid4().hex,

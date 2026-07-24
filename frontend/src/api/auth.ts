@@ -112,6 +112,39 @@ export const authApi = {
     })
   },
 
+  // P1 V2-F.3：邮箱验证码 + 密码重置 + 微信 OAuth
+  sendVerificationCode(email: string, purpose: 'register' | 'reset' = 'register'): Promise<{ sent: boolean; message: string }> {
+    return request('/auth/send-verification-code', {
+      method: 'POST',
+      body: JSON.stringify({ email, purpose }),
+    })
+  },
+
+  verifyEmail(email: string, code: string): Promise<AuthResp> {
+    return request('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    })
+  },
+
+  forgotPassword(email: string): Promise<{ message: string }> {
+    return request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  },
+
+  resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    return request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password: newPassword }),
+    })
+  },
+
+  getWechatLoginUrl(): Promise<{ url: string; state: string }> {
+    return request('/auth/wechat/login-url')
+  },
+
   // admin: 审计日志
   listAuditLogs(params?: {
     actor_id?: string

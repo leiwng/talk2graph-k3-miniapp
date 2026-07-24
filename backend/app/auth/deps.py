@@ -22,8 +22,10 @@ class CurrentUser(BaseModel):
     email: str
     username: str
     role: str  # 'user' | 'admin'
-    status: str  # 'active' | 'disabled'
+    status: str  # 'active' | 'disabled' | 'pending_email_verification'
     auth_version: str
+    # P1 V2-F.3：邮箱是否已验证
+    email_verified: bool = False
 
 
 # ===================== Request 元信息（audit 用） =====================
@@ -56,8 +58,10 @@ async def get_current_user(
       - 格式不是 Bearer
       - token 解码失败（签名错误/过期）
       - DB 中查不到该用户
-      - user.status != 'active'
+      - user.status == 'disabled'
       - auth_version 不匹配（用户改密后旧 token 失效）
+
+    P1 V2-F.3：pending_email_verification 状态能登但 /chat 端点会拒绝（业务层限制）。
     """
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -86,7 +90,7 @@ async def get_current_user(
     if user is None:
         raise credentials_error
 
-    if user.status != "active":
+    if user.status == "disabled":
         raise forbidden_error
 
     # auth_version 校验（改密后旧 token 失效）
@@ -101,6 +105,7 @@ async def get_current_user(
         role=user.role,
         status=user.status,
         auth_version=expected,
+        email_verified=user.email_verified_at is not None,
     )
 
 
@@ -124,7 +129,7 @@ async def get_current_user_optional(
     if not user_id:
         return None
     user = await repository.get_user_by_id(db, user_id)
-    if user is None or user.status != "active":
+    if user is None or user.status == "disabled":
         return None
     expected = jwt_token.auth_version(user)
     if payload.get("auth_version") != expected:
@@ -136,6 +141,7 @@ async def get_current_user_optional(
         role=user.role,
         status=user.status,
         auth_version=expected,
+        email_verified=user.email_verified_at is not None,
     )
 
 

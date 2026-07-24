@@ -30,12 +30,12 @@ async def client():
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         # 在 init_db 后直接建一个 admin 用户（绕开 env bootstrap）
         from app.auth.password import hash_password
-        from app.auth.repository import create_user
+        from app.auth.repository import create_user, mark_email_verified
         from app.db.session import get_session
 
         async with get_session() as db:
             try:
-                await create_user(
+                u = await create_user(
                     db,
                     email="admin@audit-test.example.com",
                     username="admin",
@@ -43,6 +43,8 @@ async def client():
                     role="admin",
                     status="active",
                 )
+                # P1 V2-F.3：测试场景跳过邮箱验证
+                await mark_email_verified(db, u)
             except Exception:
                 pass  # 已存在则跳过
         yield c

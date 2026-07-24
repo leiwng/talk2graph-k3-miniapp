@@ -30,10 +30,16 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(100))
     hashed_password: Mapped[str] = mapped_column(String(200))
     role: Mapped[str] = mapped_column(String(20), default="user")  # user | admin
-    status: Mapped[str] = mapped_column(String(20), default="active")  # active | disabled
+    status: Mapped[str] = mapped_column(String(20), default="active")  # active | disabled | pending_email_verification
     # 改密后更新；JWT 用 auth_version = password_changed_at || updated_at || created_at 让旧 token 失效
     password_changed_at: Mapped[Optional[datetime]] = mapped_column(default=None)
     last_login_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    # P1 V2-F.3：邮箱验证 + 微信 OAuth
+    email_verified_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    wechat_openid: Mapped[Optional[str]] = mapped_column(String(128), unique=True, index=True, default=None)
+    wechat_unionid: Mapped[Optional[str]] = mapped_column(String(128), index=True, default=None)
+    wechat_nickname: Mapped[Optional[str]] = mapped_column(String(100), default=None)
+    wechat_avatar_url: Mapped[Optional[str]] = mapped_column(String(500), default=None)
     created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp())
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.current_timestamp(), onupdate=func.current_timestamp()
@@ -240,3 +246,43 @@ class UserSubscription(Base):
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.current_timestamp(), onupdate=func.current_timestamp()
     )
+
+
+# ============================================================================
+# P1 V2-F.3：邮箱验证码 + 密码重置令牌
+# ============================================================================
+
+
+class EmailVerificationCode(Base):
+    """邮箱验证码（6 位数字）。
+
+    用途：注册时验证邮箱归属。
+    有效期 15 分钟；同一邮箱 60s 内只能发 1 次（防滥发）。
+    """
+
+    __tablename__ = "email_verification_code"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(200), index=True)
+    code_hash: Mapped[str] = mapped_column(String(200))  # bcrypt hash，不存明文
+    purpose: Mapped[str] = mapped_column(String(32), default="register")  # register | reset
+    consumed: Mapped[bool] = mapped_column(Boolean, default=False)
+    expires_at: Mapped[datetime] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp(), index=True)
+
+
+class PasswordResetToken(Base):
+    """密码重置令牌（一次性 uuid 链接）。
+
+    用途：忘记密码时生成一次性 token，通过邮件发送链接 `/reset-password?token=xxx`。
+    有效期 30 分钟；使用后 consumed=True；改密后旧 token 全部失效。
+    """
+
+    __tablename__ = "password_reset_token"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(200), unique=True, index=True)  # sha256 hash
+    consumed: Mapped[bool] = mapped_column(Boolean, default=False)
+    expires_at: Mapped[datetime] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp(), index=True)

@@ -24,13 +24,13 @@ async def client():
     from app.db.session import init_db, get_session
     from app.main import create_app
     from app.auth.password import hash_password
-    from app.auth.repository import create_user
+    from app.auth.repository import create_user, mark_email_verified
 
     app = create_app()
     await init_db()
     async with get_session() as db:
         try:
-            await create_user(
+            u = await create_user(
                 db,
                 email="w7admin@example.com",
                 username="w7admin",
@@ -38,6 +38,8 @@ async def client():
                 role="admin",
                 status="active",
             )
+            # P1 V2-F.3：测试场景跳过邮箱验证
+            await mark_email_verified(db, u)
         except Exception:
             pass
     transport = ASGITransport(app=app)
@@ -61,12 +63,12 @@ async def auth_headers(client):
     """创建普通用户 + 登录拿 token。"""
     import uuid
     from app.auth.password import hash_password
-    from app.auth.repository import create_user
+    from app.auth.repository import create_user, mark_email_verified
     from app.db.session import get_session
 
     email = f"test-{uuid.uuid4().hex[:8]}@example.com"
     async with get_session() as db:
-        await create_user(
+        u = await create_user(
             db,
             email=email,
             username="testuser",
@@ -74,6 +76,8 @@ async def auth_headers(client):
             role="user",
             status="active",
         )
+        # P1 V2-F.3：测试场景跳过邮箱验证
+        await mark_email_verified(db, u)
 
     r = await client.post("/api/auth/login", json={"email": email, "password": "password123"})
     assert r.status_code == 200, r.text

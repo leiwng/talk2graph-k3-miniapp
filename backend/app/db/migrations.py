@@ -24,6 +24,14 @@ REQUIRED_COLUMNS: dict[str, list[tuple[str, str]]] = {
         # V2-F.1：会话归属。新建表由 create_all 建；老库走这里自动 ALTER
         ("user_id", "TEXT"),
     ],
+    "user": [
+        # P1 V2-F.3：邮箱验证 + 微信 OAuth。新建表由 create_all 建；老库走这里自动 ALTER
+        ("email_verified_at", "DATETIME"),
+        ("wechat_openid", "TEXT"),
+        ("wechat_unionid", "TEXT"),
+        ("wechat_nickname", "TEXT"),
+        ("wechat_avatar_url", "TEXT"),
+    ],
 }
 
 

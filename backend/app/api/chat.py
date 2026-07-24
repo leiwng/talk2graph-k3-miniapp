@@ -55,6 +55,17 @@ async def chat(
 ) -> dict[str, Any]:
     await require_session(db, sid)
 
+    # P1 V2-F.3：未验证邮箱用户不能 /chat
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "email_not_verified",
+                "message": "请先验证邮箱后再使用作图功能",
+                "hint": "在账号设置中点击「重新发送验证码」",
+            },
+        )
+
     # V2-F.2：配额检查
     try:
         ent = await ensure_user_can_send_chat(db, user.id)
@@ -229,6 +240,9 @@ async def chat(
         llm_provider=result.provider,
         fallback=True if fallback_used else None,
     )
+
+    # P0：首次 chat 成功后自动写入 title（best-effort，不阻塞主流程）
+    await repo_mod.maybe_set_session_title(db, sid, req.nl)
 
     # V2-F.2：审计 chat.send（fire-and-forget，含配额信息）
     audit_repo.fire_and_forget(
