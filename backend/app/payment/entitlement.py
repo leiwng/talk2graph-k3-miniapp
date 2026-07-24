@@ -97,10 +97,16 @@ async def resolve_user_entitlement(db: AsyncSession, user_id: str) -> UserEntitl
     plan_name = plan.name if plan else "免费版"
     plan_daily_limit = plan.daily_graph_limit if plan else 5
 
-    # per-user 覆盖（admin 可调）
-    daily_limit = plan_daily_limit
-    if sub is not None and sub.daily_graph_limit_override is not None:
-        daily_limit = sub.daily_graph_limit_override
+    # per-user 覆盖（admin 可调）；带 5 分钟缓存
+    cached = _limit_cache.get(user_id)
+    now_ts = time.time()
+    if cached is not None and cached[0] > now_ts:
+        daily_limit = cached[1]
+    else:
+        daily_limit = plan_daily_limit
+        if sub is not None and sub.daily_graph_limit_override is not None:
+            daily_limit = sub.daily_graph_limit_override
+        _limit_cache[user_id] = (now_ts + _CACHE_TTL_SECONDS, daily_limit)
 
     # 今日已用
     used_today = await pay_repo.count_user_snapshots_today(db, user_id)
@@ -136,3 +142,11 @@ async def ensure_user_can_send_chat(db: AsyncSession, user_id: str) -> UserEntit
             plan_code=ent.plan_code,
         )
     return ent
+
+
+def invalidate_user_cache(user_id: str) -> None:
+    """P2：admin 改完用户配额后调，让下次 resolve 立即拿新值。
+
+    缓存 key 是 user_id；不存在的 key 也不报错。
+    """
+    _limit_cache.pop(user_id, None)

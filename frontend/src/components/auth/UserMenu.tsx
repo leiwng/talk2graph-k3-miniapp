@@ -50,6 +50,12 @@ export function UserMenu() {
           </div>
           <Link to="/account" onClick={() => setOpen(false)}>账号信息</Link>
           <Link to="/account/password" onClick={() => setOpen(false)}>修改密码</Link>
+          {user.role === 'admin' && (
+            <>
+              <div className="dropdown-divider" />
+              <Link to="/admin" onClick={() => setOpen(false)}>管理后台</Link>
+            </>
+          )}
           <div className="dropdown-divider" />
           <button onClick={onLogout}>退出登录</button>
         </div>

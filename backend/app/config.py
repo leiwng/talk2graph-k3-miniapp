@@ -98,6 +98,42 @@ class Settings:
             "https://openapi-sandbox.dl.alipaydev.com/gateway.do",  # 默认沙箱
         )
     )
+    # P1 V2-F.3：邮件（Resend）+ 微信 OAuth + 密码重置
+    # 邮件 Provider：resend / smtp / console（默认，开发期不发真实邮件）
+    email_provider: str = field(default_factory=lambda: os.getenv("EMAIL_PROVIDER", "console"))
+    email_resend_api_key: str = field(
+        default_factory=lambda: os.getenv("RESEND_API_KEY", "")
+    )
+    email_from: str = field(
+        default_factory=lambda: os.getenv("EMAIL_FROM", "onboarding@resend.dev")
+    )
+    # V3.5 SMTP Provider（生产期：腾讯企业邮箱 / 飞书企业邮箱 / 阿里云邮件推送）
+    smtp_host: str = field(default_factory=lambda: os.getenv("SMTP_HOST", ""))
+    smtp_port: int = field(default_factory=lambda: int(os.getenv("SMTP_PORT", "465")))
+    smtp_username: str = field(default_factory=lambda: os.getenv("SMTP_USERNAME", ""))
+    smtp_password: str = field(default_factory=lambda: os.getenv("SMTP_PASSWORD", ""))
+    smtp_use_tls: bool = field(default_factory=lambda: os.getenv("SMTP_USE_TLS", "true").lower() in ("true", "1", "yes"))
+    # 密码重置链接基础 URL（前端路由）：默认 /reset-password
+    password_reset_base_url: str = field(
+        default_factory=lambda: os.getenv("PASSWORD_RESET_BASE_URL", "/reset-password")
+    )
+    # 微信开放平台 PC 扫码登录（开放平台 - 网站应用）
+    wechat_app_id: str = field(default_factory=lambda: os.getenv("WECHAT_APP_ID", ""))
+    wechat_app_secret: str = field(default_factory=lambda: os.getenv("WECHAT_APP_SECRET", ""))
+    # 微信扫码回调 URL（后端端点 /api/auth/wechat/callback）
+    wechat_redirect_uri: str = field(
+        default_factory=lambda: os.getenv(
+            "WECHAT_REDIRECT_URI",
+            "https://t2g.yinhour.com/api/auth/wechat/callback",
+        )
+    )
+    # 微信扫码成功后前端跳转 URL
+    wechat_frontend_redirect_url: str = field(
+        default_factory=lambda: os.getenv(
+            "WECHAT_FRONTEND_REDIRECT_URL",
+            "https://t2g.yinhour.com/wechat/callback",
+        )
+    )
 
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
