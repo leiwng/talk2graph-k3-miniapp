@@ -19,8 +19,12 @@ from scipy.optimize import least_squares
 
 from ..dsl.safe_expr import compile_expr
 from ..dsl.schema import (
+    AnnularSectorObj,
+    ArcObj,
     AxisObj,
+    BowObj,
     CentralSymSpec,
+    HomothetySpec,
     CircleDefByCenterPoint,
     CircleDefByCenterRadius,
     CircleDefCircumcircle,
@@ -164,19 +168,28 @@ def solve(
     layout = _VarLayout()
 
     axis = dsl.axis()
+    # V2-G.3：数轴也作为 gauge anchor（origin 固定为 (0,0)）
+    number_line = dsl.number_lines()[0] if dsl.number_lines() else None
 
     # Gauge 选择：
-    # - 无 axis：第一点固定 (0,0)；第二点 y=0（消除平移 + 旋转的 3 个自由度，
+    # - 无 axis / number_line：第一点固定 (0,0)；第二点 y=0（消除平移 + 旋转的 3 个自由度，
     #   仅保留缩放/全局形状的合法变化），这是 W1 默认行为。
     # - 有 axis：origin 点固定 (0,0)，坐标系朝向由 axis 本身定义（+x 向右、+y 向上），
     #   不再加 second-y=0 约束；其余点全自由。
+    # - 有 number_line（无 axis）：origin 固定 (0,0)，方向锁定水平（等价于 axis 行为）
+    gauge_origin_id: str | None = None
     if axis is not None:
-        if axis.origin not in {p.id for p in points}:
-            raise SolveError(f"axis origin {axis.origin!r} 不是已声明的点")
-        layout.fixed[axis.origin] = (0.0, 0.0)
+        gauge_origin_id = axis.origin
+    elif number_line is not None:
+        gauge_origin_id = number_line.origin
+
+    if gauge_origin_id is not None:
+        if gauge_origin_id not in {p.id for p in points}:
+            raise SolveError(f"gauge origin {gauge_origin_id!r} 不是已声明的点")
+        layout.fixed[gauge_origin_id] = (0.0, 0.0)
         second_pid: str | None = None
         for p in points:
-            if p.id == axis.origin:
+            if p.id == gauge_origin_id:
                 continue
             layout.alloc_point(p.id)
     else:
@@ -209,6 +222,22 @@ def solve(
     # ---- 约束 ----
     for c in dsl.constraints:
         residual_fns.append(_build_constraint_residual(c, dsl, layout))
+
+    # ---- V2-G.1：arc/sector 隐含等距约束 ----
+    # ArcObj.radius 缺省 / SectorObj 永远：自动追加 |center-from| == |center-to| 残差
+    # （让 from_point 和 to_point 都在以 center 为圆心的同一个圆上）
+    for arc in dsl.arcs():
+        if arc.radius is not None:
+            continue
+        residual_fns.append(_build_arc_implicit_residual(arc.center, arc.from_point, arc.to_point, layout))
+    for sec in dsl.sectors():
+        residual_fns.append(_build_arc_implicit_residual(sec.center, sec.from_point, sec.to_point, layout))
+    for bow in dsl.bows():
+        # V2-G.4：弓形同样隐含 |center-from| == |center-to|
+        residual_fns.append(_build_arc_implicit_residual(bow.center, bow.from_point, bow.to_point, layout))
+    for ans in dsl.annular_sectors():
+        # P3 V3.4：圆环扇环同样隐含外弧 |center-from| == |center-to|
+        residual_fns.append(_build_arc_implicit_residual(ans.center, ans.from_point, ans.to_point, layout))
 
     # ---- 圆定义对应的"绑定残差" ----
     for circle in dsl.circles():
@@ -646,7 +675,7 @@ def _build_constraint_residual(c, dsl: DSL, L: _VarLayout) -> Callable:
             if var == "x":
                 y_pred = fn(px)
                 if y_pred != y_pred or y_pred == float("inf") or y_pred == float("-inf"):
-                    # 表达式无定义（如 log(-1) 或 1/0）→ 大残差把点推离
+                    # 表达式无定义（如 log(-1) 或 1/0）-> 大残差把点推离
                     return [1e3]
                 return [(py - y_pred) * weight]
             else:
@@ -656,7 +685,114 @@ def _build_constraint_residual(c, dsl: DSL, L: _VarLayout) -> Callable:
                 return [(px - x_pred) * weight]
         return f
 
+    if t == "regular_polygon":
+        # V2-G.1：正多边形 = N 条相邻边等长 + N 个内角 = (N-2)*180/N
+        poly = obj_map[c.polygon]
+        assert isinstance(poly, PolygonObj)
+        v = poly.vertices
+        n = len(v)
+        interior_angle = (n - 2) * 180.0 / n
+        cos_target = math.cos(math.radians(interior_angle))
+
+        def f(x: np.ndarray) -> list[float]:
+            pts = [L.get_point(x, vid) for vid in v]
+            out: list[float] = []
+            # 1. 所有相邻边等长（与第一条边相比，n-1 条残差）
+            d0 = _norm(_vec(pts[0], pts[1]))
+            for i in range(1, n):
+                di = _norm(_vec(pts[i], pts[(i + 1) % n]))
+                out.append(di - d0)
+            # 2. 所有内角 = interior_angle（n 个内角残差）
+            for i in range(n):
+                pa = pts[(i - 1) % n]   # 顶点 i 的前一个点
+                pb = pts[i]             # 顶点本身
+                pc = pts[(i + 1) % n]   # 顶点 i 的下一个点
+                ba = _vec(pb, pa); bc = _vec(pb, pc)
+                la = _norm(ba); lc = _norm(bc)
+                if la < 1e-9 or lc < 1e-9:
+                    out.append(1e3)
+                else:
+                    cos_v = _dot(ba, bc) / (la * lc)
+                    out.append(cos_v - cos_target)
+            return out
+        return f
+
+    if t == "trapezoid":
+        # V2-G.1：两底平行（叉积为 0），与现有 parallel 约束等价但语义更清晰
+        b0 = obj_map[c.bases[0]]
+        b1 = obj_map[c.bases[1]]
+        assert isinstance(b0, SegmentObj) and isinstance(b1, SegmentObj)
+
+        def f(x: np.ndarray) -> list[float]:
+            pa0 = L.get_point(x, b0.a)
+            pb0 = L.get_point(x, b0.b)
+            pa1 = L.get_point(x, b1.a)
+            pb1 = L.get_point(x, b1.b)
+            u = (pb0[0] - pa0[0], pb0[1] - pa0[1])
+            v = (pb1[0] - pa1[0], pb1[1] - pa1[1])
+            lu = _norm(u); lv = _norm(v)
+            if lu < 1e-9 or lv < 1e-9:
+                return [0.0]
+            return [_cross(u, v) / (lu * lv)]
+        return f
+
+    if t in ("arc_angle", "arc_length", "bow_area"):
+        # V2-G.2：圆弧相关约束
+        arc = obj_map[c.arc]
+        assert isinstance(arc, (ArcObj, BowObj))
+        target_deg = c.value if t == "arc_angle" else None
+        target_len = c.value if t == "arc_length" else None
+        target_area = c.value if t == "bow_area" else None
+
+        def f(x: np.ndarray) -> list[float]:
+            pc = L.get_point(x, arc.center)
+            pf = L.get_point(x, arc.from_point)
+            pt = L.get_point(x, arc.to_point)
+            v1 = (pf[0] - pc[0], pf[1] - pc[1])
+            v2 = (pt[0] - pc[0], pt[1] - pc[1])
+            r = _norm(v1)
+            if r < 1e-9:
+                return [1e3]
+            cross_v = _cross(v1, v2)   # |v1||v2| sin θ
+            dot_v = _dot(v1, v2)       # |v1||v2| cos θ
+            # 带符号的圆心角（数学坐标系，逆时针为正）
+            angle_signed = math.atan2(cross_v, dot_v)  # (-π, π]
+            if not arc.ccw:
+                angle_signed = -angle_signed
+            # 归一到 (0, 2π]
+            angle_rad = angle_signed if angle_signed > 0 else angle_signed + 2 * math.pi
+
+            if t == "arc_angle":
+                target_rad = math.radians(target_deg)
+                # 用 cos 和 sin 分量表达，避免单一 cos 约束的歧义
+                cos_actual = math.cos(angle_rad)
+                sin_actual = math.sin(angle_rad)
+                cos_target = math.cos(target_rad)
+                sin_target = math.sin(target_rad)
+                return [cos_actual - cos_target, sin_actual - sin_target]
+            elif t == "arc_length":
+                return [r * angle_rad - target_len]
+            else:  # bow_area
+                # 弓形面积 = 0.5 * r² * (θ - sin θ)
+                area = 0.5 * r * r * (angle_rad - math.sin(angle_rad))
+                return [area - target_area]
+        return f
+
     raise NotImplementedError(f"constraint type {t}")
+
+
+def _build_arc_implicit_residual(
+    center_id: str, from_id: str, to_id: str, L: _VarLayout
+) -> Callable[[np.ndarray], list[float]]:
+    """V2-G.1：arc/sector 隐含 |center-from| == |center-to|（center 为圆心）。"""
+    def f(x: np.ndarray) -> list[float]:
+        pc = L.get_point(x, center_id)
+        pf = L.get_point(x, from_id)
+        pt = L.get_point(x, to_id)
+        dcf = _norm(_vec(pc, pf))
+        dct = _norm(_vec(pc, pt))
+        return [dcf - dct]
+    return f
 
 
 def _circle_geometry(
@@ -768,6 +904,15 @@ def apply_transform(
             raise ValueError(f"central_symmetry: center {transform.center!r} not in coords")
         cx, cy = coords[transform.center]
         return (2 * cx - p[0], 2 * cy - p[1])
+    if isinstance(transform, HomothetySpec):
+        # V2-G.4 位似变换：p' = center + ratio * (p - center)
+        if coords is None or transform.center not in coords:
+            raise ValueError(f"homothety: center {transform.center!r} not in coords")
+        cx, cy = coords[transform.center]
+        return (
+            cx + transform.ratio * (p[0] - cx),
+            cy + transform.ratio * (p[1] - cy),
+        )
     if isinstance(transform, ReflectionSpec):
         if line_endpoints is None:
             raise ValueError("reflection: line_endpoints must be provided")

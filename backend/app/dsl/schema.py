@@ -115,6 +115,8 @@ class AxisObj(_Obj):
     show_ticks: bool = True
     x_label: str = "x"
     y_label: str = "y"
+    # V2-G.3：网格作图模式，grid_size != None 时画明显的网格点（用于"5×7 网格中画图"场景）
+    grid_size: float | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -151,8 +153,18 @@ class CentralSymSpec(BaseModel):
     center: str
 
 
+class HomothetySpec(BaseModel):
+    """位似变换 (V2-G.4)：以 center 为位似中心，按 ratio 缩放。
+    ratio > 1 放大；0 < ratio < 1 缩小；ratio < 0 反向位似。
+    """
+    model_config = ConfigDict(extra="forbid")
+    type: Literal["homothety"]
+    center: str
+    ratio: float
+
+
 TransformSpec = Annotated[
-    Union[RotationSpec, TranslationSpec, ReflectionSpec, CentralSymSpec],
+    Union[RotationSpec, TranslationSpec, ReflectionSpec, CentralSymSpec, HomothetySpec],
     Field(discriminator="type"),
 ]
 
@@ -174,18 +186,202 @@ class TransformedPolygonObj(_Obj):
     vertex_suffix: str = "p"
 
 
+class CurvePiece(BaseModel):
+    """分段函数的一段 (V2-G.4)。"""
+    model_config = ConfigDict(extra="forbid")
+    expr: str
+    domain: tuple[float, float]
+
+
 class FunctionCurveObj(_Obj):
     """函数曲线 (V2-B)。y = f(x) 或 x = g(y)。
 
     必须在含 axis 的 DSL 中出现。求解器不处理此对象，渲染时采样绘制。
+    V2-G.4：支持分段函数。若 pieces 字段非空，按 pieces 渲染；否则用 expr + domain 单段。
     """
     kind: Literal["curve"] = "curve"
-    expr: str                                    # 表达式，如 "x**2" / "sin(x)"
-    var: Literal["x", "y"] = "x"                 # 自变量
-    domain: tuple[float, float] | None = None    # 采样域；None → 用 axis 对应 range
+    expr: str | None = None                       # 单段表达式（与 pieces 二选一）
+    var: Literal["x", "y"] = "x"                  # 自变量
+    domain: tuple[float, float] | None = None     # 采样域；None -> 用 axis 对应 range
     samples: int = 300
-    color: str = "#0d6efd"                       # 曲线颜色（默认蓝，与几何黑色区分）
-    dash: str | None = None                      # 可选虚线
+    color: str = "#0d6efd"                        # 曲线颜色（默认蓝，与几何黑色区分）
+    dash: str | None = None                       # 可选虚线
+    pieces: list[CurvePiece] | None = None        # V2-G.4 分段函数（与 expr 二选一）
+
+
+class ArcObj(_Obj):
+    """圆弧 (V2-G.1)。
+
+    从 from_point 到 to_point 的弧，绕 center。
+    - radius 缺省时由 solver 自动追加隐含约束 |center-from| == |center-to|（center 为圆心）。
+    - ccw=True 表示逆时针（数学正方向，SVG 渲染时 y 翻转后需映射 sweep flag）。
+    """
+    kind: Literal["arc"] = "arc"
+    center: str        # point id
+    from_point: str    # point id
+    to_point: str      # point id
+    radius: float | None = None   # None -> 隐含 |center-from| == |center-to|
+    ccw: bool = True
+
+
+class SectorObj(_Obj):
+    """扇形 (V2-G.1)。闭合区域：center + from_point + 弧 + to_point。
+    半径由 |center-from| 推断（solver 自动追加隐含等距约束）。
+    """
+    kind: Literal["sector"] = "sector"
+    center: str
+    from_point: str
+    to_point: str
+    ccw: bool = True
+
+
+class BowObj(_Obj):
+    """弓形 (V2-G.4)。闭合区域：弧 + 弦（自动闭合 from_point 到 to_point）。
+    与 sector 区别：不画到圆心的两条半径，只画弧 + 弦围成的区域。
+    半径由 |center-from| 推断（solver 自动追加隐含等距约束）。
+    """
+    kind: Literal["bow"] = "bow"
+    center: str
+    from_point: str
+    to_point: str
+    ccw: bool = True
+
+
+class AnnularSectorObj(_Obj):
+    """圆环扇环 (V3.4 / P3)。两个同心弧 + 两条径向直线段围成的区域。
+
+    外弧半径 = |center - from_point|（隐含等距约束 |center-from| == |center-to|）
+    内弧半径 = r_inner（必须 > 0）
+    渲染：外弧 + 内弧 + 两条径向直线段，闭合 path 填充。
+    适用于「圆环扇形」「环形面积」等场景。
+    """
+    kind: Literal["annular_sector"] = "annular_sector"
+    center: str
+    from_point: str
+    to_point: str
+    r_inner: float       # 内圆半径（必须 > 0）
+    ccw: bool = True
+
+
+class RegionObj(_Obj):
+    """阴影/填充区域 (V2-G.3)。
+    通过 boundary 引用一组 SegmentObj/ArcObj id，按顺序组成闭合路径并填充。
+    用于圆环/扇环/复合阴影等场景。不引入新自由变量。
+    """
+    kind: Literal["region"] = "region"
+    boundary: list[str] = Field(min_length=2)   # segment/arc id 列表，按顺序首尾相连
+    fill_color: str = "#0d6efd"
+    fill_opacity: float = 0.15
+    stroke: str | None = None   # None = 不画描边
+
+
+class NumberLineObj(_Obj):
+    """1D 数轴 (V2-G.3)。含负数刻度，小学+初中应用题（行程问题等）用。
+    与 AxisObj 区别：只画一条水平数轴，不画 y 轴和网格。
+    """
+    kind: Literal["number_line"] = "number_line"
+    origin: str                    # point id（数轴原点 0）
+    range: tuple[float, float] = (-10.0, 10.0)
+    tick_step: float = 1.0
+    show_ticks: bool = True
+    show_numbers: bool = True
+    label: str = "x"
+
+
+class AuxLineObj(_Obj):
+    """辅助线 (V2-G.3)。虚线，不参与约束求解，用于几何证明辅助线标注。
+    a/b 引用已有 PointObj，不引入新自由变量。
+    """
+    kind: Literal["aux_line"] = "aux_line"
+    a: str   # point id
+    b: str   # point id
+    extended: bool = False   # True = 延长为无限直线（类似 LineObj），False = 有限线段
+    dash: str | None = None   # None = 用 style.aux_dash
+
+
+# ---------------------------------------------------------------------------
+# V3.1 · 立体几何（等轴投影 SVG，不参与求解器约束）
+# ---------------------------------------------------------------------------
+
+class CubeObj(_Obj):
+    """正方体 (V3.1)。vertex 是底面前左下顶点（用作 anchor），edge 是棱长。"""
+    kind: Literal["cube"] = "cube"
+    vertex: str            # point id（底面前左下顶点 anchor）
+    edge: float            # 棱长
+
+
+class CuboidObj(_Obj):
+    """长方体 (V3.1)。vertex 是底面前左下顶点，length/width/height 对应 x/y/z 方向。"""
+    kind: Literal["cuboid"] = "cuboid"
+    vertex: str            # point id（底面前左下顶点 anchor）
+    length: float          # x 方向（前-右）
+    width: float           # z 方向（前-后，等轴投影水平偏移）
+    height: float          # y 方向（向上）
+
+
+class CylinderObj(_Obj):
+    """圆柱 (V3.1)。center_bottom 是底面圆心（用作 anchor），radius + height。"""
+    kind: Literal["cylinder"] = "cylinder"
+    center_bottom: str     # point id（底面圆心 anchor）
+    radius: float
+    height: float
+
+
+class ConeObj(_Obj):
+    """圆锥 (V3.1)。center_bottom 是底面圆心，apex 是顶点（或用 radius+height 自动算）。"""
+    kind: Literal["cone"] = "cone"
+    center_bottom: str     # point id（底面圆心 anchor）
+    radius: float
+    height: float          # 圆锥高度
+
+
+class SphereObj(_Obj):
+    """球 (V3.1)。center 是球心 anchor，radius 是半径。"""
+    kind: Literal["sphere"] = "sphere"
+    center: str            # point id（球心 anchor）
+    radius: float
+
+
+# ---------------------------------------------------------------------------
+# V3.2 · 统计图表（独立渲染，不走求解器）
+# ---------------------------------------------------------------------------
+
+class BarChartObj(_Obj):
+    """条形统计图 (V3.2)。
+    origin 是坐标系原点 anchor；data 是数值列表；labels 是对应标签。
+    """
+    kind: Literal["bar_chart"] = "bar_chart"
+    origin: str                       # point id（左下角 anchor）
+    data: list[float] = Field(min_length=1)
+    labels: list[str] = Field(min_length=1)
+    width: float = 8.0               # 图表总宽
+    height: float = 6.0              # 图表总高
+    bar_color: str = "#3b82f6"
+
+
+class LineChartObj(_Obj):
+    """折线统计图 (V3.2)。
+    origin 是左下角 anchor；data 是 y 值列表（x 自动等距分布）。
+    """
+    kind: Literal["line_chart"] = "line_chart"
+    origin: str
+    data: list[float] = Field(min_length=2)
+    labels: list[str] = Field(min_length=2)
+    width: float = 8.0
+    height: float = 6.0
+    line_color: str = "#3b82f6"
+
+
+class PieChartObj(_Obj):
+    """扇形统计图 (V3.2)。
+    center 是圆心 anchor；data 是各项数值（自动按比例分配角度）。
+    """
+    kind: Literal["pie_chart"] = "pie_chart"
+    center: str
+    data: list[float] = Field(min_length=1)
+    labels: list[str] = Field(min_length=1)
+    radius: float = 3.0
+    colors: list[str] | None = None   # None = 用默认色板
 
 
 GeometryObject = Annotated[
@@ -193,6 +389,10 @@ GeometryObject = Annotated[
         PointObj, SegmentObj, LineObj, PolygonObj, CircleObj, AxisObj,
         TransformedPointObj, TransformedPolygonObj,
         FunctionCurveObj,
+        ArcObj, SectorObj, BowObj, AnnularSectorObj,
+        RegionObj, NumberLineObj, AuxLineObj,
+        CubeObj, CuboidObj, CylinderObj, ConeObj, SphereObj,
+        BarChartObj, LineChartObj, PieChartObj,
     ],
     Field(discriminator="kind"),
 ]
@@ -348,6 +548,63 @@ class OnCurveC(_C):
     curve: str
 
 
+class RegularPolygonC(_C):
+    """正多边形 (V2-G.1)。隐含：N 条相邻边等长 + N 个内角 = (N-2)*180/N 度。
+
+    sides 必须等于 polygon.vertices 数量（≥3）。
+    """
+    type: Literal["regular_polygon"]
+    polygon: str
+    sides: int   # 3=正三角形 / 4=正方形 / 5=正五边形 / 6=正六边形 ...
+
+
+class TrapezoidC(_C):
+    """梯形 (V2-G.1)。两底平行，两腰不平行靠自由求解自然产生。
+
+    等腰梯形：额外加 equal_length{segments:[两腰]}；
+    直角梯形：额外加 perpendicular{一腰, 一底}。
+    bases 是 polygon 的两条对边（segment id），通常为 polygon.vertices 中相邻顶点构成的边。
+    """
+    type: Literal["trapezoid"]
+    polygon: str
+    bases: list[str] = Field(min_length=2, max_length=2)   # 两条对边的 segment id
+
+
+class ArcAngleC(_C):
+    """圆弧的圆心角约束 (V2-G.2)。
+
+    约束 arc 所对圆心角为 value 度（0, 360）。
+    残差用 cos/sin 分量表达，能区分 60° 和 300°（避免余弦约束歧义）。
+    ccw 方向由 ArcObj.ccw 字段决定；这里 value 是按 arc.ccw 方向张的角度。
+    """
+    type: Literal["arc_angle"]
+    arc: str        # ArcObj id
+    value: float    # 度数 (0, 360)
+
+
+class ArcLengthC(_C):
+    """圆弧的弧长约束 (V2-G.2)。
+
+    约束 arc 的弧长为 value（与单位坐标一致）。
+    弧长 = 半径 × 圆心角（弧度）。
+    """
+    type: Literal["arc_length"]
+    arc: str
+    value: float    # > 0
+
+
+class BowAreaC(_C):
+    """弓形面积约束 (V2-G.2)。
+
+    弓形 = 弧 + 弦围成的区域。
+    面积公式：0.5 × r² × (θ - sin θ)，其中 θ 是圆心角（弧度）。
+    value > 0。
+    """
+    type: Literal["bow_area"]
+    arc: str
+    value: float    # > 0
+
+
 Constraint = Annotated[
     Union[
         LengthC, EqualLengthC, AngleC,
@@ -358,6 +615,8 @@ Constraint = Annotated[
         MidpointC, FootOfPerpC, AngleBisectorC, ConcyclicC, ParallelogramC,
         SameSideC, OppositeSideC,
         OnCurveC,
+        RegularPolygonC, TrapezoidC,
+        ArcAngleC, ArcLengthC, BowAreaC,
     ],
     Field(discriminator="type"),
 ]
@@ -370,7 +629,7 @@ Constraint = Annotated[
 class Annotation(BaseModel):
     model_config = ConfigDict(extra="forbid")
     target: str               # object id (segment / angle pseudo-id "angleABC" / circle…)
-    kind: Literal["length", "angle", "label", "radius"]
+    kind: Literal["length", "angle", "label", "radius", "arc_length", "bow_area"]
     show: bool = True
     text: str | None = None   # 显式覆盖文字（如 "a"、"√3"）
 
@@ -431,6 +690,53 @@ class DSL(BaseModel):
 
     def curves(self) -> list[FunctionCurveObj]:
         return [o for o in self.objects if isinstance(o, FunctionCurveObj)]
+
+    def arcs(self) -> list[ArcObj]:
+        return [o for o in self.objects if isinstance(o, ArcObj)]
+
+    def sectors(self) -> list[SectorObj]:
+        return [o for o in self.objects if isinstance(o, SectorObj)]
+
+    def bows(self) -> list[BowObj]:
+        return [o for o in self.objects if isinstance(o, BowObj)]
+
+    def annular_sectors(self) -> list[AnnularSectorObj]:
+        return [o for o in self.objects if isinstance(o, AnnularSectorObj)]
+
+    def regions(self) -> list[RegionObj]:
+        return [o for o in self.objects if isinstance(o, RegionObj)]
+
+    def number_lines(self) -> list[NumberLineObj]:
+        return [o for o in self.objects if isinstance(o, NumberLineObj)]
+
+    def aux_lines(self) -> list[AuxLineObj]:
+        return [o for o in self.objects if isinstance(o, AuxLineObj)]
+
+    # V3.1 立体几何 helpers
+    def cubes(self) -> list[CubeObj]:
+        return [o for o in self.objects if isinstance(o, CubeObj)]
+
+    def cuboids(self) -> list[CuboidObj]:
+        return [o for o in self.objects if isinstance(o, CuboidObj)]
+
+    def cylinders(self) -> list[CylinderObj]:
+        return [o for o in self.objects if isinstance(o, CylinderObj)]
+
+    def cones(self) -> list[ConeObj]:
+        return [o for o in self.objects if isinstance(o, ConeObj)]
+
+    def spheres(self) -> list[SphereObj]:
+        return [o for o in self.objects if isinstance(o, SphereObj)]
+
+    # V3.2 统计图表 helpers
+    def bar_charts(self) -> list[BarChartObj]:
+        return [o for o in self.objects if isinstance(o, BarChartObj)]
+
+    def line_charts(self) -> list[LineChartObj]:
+        return [o for o in self.objects if isinstance(o, LineChartObj)]
+
+    def pie_charts(self) -> list[PieChartObj]:
+        return [o for o in self.objects if isinstance(o, PieChartObj)]
 
     def to_json_dict(self) -> dict[str, Any]:
         return self.model_dump(mode="json")

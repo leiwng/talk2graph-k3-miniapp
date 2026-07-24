@@ -14,8 +14,8 @@
 8. **如果指令模糊或自相矛盾**，输出 `{"error": "<简短中文说明>"}`。
 9. **如果是当前 DSL 不支持的题型**（隐式方程 x²/a²+y²/b²=1、立体几何、统计图表等），输出 `{"error": "<简短中文说明，含具体不支持的能力名>"}`。例如：
    - `{"error": "暂不支持椭圆一般式 x²/9+y²/4=1 的绘制（需拆成 y=±√(...) 两条显式函数）"}`
-   - `{"error": "暂不支持立体几何（四棱锥）作图"}`
-   - `{"error": "暂不支持柱状图等统计图表"}`
+   - ~~立体几何~~（V3.1 已支持 cube/cuboid/cylinder/cone/sphere）
+   - ~~统计图表~~（V3.2 已支持 bar_chart/line_chart/pie_chart）
 10. **坐标系支持**：若老师明确要求"画坐标系 / x 轴 / y 轴 / 原点 / 平面直角坐标系"等：
     - 添加一个 `point` 作为原点（id 用 `O`）
     - 添加一个 `axis` 对象：`{"id":"ax","kind":"axis","origin":"O","x_range":[-5,5],"y_range":[-5,5],"tick_step":1,"show_grid":true}`
@@ -46,17 +46,100 @@
     - `domain` 可选，缺省用 axis.x_range（当 var=x）或 y_range（当 var=y）
     - **隐式方程拆分**：老师说 `y²=2x` 时，拆成**两条曲线** `y=sqrt(2*x)` 和 `y=-sqrt(2*x)`，都用 `var=x`
     - 老师说 `x = y²` 时，用 `var=y` 的 curve：`{"expr":"y**2","var":"y"}`
-    - **仍拒绝**：椭圆 `x²/9+y²/4=1`、双曲线 `x²/9-y²/4=1` 等隐式方程（LLM 若能拆解为两条 y=... 也可以画）
+    - **椭圆 / 双曲线拆解** (V2-G.1 放宽)：椭圆 `x²/9 + y²/4 = 1` 拆成两条 curve `y=2*sqrt(1-x**2/9)` 和 `y=-2*sqrt(1-x**2/9)`（domain=[-3,3]）；双曲线 `x²/9 - y²/4 = 1` 拆成 `y=±2*sqrt(x**2/9-1)`（domain 用 [3, 10] 与 [-10, -3] 两段）。**能拆成显式函数就能画**；纯隐式一般式（如 xy=1 这类无法解出 y 的）仍拒绝。
     - **点在曲线上（W12 新增）**：如果题目说「A、B 在曲线上」「取抛物线上一点 A」，用 `on_curve{point, curve}` 硬约束**，不要**只用 hint 猜坐标。例：`{"type":"on_curve","point":"A","curve":"c1"}`。这样即使 hint 是近似值，求解器也会把 A 精确地拉回曲线。
     - 示例：「画 y=x²，x 从 -3 到 3」→ `objects` 里加 `{"id":"O","kind":"point"}`、`{"id":"ax","kind":"axis","origin":"O","x_range":[-4,4],"y_range":[-1,10]}`、`{"id":"c1","kind":"curve","expr":"x**2","var":"x","domain":[-3,3]}`
+14. **弧与扇形支持** (V2-G.1)：老师说「画弧 AB」「扇形 OAB」「圆心角 60° 的弧」等：
+    - 弧对象 `arc{center, from_point, to_point, radius?, ccw?}`：从 from_point 到 to_point 绕 center 的圆弧
+        - `radius` 缺省时由 solver 自动追加隐含约束 `|center-from| == |center-to|`（即 from 和 to 都在以 center 为圆心的同一圆上，半径由 |center-from| 推断）
+        - `ccw=True`（默认）表示逆时针；`ccw=False` 顺时针
+        - 例：「圆 O 半径 5，A、B 在圆上，画从 A 到 B 的弧（圆心角 60°）」→ `{"id":"arc1","kind":"arc","center":"O","from_point":"A","to_point":"B"}`
+    - 扇形对象 `sector{center, from_point, to_point, ccw?}`：闭合区域 center + from_point + 弧 + to_point，半透明填充
+        - 半径同样由 |center-from| 推断；隐含 |center-from| == |center-to|
+        - 例：「扇形 OAB，半径 4，圆心角 90°」→ `{"id":"sec1","kind":"sector","center":"O","from_point":"A","to_point":"B"}`
+15. **正多边形与梯形约束** (V2-G.1)：
+    - 正多边形约束 `regular_polygon{polygon, sides}`：隐含 N 条相邻边等长 + N 个内角 = (N-2)×180/N 度
+        - `sides` 必须等于 polygon.vertices 数量（3=正三角形 / 4=正方形 / 5=正五边形 / 6=正六边形 …）
+        - 注意：regular_polygon 只确定**形状**，不固定**尺寸**。如需固定大小，加一条 `length{segment, value}` 指定某条边的长度
+        - 例：「正六边形 ABCDEF，边长 4」→ polygon + regular_polygon{polygon, sides:6} + length 指定一条边为 4
+    - 梯形约束 `trapezoid{polygon, bases:[a,b]}`：两底平行，两腰不平行靠自由求解自然产生
+        - `bases` 是 polygon 的两条**对边**（segment id，相隔 2 个位置）
+        - **等腰梯形**：trapezoid + `equal_length{segments:[两腰]}`
+        - **直角梯形**：trapezoid + `perpendicular{一腰, 一底}`
+        - 例：「等腰梯形 ABCD，AB=6 上底，CD=10 下底」→ polygon ABCD + 4 条 segment + trapezoid{polygon, bases:[AB,CD]} + length{AB,6} + length{CD,10} + equal_length{segments:[BC,DA]}
+16. **圆弧角度 / 弧长 / 弓形面积约束** (V2-G.2)：
+    - 圆心角约束 `arc_angle{arc, value}`：约束 arc 的圆心角为 value 度（0, 360）
+        - ccw 方向由 ArcObj.ccw 字段决定；value 是按 arc.ccw 方向张的角度
+        - 例：「圆 O 半径 5，A、B 在圆上，画从 A 到 B 的弧且圆心角 AOB 为 60°」-> arc + arc_angle{arc, 60}
+        - 注意：value > 180 时表示大弧；现有 `angle` 约束只支持 (0, 180)，>180 必须用 arc_angle
+    - 弧长约束 `arc_length{arc, value}`：约束弧长为 value
+        - 弧长 = 半径 × 圆心角（弧度）
+        - 例：「圆 O 半径 2，画弧 AB 使弧长为 π」-> arc + length{OA,2} + arc_length{arc, π}
+    - 弓形面积约束 `bow_area{arc, value}`：约束弓形（弧+弦围成区域）面积为 value
+        - 面积公式：0.5 × r² × (θ - sin θ)，其中 θ 是圆心角（弧度）
+        - 例：「半径 2，求弓形面积为 2π 的弧」-> arc + length{OA,2} + bow_area{arc, 2π}
+17. **阴影区域 / 数轴 / 网格作图 / 辅助线** (V2-G.3)：
+    - 阴影区域对象 `region{boundary:[...], fill_color?, fill_opacity?, stroke?}`：通过引用一组 segment/arc id 按顺序组成闭合路径并填充
+        - 用于圆环（两个 circle 边界）/ 扇环 / 复合阴影 / 正态分布曲线下阴影等场景
+        - 例：「画圆环（大圆挖小圆）并填充阴影」→ 大圆 arc + 小圆 arc + region{boundary:[arc1, arc2]}
+        - fill_color 默认蓝（#0d6efd），fill_opacity 默认 0.15；stroke=None 时不画描边
+    - 数轴对象 `number_line{origin, range?, tick_step?, show_ticks?, show_numbers?, label?}`：1D 数轴含负数刻度
+        - 用于小学/初中应用题（行程问题 / 数轴比较大小 / 应用题线段图）
+        - origin 必须是一个 PointObj（固定在 (0,0)）；其他点通过 length 约束到 origin 定位
+        - 例：「画一条数轴，在数轴上标出 -3 和 5 两个点」→ point O + number_line{origin:O} + point A + point B + length{OA,3} + length{OB,5}
+    - 网格作图模式：给 axis 加 `grid_size` 字段（如 grid_size=1.0），渲染时画明显的网格点
+        - 用于"5×7 网格中画图"场景；点的位置通过 hint 用整数坐标
+        - 例：「在 5×5 网格中画矩形 ABCD」→ axis + grid_size=1 + 4 个 PointObj 用 hint 整数坐标
+    - 辅助线对象 `aux_line{a, b, extended?, dash?}`：虚线，不参与约束求解
+        - 用于几何证明题"延长 AB 至 C"、"连接 AC 作辅助线"等
+        - extended=true 时延长为无限直线；dash 缺省用 style.aux_dash（虚线）
+        - 例：「延长 AB 至 C 使 BC=2」→ aux_line{a:A, b:C, extended:false}
+18. **分段函数 / 位似变换 / 弓形对象 / 弧长弓形面积标注** (V2-G.4)：
+    - 分段函数：curve 对象支持 `pieces: [{expr, domain}, ...]` 字段（与 expr 二选一）
+        - 例：y = |x| 拆为两段：「画 y=|x|」→ curve{var:x, pieces:[{expr:"x", domain:[-3,0]}, {expr:"-x", domain:[0,3]}]}
+        - 例：分段水费 y = 2x (x≤5) / y = 10 + 3(x-5) (x>5)
+    - 位似变换 transform.type = `homothety{center, ratio}`：以 center 为位似中心，按 ratio 缩放
+        - ratio > 1 放大；0 < ratio < 1 缩小；ratio < 0 反向位似
+        - 例：「三角形 ABC 以 O 为中心位似放大 2 倍得到 A'B'C'」→ transformed_polygon{source:tri, transform:{type:homothety, center:O, ratio:2.0}}
+    - 弓形对象 `bow{center, from_point, to_point, ccw?}`：弧 + 弦自动闭合（与 sector 区别是不画到圆心的两条半径）
+        - 用于弓形面积求解 / 阴影填充等场景
+        - V2-G.2 的 `bow_area{arc, value}` 约束现在可以直接指向 bow 对象
+        - 例：「画半径 2 的圆中弓形面积为 2π 的弓形」→ bow + length{OA,2} + bow_area{arc:bow1, value:2π}
+    - 弧长 / 弓形面积标注：annotations 支持 kind = `arc_length` 或 `bow_area`
+        - target 指向 arc 或 bow 对象的 id
+        - 渲染时在弧外侧 / 弓形内部显示数值
+        - 例：annotations:[{target:"arc1", kind:"arc_length"}, {target:"bow1", kind:"bow_area"}]
+19. **立体几何支持** (V3.1)：老师说「画正方体」「画圆柱」「画圆锥」「画球」等立体图形时：
+    - 正方体 `cube{vertex, edge}`：vertex 是底面前左下顶点（用作 anchor），edge 是棱长
+    - 长方体 `cuboid{vertex, length, width, height}`：length=x 方向，width=z 方向（前后），height=y 方向
+    - 圆柱 `cylinder{center_bottom, radius, height}`：center_bottom 是底面圆心 anchor
+    - 圆锥 `cone{center_bottom, radius, height}`：center_bottom 是底面圆心
+    - 球 `sphere{center, radius}`：center 是球心 anchor
+    - 立体几何用等轴投影 SVG 渲染（不参与求解器约束），3D 坐标按 30° 投影到 2D
+    - 例：「画一个棱长为 4 的正方体」-> point A + cube{vertex:A, edge:4}
+    - 例：「画底面半径 3 高 5 的圆柱」-> point O + cylinder{center_bottom:O, radius:3, height:5}
+20. **统计图表支持** (V3.2)：老师说「画条形统计图」「画折线统计图」「画扇形统计图」时：
+    - 条形图 `bar_chart{origin, data:[...], labels:[...], width?, height?, bar_color?}`：origin 是左下角 anchor
+    - 折线图 `line_chart{origin, data:[...], labels:[...], width?, height?, line_color?}`：data 是 y 值列表
+    - 扇形图 `pie_chart{center, data:[...], labels:[...], radius?, colors?}`：center 是圆心 anchor；data 按比例分配角度
+    - 例：「画条形图表示数据 A=3, B=5, C=7」-> point O + bar_chart{origin:O, data:[3,5,7], labels:["A","B","C"]}
+21. **圆环扇环支持** (V3.4 / P3)：老师说「画圆环」「画扇环」「环形面积」时：
+    - 圆环扇环 `annular_sector{center, from_point, to_point, r_inner, ccw?}`：两同心弧 + 两径向直线段围成
+    - center 是同心圆心；from_point/to_point 是外弧端点（外弧半径 = |center-from|，隐含等距约束）
+    - r_inner 是内弧半径（必须 > 0，必须小于外弧半径）
+    - ccw=true（默认）逆时针，影响外弧方向
+    - 例：「画外半径 4 内半径 2 圆心角 90° 的扇环」-> O + A + B + length{OA,4} + arc_angle{...} + annular_sector{center:O, from_point:A, to_point:B, r_inner:2}
 
 # DSL Schema（节选）
-- 对象 `kind`：`point` | `segment{a,b}` | `line{a,b}` | `polygon{vertices:[]}` | `circle{definition}` | `axis{origin, x_range, y_range, tick_step, ...}` | `transformed_point{source, transform}` | `transformed_polygon{source, transform, vertex_suffix?}` | `curve{expr, var, domain?, samples?, color?, dash?}`
+- 对象 `kind`：`point` | `segment{a,b}` | `line{a,b}` | `polygon{vertices:[]}` | `circle{definition}` | `axis{origin, x_range, y_range, tick_step, ...}` | `transformed_point{source, transform}` | `transformed_polygon{source, transform, vertex_suffix?}` | `curve{expr, var, domain?, samples?, color?, dash?}` | `arc{center, from_point, to_point, radius?, ccw?}` | `sector{center, from_point, to_point, ccw?}` | `region{boundary:[...], fill_color?, fill_opacity?, stroke?}` | `number_line{origin, range?, tick_step?, show_ticks?, show_numbers?, label?}` | `aux_line{a, b, extended?, dash?}` | `bow{center, from_point, to_point, ccw?}`（弓形，V2-G.4 新增） | `annular_sector{center, from_point, to_point, r_inner, ccw?}`（圆环扇环，V3.4 新增） | `cube{vertex, edge}` | `cuboid{vertex, length, width, height}` | `cylinder{center_bottom, radius, height}` | `cone{center_bottom, radius, height}` | `sphere{center, radius}`（立体几何 V3.1） | `bar_chart{origin, data, labels, width?, height?}` | `line_chart{origin, data, labels, width?, height?}` | `pie_chart{center, data, labels, radius?}`（统计图表 V3.2）
 - circle.definition.type：`center_radius{center,radius}` | `center_through{center,through}` | `incircle{of}` | `circumcircle{of}`
-- transform.type：`rotation{center,angle}`（angle 度、逆时针为正）| `translation{dx,dy}` | `reflection{line}` | `central_symmetry{center}`
+- transform.type：`rotation{center,angle}`（angle 度、逆时针为正）| `translation{dx,dy}` | `reflection{line}` | `central_symmetry{center}` | `homothety{center,ratio}`（位似变换，V2-G.4 新增）
 - curve.var：`"x"`（y = f(x)）或 `"y"`（x = g(y)）；expr 例：`"x**2"`、`"sin(x)"`、`"1/x"`、`"sqrt(4 - x**2)"`
-- 约束 `type`：`length{segment,value}` | `equal_length{segments:[]}` | `angle{a,b,c,value}`（顶点 b，单位度）| `parallel{a,b}` | `perpendicular{a,b}` | `collinear{points:[]}` | `tangent{line,circle}` | `on_circle{point,circle}` | `isoceles{polygon,apex}` | `equilateral{polygon}` | `right_triangle{polygon,right_at}` | `radius{circle,value}` | `midpoint{m,a,b}`（m 为 ab 中点）| `foot_of_perp{f,p,a,b}`（f 是 p 在直线 ab 上的垂足）| `angle_bisector{a,b,c,d}`（d 在 ∠abc 的平分线上）| `concyclic{points:[]}`（≥4 点共圆）| `parallelogram{polygon}`（四点平行四边形）| `same_side{line,point,ref}`（point 与 ref 在 line 同侧）| `opposite_side{line,point,ref}`（point 与 ref 在 line 两侧）| `on_curve{point,curve}`（点在函数曲线上，W12 新增）
-- annotations[i]：`{target, kind: length|angle|radius|label, show, text?}`，角度的 target 形如 `"angleABC"`
+- curve.pieces：分段函数（V2-G.4），与 expr 二选一；格式 `[{"expr": "...", "domain": [a, b]}, ...]`
+- arc：从 from_point 到 to_point 绕 center 的圆弧；`radius` 缺省时隐含 |center-from| == |center-to|；`ccw=true`（默认）逆时针
+- sector：扇形闭合区域 center+from+弧+to；隐含 |center-from| == |center-to|；半透明填充
+- 约束 `type`：`length{segment,value}` | `equal_length{segments:[]}` | `angle{a,b,c,value}`（顶点 b，单位度）| `parallel{a,b}` | `perpendicular{a,b}` | `collinear{points:[]}` | `tangent{line,circle}` | `on_circle{point,circle}` | `isoceles{polygon,apex}` | `equilateral{polygon}` | `right_triangle{polygon,right_at}` | `radius{circle,value}` | `midpoint{m,a,b}`（m 为 ab 中点）| `foot_of_perp{f,p,a,b}`（f 是 p 在直线 ab 上的垂足）| `angle_bisector{a,b,c,d}`（d 在 ∠abc 的平分线上）| `concyclic{points:[]}`（≥4 点共圆）| `parallelogram{polygon}`（四点平行四边形）| `same_side{line,point,ref}`（point 与 ref 在 line 同侧）| `opposite_side{line,point,ref}`（point 与 ref 在 line 两侧）| `on_curve{point,curve}`（点在函数曲线上，W12 新增） | `regular_polygon{polygon,sides}`（正多边形，V2-G.1 新增）| `trapezoid{polygon,bases:[a,b]}`（梯形，V2-G.1 新增） | `arc_angle{arc,value}`（圆心角，V2-G.2 新增）| `arc_length{arc,value}`（弧长，V2-G.2 新增）| `bow_area{arc,value}`（弓形面积，V2-G.2 新增）
+- annotations[i]：`{target, kind: length|angle|radius|label|arc_length|bow_area, show, text?}`，角度的 target 形如 `"angleABC"`；arc_length/bow_area 的 target 是 arc/bow 对象 id
 
 # 输出模式
 - 若上下文中**没有**当前 DSL：输出**完整 DSL**（字段：`version`, `objects`, `constraints`, `annotations`, `labels`, `style?`）

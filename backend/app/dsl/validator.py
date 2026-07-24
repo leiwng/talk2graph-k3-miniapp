@@ -4,18 +4,33 @@ from __future__ import annotations
 from .safe_expr import UnsafeExpressionError, compile_expr
 from .schema import (
     AxisObj,
+    ArcObj,
+    AnnularSectorObj,
+    AuxLineObj,
+    BarChartObj,
+    BowObj,
     CircleObj,
     CircleDefIncircle,
     CircleDefCircumcircle,
     CircleDefByCenterRadius,
     CircleDefByCenterPoint,
+    ConeObj,
+    CubeObj,
+    CuboidObj,
+    CylinderObj,
     DSL,
     FunctionCurveObj,
+    LineChartObj,
     LineObj,
+    NumberLineObj,
+    PieChartObj,
     PointObj,
     PolygonObj,
     ReflectionSpec,
+    RegionObj,
+    SectorObj,
     SegmentObj,
+    SphereObj,
     TransformedPointObj,
     TransformedPolygonObj,
 )
@@ -30,7 +45,7 @@ def _validate_transform_refs(
 ) -> None:
     """校验 TransformSpec 内部的引用（center 是 PointObj、line 是 Segment/Line）。"""
     t = transform.type
-    if t in ("rotation", "central_symmetry"):
+    if t in ("rotation", "central_symmetry", "homothety"):
         if transform.center not in obj_map:
             raise DSLValidationError(f"{where}: transform.center unknown {transform.center!r}")
         if not isinstance(obj_map[transform.center], PointObj):
@@ -150,11 +165,129 @@ def validate(dsl: DSL) -> None:
                 raise DSLValidationError(f"curve {o.id}: samples must be >= 10")
             if o.domain is not None and o.domain[0] >= o.domain[1]:
                 raise DSLValidationError(f"curve {o.id}: domain min must < max")
-            try:
-                compile_expr(o.expr, var=o.var)
-            except (UnsafeExpressionError, SyntaxError) as e:
+            # V2-G.4：pieces 与 expr 二选一
+            if o.pieces:
+                for i, p in enumerate(o.pieces):
+                    if p.domain[0] >= p.domain[1]:
+                        raise DSLValidationError(
+                            f"curve {o.id}: pieces[{i}].domain min must < max"
+                        )
+                    try:
+                        compile_expr(p.expr, var=o.var)
+                    except (UnsafeExpressionError, SyntaxError) as e:
+                        raise DSLValidationError(
+                            f"curve {o.id}: pieces[{i}] unsafe/invalid expr {p.expr!r}: {e}"
+                        )
+            else:
+                if not o.expr:
+                    raise DSLValidationError(
+                        f"curve {o.id}: must have expr or pieces"
+                    )
+                try:
+                    compile_expr(o.expr, var=o.var)
+                except (UnsafeExpressionError, SyntaxError) as e:
+                    raise DSLValidationError(
+                        f"curve {o.id}: unsafe or invalid expression {o.expr!r}: {e}"
+                    )
+        elif isinstance(o, ArcObj):
+            # V2-G.1：弧的 center/from_point/to_point 都必须是 PointObj
+            _require(o.center, PointObj, f"arc {o.id}.center")
+            _require(o.from_point, PointObj, f"arc {o.id}.from_point")
+            _require(o.to_point, PointObj, f"arc {o.id}.to_point")
+            if len({o.center, o.from_point, o.to_point}) != 3:
                 raise DSLValidationError(
-                    f"curve {o.id}: unsafe or invalid expression {o.expr!r}: {e}"
+                    f"arc {o.id}: center, from_point, to_point must be distinct"
+                )
+            if o.radius is not None and o.radius <= 0:
+                raise DSLValidationError(f"arc {o.id}: radius must be > 0")
+        elif isinstance(o, SectorObj):
+            # V2-G.1：扇形的 center/from_point/to_point 都必须是 PointObj
+            _require(o.center, PointObj, f"sector {o.id}.center")
+            _require(o.from_point, PointObj, f"sector {o.id}.from_point")
+            _require(o.to_point, PointObj, f"sector {o.id}.to_point")
+            if len({o.center, o.from_point, o.to_point}) != 3:
+                raise DSLValidationError(
+                    f"sector {o.id}: center, from_point, to_point must be distinct"
+                )
+        elif isinstance(o, BowObj):
+            # V2-G.4：弓形的 center/from_point/to_point 都必须是 PointObj（同 sector）
+            _require(o.center, PointObj, f"bow {o.id}.center")
+            _require(o.from_point, PointObj, f"bow {o.id}.from_point")
+            _require(o.to_point, PointObj, f"bow {o.id}.to_point")
+            if len({o.center, o.from_point, o.to_point}) != 3:
+                raise DSLValidationError(
+                    f"bow {o.id}: center, from_point, to_point must be distinct"
+                )
+        elif isinstance(o, AnnularSectorObj):
+            # P3 V3.4：圆环扇环。center/from_point/to_point 必须 PointObj；三点互异；r_inner > 0
+            _require(o.center, PointObj, f"annular_sector {o.id}.center")
+            _require(o.from_point, PointObj, f"annular_sector {o.id}.from_point")
+            _require(o.to_point, PointObj, f"annular_sector {o.id}.to_point")
+            if len({o.center, o.from_point, o.to_point}) != 3:
+                raise DSLValidationError(
+                    f"annular_sector {o.id}: center, from_point, to_point must be distinct"
+                )
+            if o.r_inner <= 0:
+                raise DSLValidationError(
+                    f"annular_sector {o.id}: r_inner must be > 0"
+                )
+        elif isinstance(o, RegionObj):
+            # V2-G.3：阴影区域 boundary 必须是 segment/arc id 列表
+            for bid in o.boundary:
+                if not (_is(bid, SegmentObj) or _is(bid, ArcObj)):
+                    raise DSLValidationError(
+                        f"region {o.id}: boundary element {bid!r} must be segment or arc"
+                    )
+            if not (0 < o.fill_opacity <= 1):
+                raise DSLValidationError(f"region {o.id}: fill_opacity must be in (0, 1]")
+        elif isinstance(o, NumberLineObj):
+            # V2-G.3：数轴 origin 必须是 PointObj
+            _require(o.origin, PointObj, f"number_line {o.id}.origin")
+            if o.range[0] >= o.range[1]:
+                raise DSLValidationError(f"number_line {o.id}: range min must < max")
+            if o.tick_step <= 0:
+                raise DSLValidationError(f"number_line {o.id}: tick_step must be > 0")
+        elif isinstance(o, AuxLineObj):
+            # V2-G.3：辅助线 a/b 必须是 point-like（PointObj 或 TransformedPointObj）
+            _require_point_like(o.a, f"aux_line {o.id}.a")
+            _require_point_like(o.b, f"aux_line {o.id}.b")
+            if o.a == o.b:
+                raise DSLValidationError(f"aux_line {o.id}: endpoints coincide")
+        elif isinstance(o, (CubeObj, CuboidObj, CylinderObj, ConeObj, SphereObj)):
+            # V3.1：立体几何对象校验
+            if isinstance(o, CubeObj):
+                _require(o.vertex, PointObj, f"cube {o.id}.vertex")
+                if o.edge <= 0:
+                    raise DSLValidationError(f"cube {o.id}: edge must be > 0")
+            elif isinstance(o, CuboidObj):
+                _require(o.vertex, PointObj, f"cuboid {o.id}.vertex")
+                if o.length <= 0 or o.width <= 0 or o.height <= 0:
+                    raise DSLValidationError(f"cuboid {o.id}: length/width/height must be > 0")
+            elif isinstance(o, (CylinderObj, ConeObj)):
+                anchor_field = "center_bottom"
+                _require(getattr(o, anchor_field), PointObj, f"{o.kind} {o.id}.{anchor_field}")
+                if o.radius <= 0:
+                    raise DSLValidationError(f"{o.kind} {o.id}: radius must be > 0")
+                if o.height <= 0:
+                    raise DSLValidationError(f"{o.kind} {o.id}: height must be > 0")
+            elif isinstance(o, SphereObj):
+                _require(o.center, PointObj, f"sphere {o.id}.center")
+                if o.radius <= 0:
+                    raise DSLValidationError(f"sphere {o.id}: radius must be > 0")
+        elif isinstance(o, (BarChartObj, LineChartObj, PieChartObj)):
+            # V3.2：统计图表校验
+            if isinstance(o, (BarChartObj, LineChartObj)):
+                anchor_field = "origin"
+                _require(getattr(o, anchor_field), PointObj, f"{o.kind} {o.id}.{anchor_field}")
+            else:  # PieChartObj
+                _require(o.center, PointObj, f"pie_chart {o.id}.center")
+                if o.radius <= 0:
+                    raise DSLValidationError(f"pie_chart {o.id}: radius must be > 0")
+            # data 和 labels 长度必须一致
+            if len(o.data) != len(o.labels):
+                raise DSLValidationError(
+                    f"{o.kind} {o.id}: data and labels length mismatch "
+                    f"({len(o.data)} vs {len(o.labels)})"
                 )
 
     # 2.5 axis 唯一性
@@ -245,8 +378,69 @@ def validate(dsl: DSL) -> None:
         elif t == "on_curve":
             _require(c.point, PointObj, "on_curve.point")
             _require(c.curve, FunctionCurveObj, "on_curve.curve")
+        elif t == "regular_polygon":
+            _require(c.polygon, PolygonObj, "regular_polygon.polygon")
+            poly = obj_map[c.polygon]
+            if c.sides != len(poly.vertices):
+                raise DSLValidationError(
+                    f"regular_polygon: sides ({c.sides}) must equal "
+                    f"polygon.vertices count ({len(poly.vertices)})"
+                )
+            if c.sides < 3:
+                raise DSLValidationError("regular_polygon: sides must be >= 3")
+        elif t == "trapezoid":
+            _require(c.polygon, PolygonObj, "trapezoid.polygon")
+            poly = obj_map[c.polygon]
+            if len(poly.vertices) != 4:
+                raise DSLValidationError("trapezoid requires quadrilateral (4 vertices)")
+            # bases 必须都是该 polygon 的边
+            side_ids = _polygon_side_ids(dsl, poly)
+            for b in c.bases:
+                if not _is(b, SegmentObj):
+                    raise DSLValidationError(f"trapezoid.bases: expected segment {b!r}")
+                if b not in side_ids:
+                    raise DSLValidationError(
+                        f"trapezoid.bases: segment {b!r} is not a side of polygon {c.polygon!r}"
+                    )
+            if c.bases[0] == c.bases[1]:
+                raise DSLValidationError("trapezoid.bases: two bases must be distinct")
+            # bases 必须是对边（在四边形里相隔 2 个位置）
+            i0 = side_ids.index(c.bases[0])
+            i1 = side_ids.index(c.bases[1])
+            if abs(i0 - i1) != 2:
+                raise DSLValidationError(
+                    "trapezoid.bases: two bases must be opposite sides of the quadrilateral"
+                )
+        elif t in ("arc_angle", "arc_length", "bow_area"):
+            # V2-G.2：圆弧相关约束；V2-G.4：bow_area 也接受 BowObj
+            if not _is(c.arc, ArcObj) and not _is(c.arc, BowObj):
+                raise DSLValidationError(
+                    f"{t}.arc: expected arc or bow object, got {c.arc!r}"
+                )
+            if t == "arc_angle":
+                if not (0 < c.value < 360):
+                    raise DSLValidationError("arc_angle.value must be in (0, 360) degrees")
+            else:  # arc_length / bow_area
+                if c.value <= 0:
+                    raise DSLValidationError(f"{t}.value must be > 0")
 
     # 4. label key must point to existing object
     for k in dsl.labels:
         if k not in obj_map:
             raise DSLValidationError(f"label key {k!r} not an object id")
+
+
+def _polygon_side_ids(dsl: DSL, poly: PolygonObj) -> list[str]:
+    """返回 polygon 顶点顺序对应的边 segment id 列表（找不到对应 segment 的位置返回空 id ""）。"""
+    out: list[str] = []
+    v = poly.vertices
+    n = len(v)
+    for i in range(n):
+        a, b = v[i], v[(i + 1) % n]
+        found = ""
+        for s in dsl.segments():
+            if {s.a, s.b} == {a, b}:
+                found = s.id
+                break
+        out.append(found)
+    return out

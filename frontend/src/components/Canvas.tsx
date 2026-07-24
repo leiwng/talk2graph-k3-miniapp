@@ -243,6 +243,37 @@ function describe(
       if (d) return `曲线 ${obj.expr}, x∈[${d[0]},${d[1]}]`
       return `曲线 ${obj.expr}`
     }
+    case 'arc': {
+      return `弧 ${obj.from_point}→${obj.to_point}（绕 ${obj.center}）`
+    }
+    case 'sector': {
+      return `扇形 ${obj.center}${obj.from_point}${obj.to_point}`
+    }
+    case 'bow': {
+      return `弓形 ${obj.center}${obj.from_point}${obj.to_point}`
+    }
+    case 'annular_sector': {
+      return `圆环扇环 ${obj.center}${obj.from_point}${obj.to_point} r=${obj.r_inner}`
+    }
+    case 'region': {
+      return `阴影区域 ${id}（${(obj.boundary || []).length} 段边界）`
+    }
+    case 'number_line': {
+      const r = obj.range
+      if (r) return `数轴：${r[0]} ~ ${r[1]}`
+      return `数轴 ${id}`
+    }
+    case 'aux_line': {
+      return `辅助线 ${obj.a}${obj.b}${obj.extended ? '（延长）' : ''}`
+    }
+    case 'cube': return `正方体 ${id}（边长 ${obj.edge}）`
+    case 'cuboid': return `长方体 ${id}（${obj.length}×${obj.width}×${obj.height}）`
+    case 'cylinder': return `圆柱 ${id}（r=${obj.radius}, h=${obj.height}）`
+    case 'cone': return `圆锥 ${id}（r=${obj.radius}, h=${obj.height}）`
+    case 'sphere': return `球 ${id}（r=${obj.radius}）`
+    case 'bar_chart': return `条形图 ${id}（${obj.data?.length} 项）`
+    case 'line_chart': return `折线图 ${id}（${obj.data?.length} 点）`
+    case 'pie_chart': return `扇形图 ${id}（${obj.data?.length} 项）`
     default:
       return `${obj.kind} ${id}`
   }

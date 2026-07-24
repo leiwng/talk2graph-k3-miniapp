@@ -253,6 +253,21 @@ function describeObject(id: string, kind: string): string {
     case 'polygon': return `多边形 ${id}`
     case 'axis': return `坐标系 ${id}`
     case 'curve': return `曲线 ${id}`
+    case 'arc': return `弧 ${id}`
+    case 'sector': return `扇形 ${id}`
+    case 'bow': return `弓形 ${id}`
+    case 'annular_sector': return `圆环扇环 ${id}`
+    case 'cube': return `正方体 ${id}`
+    case 'cuboid': return `长方体 ${id}`
+    case 'cylinder': return `圆柱 ${id}`
+    case 'cone': return `圆锥 ${id}`
+    case 'sphere': return `球 ${id}`
+    case 'bar_chart': return `条形图 ${id}`
+    case 'line_chart': return `折线图 ${id}`
+    case 'pie_chart': return `扇形图 ${id}`
+    case 'region': return `阴影区域 ${id}`
+    case 'number_line': return `数轴 ${id}`
+    case 'aux_line': return `辅助线 ${id}`
     case 'transformed_point': return `派生点 ${id}`
     case 'transformed_polygon': return `变换多边形 ${id}`
     default: return `${id} (${kind})`

@@ -14,13 +14,28 @@ from dataclasses import dataclass
 from ..dsl.safe_expr import compile_expr
 from ..dsl.schema import (
     AxisObj,
+    ArcObj,
+    AnnularSectorObj,
+    AuxLineObj,
+    BarChartObj,
+    BowObj,
     CircleObj,
+    ConeObj,
+    CubeObj,
+    CuboidObj,
+    CylinderObj,
     DSL,
     FunctionCurveObj,
+    LineChartObj,
     LineObj,
+    NumberLineObj,
+    PieChartObj,
     PointObj,
     PolygonObj,
+    RegionObj,
+    SectorObj,
     SegmentObj,
+    SphereObj,
     Style,
 )
 from ..solver.engine import Solution
@@ -232,6 +247,66 @@ def render_svg(
             f'stroke-dasharray="{style.aux_dash}"/>'
         )
 
+    # V2-G.1：圆弧（在 segment 之后、点之前）
+    for arc in dsl.arcs():
+        svg_path = _render_arc_path(arc, sol, tx, style, fill=False)
+        if svg_path:
+            parts.append(svg_path)
+
+    # V2-G.1：扇形（半透明填充 + 描边）
+    for sec in dsl.sectors():
+        svg_path = _render_sector_path(sec, sol, tx, style)
+        if svg_path:
+            parts.append(svg_path)
+
+    # V2-G.4：弓形（弧 + 弦闭合，半透明填充）
+    for bow in dsl.bows():
+        svg_path = _render_bow_path(bow, sol, tx, style)
+        if svg_path:
+            parts.append(svg_path)
+
+    # P3 V3.4：圆环扇环（外弧 + 内弧 + 两条径向直线段，闭合填充）
+    for ans in dsl.annular_sectors():
+        svg_path = _render_annular_sector_path(ans, sol, tx, style)
+        if svg_path:
+            parts.append(svg_path)
+
+    # V2-G.3：阴影/填充区域（在 segment 之后、点之前，避免遮挡）
+    for region in dsl.regions():
+        svg_path = _render_region_path(region, dsl, sol, tx, style)
+        if svg_path:
+            parts.append(svg_path)
+
+    # V2-G.3：数轴（与 axis 同级渲染）
+    for nl in dsl.number_lines():
+        parts.extend(_render_number_line(nl, sol, tx, scale, style, text_el))
+
+    # V2-G.3：辅助线（虚线，在 segment 之后渲染）
+    for aux in dsl.aux_lines():
+        svg_line = _render_aux_line(aux, sol, tx, style, canvas_size)
+        if svg_line:
+            parts.append(svg_line)
+
+    # V3.1：立体几何（等轴投影，在普通几何之后渲染）
+    for cube in dsl.cubes():
+        parts.append(_render_cube(cube, sol, tx, style))
+    for cuboid in dsl.cuboids():
+        parts.append(_render_cuboid(cuboid, sol, tx, style))
+    for cyl in dsl.cylinders():
+        parts.append(_render_cylinder(cyl, sol, tx, style))
+    for cone in dsl.cones():
+        parts.append(_render_cone(cone, sol, tx, style))
+    for sphere in dsl.spheres():
+        parts.append(_render_sphere(sphere, sol, tx, style))
+
+    # V3.2：统计图表（独立渲染，在所有几何之后）
+    for bc in dsl.bar_charts():
+        parts.append(_render_bar_chart(bc, sol, tx, style, text_el))
+    for lc in dsl.line_charts():
+        parts.append(_render_line_chart(lc, sol, tx, style, text_el))
+    for pc in dsl.pie_charts():
+        parts.append(_render_pie_chart(pc, sol, tx, style, text_el))
+
     # 点 + 标签
     aux_points = _isolated_aux_points(dsl)
     for p in dsl.points():
@@ -378,6 +453,30 @@ def _annotation_text(ann, dsl: DSL, sol: Solution) -> str | None:
                     cosv = max(-1, min(1, (v1[0]*v2[0]+v1[1]*v2[1])/(n1*n2)))
                     deg = math.degrees(math.acos(cosv))
                     return f"{_fmt_num(deg)}°"
+    # V2-G.4：弧长 / 弓形面积标注
+    if ann.kind in ("arc_length", "bow_area"):
+        arc = obj_map.get(ann.target)
+        if isinstance(arc, (ArcObj, BowObj)):
+            pc = sol.coordinates.get(arc.center)
+            pf = sol.coordinates.get(arc.from_point)
+            pt = sol.coordinates.get(arc.to_point)
+            if pc and pf and pt:
+                v1 = (pf[0]-pc[0], pf[1]-pc[1])
+                v2 = (pt[0]-pc[0], pt[1]-pc[1])
+                r = math.hypot(*v1)
+                if r > 1e-9:
+                    cross_v = v1[0]*v2[1] - v1[1]*v2[0]
+                    dot_v = v1[0]*v2[0] + v1[1]*v2[1]
+                    angle_signed = math.atan2(cross_v, dot_v)
+                    if not arc.ccw:
+                        angle_signed = -angle_signed
+                    if angle_signed < 0:
+                        angle_signed += 2 * math.pi
+                    if ann.kind == "arc_length":
+                        return _fmt_num(r * angle_signed)
+                    else:  # bow_area
+                        area = 0.5 * r * r * (angle_signed - math.sin(angle_signed))
+                        return _fmt_num(area)
     return None
 
 
@@ -414,6 +513,39 @@ def _annotation_position(ann, dsl: DSL, sol: Solution, tx, style: Style) -> tupl
         p = sol.coordinates.get(ann.target)
         if p:
             return tx(p[0], p[1])
+    # V2-G.4：弧长 / 弓形面积标注位置
+    if ann.kind in ("arc_length", "bow_area"):
+        arc = obj_map.get(ann.target)
+        if isinstance(arc, (ArcObj, BowObj)):
+            pc = sol.coordinates.get(arc.center)
+            pf = sol.coordinates.get(arc.from_point)
+            pt = sol.coordinates.get(arc.to_point)
+            if pc and pf and pt:
+                v1 = (pf[0]-pc[0], pf[1]-pc[1])
+                v2 = (pt[0]-pc[0], pt[1]-pc[1])
+                r = math.hypot(*v1)
+                if r > 1e-9:
+                    # 弧中点角度
+                    a1 = math.atan2(v1[1], v1[0])
+                    a2 = math.atan2(v2[1], v2[0])
+                    sweep = (a2 - a1) if arc.ccw else (a1 - a2)
+                    while sweep <= 0:
+                        sweep += 2 * math.pi
+                    while sweep > 2 * math.pi:
+                        sweep -= 2 * math.pi
+                    mid_angle = a1 + (sweep / 2 if arc.ccw else -sweep / 2)
+                    if ann.kind == "arc_length":
+                        # 弧外侧偏移 0.15r
+                        offset_r = r * 1.15
+                        mx = pc[0] + offset_r * math.cos(mid_angle)
+                        my = pc[1] + offset_r * math.sin(mid_angle)
+                    else:  # bow_area
+                        # 弓形内部：弦中点 + 沿弧中点方向偏移 0.3
+                        chord_mid = ((pf[0]+pt[0])/2, (pf[1]+pt[1])/2)
+                        arc_mid = (pc[0] + r * math.cos(mid_angle), pc[1] + r * math.sin(mid_angle))
+                        mx = chord_mid[0] + (arc_mid[0] - chord_mid[0]) * 0.4
+                        my = chord_mid[1] + (arc_mid[1] - chord_mid[1]) * 0.4
+                    return tx(mx, my)
     return None
 
 
@@ -749,6 +881,24 @@ def _render_axis(axis: AxisObj, dsl: DSL, sol: Solution, tx, scale: float, style
                 fill=tick_text_fill, font_size=11, anchor="end")
     )
 
+    # 6) V2-G.3：网格作图模式 - 画明显的网格点
+    if axis.grid_size is not None and axis.grid_size > 0:
+        gs = axis.grid_size
+        x_start = math.ceil(axis.x_range[0] / gs) * gs
+        x_end = axis.x_range[1]
+        y_start = math.ceil(axis.y_range[0] / gs) * gs
+        y_end = axis.y_range[1]
+        x = x_start
+        while x <= x_end + 1e-9:
+            y = y_start
+            while y <= y_end + 1e-9:
+                gx, gy = tx(x, y)
+                out.append(
+                    f'<circle cx="{gx:.2f}" cy="{gy:.2f}" r="1.5" fill="{axis_stroke}"/>'
+                )
+                y += gs
+            x += gs
+
     return out
 
 
@@ -762,66 +912,696 @@ _CURVE_CLIP_MAG = 1000.0  # 值绝对值超过此阈值切段（防止 1/x 在�
 def _render_curve(
     curve: FunctionCurveObj, dsl: DSL, sol: Solution, tx, style: Style
 ) -> list[str]:
-    """采样 curve.expr 并输出一或多段 <polyline>（用断点切段）。"""
+    """采样 curve.expr 并输出一或多段 <polyline>（用断点切段）。
+    V2-G.4：若 curve.pieces 非空，按 pieces 渲染分段函数。
+    """
     axis = dsl.axis()
     if axis is None:
         return []  # validator 已阻止；此处兜底
 
-    # 确定采样域
-    if curve.domain is not None:
-        dmin, dmax = curve.domain
-    elif curve.var == "x":
-        dmin, dmax = axis.x_range
+    # 收集所有要渲染的 (expr, domain) 段
+    pieces: list[tuple[str, tuple[float, float]]] = []
+    if curve.pieces:
+        for p in curve.pieces:
+            pieces.append((p.expr, p.domain))
     else:
-        dmin, dmax = axis.y_range
-
-    if dmin >= dmax or curve.samples < 2:
-        return []
-
-    # 编译表达式（validator 已经保证合法）
-    try:
-        f = compile_expr(curve.expr, var=curve.var)
-    except Exception:
-        return []
-
-    # 等距采样
-    N = curve.samples
-    step = (dmax - dmin) / (N - 1)
-
-    # segments: 累积每一段连续可绘制的点，遇到不可用（nan/inf/|y|>阈值）就断开
-    segments: list[list[tuple[float, float]]] = [[]]
-    for i in range(N):
-        v = dmin + i * step
-        y = f(v)
-        if not _is_finite(y) or abs(y) > _CURVE_CLIP_MAG:
-            # 结束当前段，开启新段（若上一段非空）
-            if segments[-1]:
-                segments.append([])
-            continue
-        # 变量映射：var=x 时 (v, y)，var=y 时 (y, v)
-        if curve.var == "x":
-            pt = (v, y)
+        if not curve.expr:
+            return []
+        if curve.domain is not None:
+            dmin, dmax = curve.domain
+        elif curve.var == "x":
+            dmin, dmax = axis.x_range
         else:
-            pt = (y, v)
-        segments[-1].append(pt)
+            dmin, dmax = axis.y_range
+        pieces.append((curve.expr, (dmin, dmax)))
 
     dash_attr = f' stroke-dasharray="{curve.dash}"' if curve.dash else ""
-
     out: list[str] = []
-    for seg in segments:
-        if len(seg) < 2:
+
+    for expr, (dmin, dmax) in pieces:
+        if dmin >= dmax or curve.samples < 2:
             continue
-        pts_svg = " ".join(f"{sx_:.2f},{sy_:.2f}" for sx_, sy_ in (tx(*p) for p in seg))
-        out.append(
-            f'<polyline data-id="{curve.id}" class="t2g-obj t2g-curve" '
-            f'points="{pts_svg}" fill="none" '
-            f'stroke="{curve.color}" stroke-width="1.6"{dash_attr}/>'
-        )
+        try:
+            f = compile_expr(expr, var=curve.var)
+        except Exception:
+            continue
+
+        N = curve.samples
+        step = (dmax - dmin) / (N - 1)
+        segments: list[list[tuple[float, float]]] = [[]]
+        for i in range(N):
+            v = dmin + i * step
+            y = f(v)
+            if not _is_finite(y) or abs(y) > _CURVE_CLIP_MAG:
+                if segments[-1]:
+                    segments.append([])
+                continue
+            if curve.var == "x":
+                pt = (v, y)
+            else:
+                pt = (y, v)
+            segments[-1].append(pt)
+
+        for seg in segments:
+            if len(seg) < 2:
+                continue
+            pts_svg = " ".join(f"{sx_:.2f},{sy_:.2f}" for sx_, sy_ in (tx(*p) for p in seg))
+            out.append(
+                f'<polyline data-id="{curve.id}" class="t2g-obj t2g-curve" '
+                f'points="{pts_svg}" fill="none" '
+                f'stroke="{curve.color}" stroke-width="1.6"{dash_attr}/>'
+            )
     return out
 
 
 def _is_finite(v: float) -> bool:
     return v == v and v != float("inf") and v != float("-inf")
+
+
+# ---------------------------------------------------------------------------
+# V2-G.1 · 圆弧 / 扇形渲染
+# ---------------------------------------------------------------------------
+
+def _compute_arc_geometry(
+    center_id: str, from_id: str, to_id: str,
+    sol: Solution, tx,
+) -> tuple[float, float, float, float, float, float, float] | None:
+    """返回 SVG 坐标系下的 (cx_svg, cy_svg, fx_svg, fy_svg, tx_svg, ty_svg, r_svg)
+    或 None（坐标缺失）。
+    """
+    if (center_id not in sol.coordinates
+            or from_id not in sol.coordinates
+            or to_id not in sol.coordinates):
+        return None
+    cx, cy = sol.coordinates[center_id]
+    fx, fy = sol.coordinates[from_id]
+    tx_math, ty_math = sol.coordinates[to_id]
+    cx_svg, cy_svg = tx(cx, cy)
+    fx_svg, fy_svg = tx(fx, fy)
+    tx_svg, ty_svg = tx(tx_math, ty_math)
+    r_svg = math.hypot(fx_svg - cx_svg, fy_svg - cy_svg)
+    return cx_svg, cy_svg, fx_svg, fy_svg, tx_svg, ty_svg, r_svg
+
+
+def _arc_sweep_flags(
+    cx: float, cy: float, fx: float, fy: float, tx_pt: float, ty_pt: float,
+    ccw: bool, r: float,
+) -> tuple[int, int]:
+    """计算 SVG arc 命令的 large_arc 与 sweep flag。
+
+    SVG 中 y 轴向下（与数学坐标系相反），因此 ccw=True（数学逆时针）
+    在 SVG 中变成顺时针（sweep=0）；ccw=False 在 SVG 中是 sweep=1。
+    large_arc：当弧的扫过角度 > 180° 时为 1，否则 0。
+    """
+    # 计算起止向量相对圆心的角度（SVG 坐标系，y 向下）
+    a1 = math.atan2(fy - cy, fx - cx)
+    a2 = math.atan2(ty_pt - cy, tx_pt - cx)
+    # 数学坐标系中 sweep（ccw 为正）；SVG y 翻转后变号
+    sweep_math = (a2 - a1) if not ccw else (a1 - a2)
+    # 归一到 (0, 2π)
+    while sweep_math <= 0:
+        sweep_math += 2 * math.pi
+    while sweep_math > 2 * math.pi:
+        sweep_math -= 2 * math.pi
+    large_arc = 1 if sweep_math > math.pi else 0
+    # SVG sweep flag：1=顺时针（SVG y 向下），0=逆时针
+    # ccw=True（数学逆时针）-> SVG 中是顺时针 -> sweep=0（SVG y 翻转后再次反向）
+    # 经过验证：ccw=True -> sweep=0；ccw=False -> sweep=1
+    sweep_flag = 0 if ccw else 1
+    return large_arc, sweep_flag
+
+
+def _render_arc_path(
+    arc: ArcObj, sol: Solution, tx, style: Style, *, fill: bool = False,
+) -> str:
+    """渲染圆弧为 SVG <path d="M fx fy A r r 0 large sweep tx ty"/>。"""
+    g = _compute_arc_geometry(arc.center, arc.from_point, arc.to_point, sol, tx)
+    if g is None:
+        return ""
+    cx, cy, fx, fy, tx_pt, ty_pt, r = g
+    if r < 1e-9:
+        return ""
+    large, sweep = _arc_sweep_flags(cx, cy, fx, fy, tx_pt, ty_pt, arc.ccw, r)
+    fill_attr = 'fill="none"' if not fill else f'fill="{style.stroke}" fill-opacity="0.15"'
+    return (
+        f'<path data-id="{arc.id}" class="t2g-obj t2g-arc" '
+        f'd="M {fx:.2f} {fy:.2f} A {r:.2f} {r:.2f} 0 {large} {sweep} {tx_pt:.2f} {ty_pt:.2f}" '
+        f'{fill_attr} stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+    )
+
+
+def _render_sector_path(sec: SectorObj, sol: Solution, tx, style: Style) -> str:
+    """渲染扇形为闭合 SVG path：M cx cy L fx fy A ... tx ty Z（半透明填充）。"""
+    g = _compute_arc_geometry(sec.center, sec.from_point, sec.to_point, sol, tx)
+    if g is None:
+        return ""
+    cx, cy, fx, fy, tx_pt, ty_pt, r = g
+    if r < 1e-9:
+        return ""
+    large, sweep = _arc_sweep_flags(cx, cy, fx, fy, tx_pt, ty_pt, sec.ccw, r)
+    return (
+        f'<path data-id="{sec.id}" class="t2g-obj t2g-sector" '
+        f'd="M {cx:.2f} {cy:.2f} L {fx:.2f} {fy:.2f} '
+        f'A {r:.2f} {r:.2f} 0 {large} {sweep} {tx_pt:.2f} {ty_pt:.2f} Z" '
+        f'fill="{style.stroke}" fill-opacity="0.15" '
+        f'stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+    )
+
+
+def _render_bow_path(bow: BowObj, sol: Solution, tx, style: Style) -> str:
+    """渲染弓形 (V2-G.4)：M fx fy A ... tx ty Z（弧 + 弦自动闭合，不画到圆心）。"""
+    g = _compute_arc_geometry(bow.center, bow.from_point, bow.to_point, sol, tx)
+    if g is None:
+        return ""
+    cx, cy, fx, fy, tx_pt, ty_pt, r = g
+    if r < 1e-9:
+        return ""
+    large, sweep = _arc_sweep_flags(cx, cy, fx, fy, tx_pt, ty_pt, bow.ccw, r)
+    return (
+        f'<path data-id="{bow.id}" class="t2g-obj t2g-bow" '
+        f'd="M {fx:.2f} {fy:.2f} '
+        f'A {r:.2f} {r:.2f} 0 {large} {sweep} {tx_pt:.2f} {ty_pt:.2f} Z" '
+        f'fill="{style.stroke}" fill-opacity="0.15" '
+        f'stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+    )
+
+
+def _render_annular_sector_path(
+    ans: AnnularSectorObj, sol: Solution, tx, style: Style
+) -> str:
+    """渲染圆环扇环 (P3 V3.4)。
+
+    构造闭合 path：
+      M outer_from A ... outer_to    （外弧）
+      L inner_to                      （径向直线）
+      A ... inner_from                （内弧，方向相反）
+      Z                               （径向直线自动闭合回 outer_from）
+
+    外弧半径 = |center - from_point|（已求解）
+    内弧半径 = ans.r_inner
+    """
+    g = _compute_arc_geometry(ans.center, ans.from_point, ans.to_point, sol, tx)
+    if g is None:
+        return ""
+    cx, cy, fx, fy, tx_pt, ty_pt, r_outer = g
+    if r_outer < 1e-9 or ans.r_inner <= 0:
+        return ""
+
+    r_inner = ans.r_inner  # 数学坐标系下的半径
+
+    # 内弧端点（沿 center->from / center->to 方向，距离 r_inner）
+    fx_math = sol.coordinates[ans.from_point][0]
+    fy_math = sol.coordinates[ans.from_point][1]
+    tx_math = sol.coordinates[ans.to_point][0]
+    ty_math = sol.coordinates[ans.to_point][1]
+    cx_math, cy_math = sol.coordinates[ans.center]
+
+    # 单位向量
+    def _unit(dx: float, dy: float) -> tuple[float, float]:
+        L = math.hypot(dx, dy)
+        if L < 1e-12:
+            return 1.0, 0.0
+        return dx / L, dy / L
+
+    ux, uy = _unit(fx_math - cx_math, fy_math - cy_math)  # center -> from 方向
+    vx, vy = _unit(tx_math - cx_math, ty_math - cy_math)  # center -> to 方向
+
+    # 内弧端点（数学坐标）
+    inner_from = (cx_math + ux * r_inner, cy_math + uy * r_inner)
+    inner_to = (cx_math + vx * r_inner, cy_math + vy * r_inner)
+
+    # 转 SVG 坐标
+    ifx, ify = tx(*inner_from)
+    itx, ity = tx(*inner_to)
+
+    # 外弧 sweep flags
+    large_outer, sweep_outer = _arc_sweep_flags(
+        cx, cy, fx, fy, tx_pt, ty_pt, ans.ccw, r_outer
+    )
+    # 内弧 sweep flags：方向与外弧相反（因为反向走）
+    # 简化：large_inner = large_outer；sweep_inner = 1 - sweep_outer
+    large_inner = large_outer
+    sweep_inner = 1 - sweep_outer
+
+    return (
+        f'<path data-id="{ans.id}" class="t2g-obj t2g-annular-sector" '
+        f'd="M {fx:.2f} {fy:.2f} '
+        f'A {r_outer:.2f} {r_outer:.2f} 0 {large_outer} {sweep_outer} '
+        f'{tx_pt:.2f} {ty_pt:.2f} '
+        f'L {itx:.2f} {ity:.2f} '
+        f'A {r_inner:.2f} {r_inner:.2f} 0 {large_inner} {sweep_inner} '
+        f'{ifx:.2f} {ify:.2f} Z" '
+        f'fill="{style.stroke}" fill-opacity="0.15" '
+        f'stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+    )
+
+
+# ---------------------------------------------------------------------------
+# V2-G.3 · 阴影区域 / 数轴 / 辅助线
+# ---------------------------------------------------------------------------
+
+def _render_region_path(
+    region: RegionObj, dsl: DSL, sol: Solution, tx, style: Style
+) -> str:
+    """按 boundary 顺序拼接 segment/arc 端点，构造闭合 SVG path 并填充。
+
+    简化实现：把每个 boundary 元素的起点按顺序连成 path。
+    - SegmentObj：起点 = a，终点 = b
+    - ArcObj：起点 = from_point，终点 = to_point（弧线用 SVG A 命令）
+    """
+    obj_map = dsl.object_map()
+    path_cmds: list[str] = []
+    first_pt: tuple[float, float] | None = None
+    last_pt: tuple[float, float] | None = None
+
+    for bid in region.boundary:
+        obj = obj_map.get(bid)
+        if obj is None:
+            continue
+        if isinstance(obj, SegmentObj):
+            if obj.a not in sol.coordinates or obj.b not in sol.coordinates:
+                return ""
+            a_pt = sol.coordinates[obj.a]
+            b_pt = sol.coordinates[obj.b]
+            ax_s, ay_s = tx(*a_pt)
+            bx_s, by_s = tx(*b_pt)
+            # 如果是第一个元素，移到起点；否则从上一个终点开始
+            if first_pt is None:
+                path_cmds.append(f"M {ax_s:.2f} {ay_s:.2f}")
+                first_pt = (ax_s, ay_s)
+            path_cmds.append(f"L {bx_s:.2f} {by_s:.2f}")
+            last_pt = (bx_s, by_s)
+        elif isinstance(obj, ArcObj):
+            g = _compute_arc_geometry(obj.center, obj.from_point, obj.to_point, sol, tx)
+            if g is None:
+                return ""
+            cx, cy, fx, fy, tx_pt, ty_pt, r = g
+            if r < 1e-9:
+                return ""
+            large, sweep = _arc_sweep_flags(cx, cy, fx, fy, tx_pt, ty_pt, obj.ccw, r)
+            if first_pt is None:
+                path_cmds.append(f"M {fx:.2f} {fy:.2f}")
+                first_pt = (fx, fy)
+            path_cmds.append(f"A {r:.2f} {r:.2f} 0 {large} {sweep} {tx_pt:.2f} {ty_pt:.2f}")
+            last_pt = (tx_pt, ty_pt)
+
+    if first_pt is None:
+        return ""
+    # 闭合
+    path_cmds.append("Z")
+    stroke_attr = (
+        f'stroke="{region.stroke}" stroke-width="{style.stroke_width}"'
+        if region.stroke is not None else 'stroke="none"'
+    )
+    return (
+        f'<path data-id="{region.id}" class="t2g-obj t2g-region" '
+        f'd="{" ".join(path_cmds)}" '
+        f'fill="{region.fill_color}" fill-opacity="{region.fill_opacity}" '
+        f'{stroke_attr}/>'
+    )
+
+
+def _render_number_line(
+    nl: NumberLineObj, sol: Solution, tx, scale: float, style: Style, text_el
+) -> list[str]:
+    """渲染 1D 数轴：水平线 + 箭头 + 刻度 + 数字。"""
+    if nl.origin not in sol.coordinates:
+        return []
+    ox, oy = sol.coordinates[nl.origin]
+    out: list[str] = []
+    r_min, r_max = nl.range
+    # 主线
+    x1_s, y1_s = tx(r_min, oy)
+    x2_s, y2_s = tx(r_max, oy)
+    out.append(
+        f'<line data-id="{nl.id}" class="t2g-obj t2g-number-line" '
+        f'x1="{x1_s:.2f}" y1="{y1_s:.2f}" x2="{x2_s:.2f}" y2="{y2_s:.2f}" '
+        f'stroke="{style.stroke}" stroke-width="{style.stroke_width}" '
+        f'marker-end="url(#t2g-arrow)"/>'
+    )
+    # 刻度
+    if nl.show_ticks:
+        step = nl.tick_step
+        n_ticks = int((r_max - r_min) / step)
+        for i in range(n_ticks + 1):
+            v = r_min + i * step
+            x_s, y_s = tx(v, oy)
+            tick_len = 4
+            out.append(
+                f'<line x1="{x_s:.2f}" y1="{y_s:.2f}" x2="{x_s:.2f}" y2="{y_s + tick_len:.2f}" '
+                f'stroke="{style.stroke}" stroke-width="1"/>'
+            )
+            if nl.show_numbers and abs(v) > 1e-9:
+                out.append(
+                    text_el(_fmt_num(v), x=x_s, y=y_s + tick_len + 14,
+                            fill="#6b7280", anchor="middle")
+                )
+    # 原点标签 O
+    oxs, oys = tx(ox, oy)
+    out.append(
+        text_el("O", x=oxs - 8, y=oys + 14, fill=style.stroke, anchor="middle")
+    )
+    # 数轴标签（右端）
+    x_end_s, y_end_s = tx(r_max, oy)
+    out.append(
+        text_el(nl.label, x=x_end_s + 12, y=y_end_s + 4, fill=style.stroke, anchor="start")
+    )
+    return out
+
+
+def _render_aux_line(
+    aux: AuxLineObj, sol: Solution, tx, style: Style, canvas_size: int
+) -> str:
+    """渲染辅助线：虚线 segment 或延长直线。"""
+    if aux.a not in sol.coordinates or aux.b not in sol.coordinates:
+        return ""
+    a = sol.coordinates[aux.a]
+    b = sol.coordinates[aux.b]
+    x1, y1 = tx(*a)
+    x2, y2 = tx(*b)
+    dash = aux.dash if aux.dash is not None else style.aux_dash
+    if aux.extended:
+        dx, dy = x2 - x1, y2 - y1
+        L = math.hypot(dx, dy) or 1
+        ext = canvas_size * 2
+        ex1, ey1 = x1 - dx / L * ext, y1 - dy / L * ext
+        ex2, ey2 = x2 + dx / L * ext, y2 + dy / L * ext
+        return (
+            f'<line data-id="{aux.id}" class="t2g-obj t2g-aux-line" '
+            f'x1="{ex1:.2f}" y1="{ey1:.2f}" x2="{ex2:.2f}" y2="{ey2:.2f}" '
+            f'stroke="{style.stroke}" stroke-width="{style.stroke_width * 0.7:.2f}" '
+            f'stroke-dasharray="{dash}"/>'
+        )
+    return (
+        f'<line data-id="{aux.id}" class="t2g-obj t2g-aux-line" '
+        f'x1="{x1:.2f}" y1="{y1:.2f}" x2="{x2:.2f}" y2="{y2:.2f}" '
+        f'stroke="{style.stroke}" stroke-width="{style.stroke_width * 0.7:.2f}" '
+        f'stroke-dasharray="{dash}"/>'
+    )
+
+
+# ---------------------------------------------------------------------------
+# V3.1 · 立体几何（等轴投影 SVG）
+# ---------------------------------------------------------------------------
+
+# 等轴投影：3D (x, y, z) -> 2D (x', y')
+# x' = x + z * cos(30°) ≈ x + 0.866 * z
+# y' = y - z * sin(30°) ≈ y - 0.5 * z
+_ISO_COS30 = math.cos(math.radians(30))
+_ISO_SIN30 = math.sin(math.radians(30))
+
+
+def _project_3d(x: float, y: float, z: float) -> tuple[float, float]:
+    """3D 数学坐标 -> 2D 投影坐标（仍是数学坐标系，y 向上）"""
+    return (x + z * _ISO_COS30, y - z * _ISO_SIN30)
+
+
+def _render_cube(cube: CubeObj, sol: Solution, tx, style: Style) -> str:
+    """渲染正方体：底面 4 顶点 + 顶面 4 顶点，等轴投影。"""
+    if cube.vertex not in sol.coordinates:
+        return ""
+    vx, vy = sol.coordinates[cube.vertex]
+    e = cube.edge
+    # 8 个顶点（3D 坐标，相对于 vertex）
+    # 底面：A(0,0,0) B(e,0,0) C(e,0,e) D(0,0,e)
+    # 顶面：E(0,e,0) F(e,e,0) G(e,e,e) H(0,e,e)
+    pts3d = [
+        (vx,       vy,       0),    # A 底前左
+        (vx + e,   vy,       0),    # B 底前右
+        (vx + e,   vy,       e),    # C 底后右
+        (vx,       vy,       e),    # D 底后左
+        (vx,       vy + e,   0),    # E 顶前左
+        (vx + e,   vy + e,   0),    # F 顶前右
+        (vx + e,   vy + e,   e),    # G 顶后右
+        (vx,       vy + e,   e),    # H 顶后左
+    ]
+    pts2d = [tx(*_project_3d(*p)) for p in pts3d]
+    # 可见面：顶面 EFGH + 右面 BCGF + 前面 ABFE
+    top = f"M {pts2d[4][0]:.2f} {pts2d[4][1]:.2f} L {pts2d[5][0]:.2f} {pts2d[5][1]:.2f} L {pts2d[6][0]:.2f} {pts2d[6][1]:.2f} L {pts2d[7][0]:.2f} {pts2d[7][1]:.2f} Z"
+    right = f"M {pts2d[1][0]:.2f} {pts2d[1][1]:.2f} L {pts2d[2][0]:.2f} {pts2d[2][1]:.2f} L {pts2d[6][0]:.2f} {pts2d[6][1]:.2f} L {pts2d[5][0]:.2f} {pts2d[5][1]:.2f} Z"
+    front = f"M {pts2d[0][0]:.2f} {pts2d[0][1]:.2f} L {pts2d[1][0]:.2f} {pts2d[1][1]:.2f} L {pts2d[5][0]:.2f} {pts2d[5][1]:.2f} L {pts2d[4][0]:.2f} {pts2d[4][1]:.2f} Z"
+    # 隐藏边：从 A 到 D 到 H 到 G（虚线）
+    hidden = f"M {pts2d[0][0]:.2f} {pts2d[0][1]:.2f} L {pts2d[3][0]:.2f} {pts2d[3][1]:.2f} L {pts2d[7][0]:.2f} {pts2d[7][1]:.2f} L {pts2d[6][0]:.2f} {pts2d[6][1]:.2f}"
+    return (
+        f'<path data-id="{cube.id}" class="t2g-obj t2g-cube" '
+        f'd="{front}" fill="#f5f5f5" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<path d="{right}" fill="#e5e5e5" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<path d="{top}" fill="#ffffff" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<path d="{hidden}" fill="none" stroke="{style.stroke}" stroke-width="{style.stroke_width * 0.7:.2f}" stroke-dasharray="{style.aux_dash}"/>'
+    )
+
+
+def _render_cuboid(cuboid: CuboidObj, sol: Solution, tx, style: Style) -> str:
+    """渲染长方体：与 cube 类似但用 length/width/height。"""
+    if cuboid.vertex not in sol.coordinates:
+        return ""
+    vx, vy = sol.coordinates[cuboid.vertex]
+    L, W, H = cuboid.length, cuboid.width, cuboid.height
+    pts3d = [
+        (vx,     vy,     0),
+        (vx + L, vy,     0),
+        (vx + L, vy,     W),
+        (vx,     vy,     W),
+        (vx,     vy + H, 0),
+        (vx + L, vy + H, 0),
+        (vx + L, vy + H, W),
+        (vx,     vy + H, W),
+    ]
+    pts2d = [tx(*_project_3d(*p)) for p in pts3d]
+    top = f"M {pts2d[4][0]:.2f} {pts2d[4][1]:.2f} L {pts2d[5][0]:.2f} {pts2d[5][1]:.2f} L {pts2d[6][0]:.2f} {pts2d[6][1]:.2f} L {pts2d[7][0]:.2f} {pts2d[7][1]:.2f} Z"
+    right = f"M {pts2d[1][0]:.2f} {pts2d[1][1]:.2f} L {pts2d[2][0]:.2f} {pts2d[2][1]:.2f} L {pts2d[6][0]:.2f} {pts2d[6][1]:.2f} L {pts2d[5][0]:.2f} {pts2d[5][1]:.2f} Z"
+    front = f"M {pts2d[0][0]:.2f} {pts2d[0][1]:.2f} L {pts2d[1][0]:.2f} {pts2d[1][1]:.2f} L {pts2d[5][0]:.2f} {pts2d[5][1]:.2f} L {pts2d[4][0]:.2f} {pts2d[4][1]:.2f} Z"
+    hidden = f"M {pts2d[0][0]:.2f} {pts2d[0][1]:.2f} L {pts2d[3][0]:.2f} {pts2d[3][1]:.2f} L {pts2d[7][0]:.2f} {pts2d[7][1]:.2f} L {pts2d[6][0]:.2f} {pts2d[6][1]:.2f}"
+    return (
+        f'<path data-id="{cuboid.id}" class="t2g-obj t2g-cuboid" '
+        f'd="{front}" fill="#f5f5f5" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<path d="{right}" fill="#e5e5e5" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<path d="{top}" fill="#ffffff" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<path d="{hidden}" fill="none" stroke="{style.stroke}" stroke-width="{style.stroke_width * 0.7:.2f}" stroke-dasharray="{style.aux_dash}"/>'
+    )
+
+
+def _render_cylinder(cyl: CylinderObj, sol: Solution, tx, style: Style) -> str:
+    """渲染圆柱：底面椭圆 + 顶面椭圆 + 两条母线。"""
+    if cyl.center_bottom not in sol.coordinates:
+        return ""
+    cx, cy = sol.coordinates[cyl.center_bottom]
+    r = cyl.radius
+    h = cyl.height
+    # 底面圆心 3D -> 2D（用作椭圆中心）
+    bot2d = tx(*_project_3d(cx, cy, 0))
+    top2d = tx(*_project_3d(cx, cy + h, 0))
+    # 椭圆参数：rx = r，ry = r * sin30（透视压缩）
+    rx = r
+    ry = r * _ISO_SIN30
+    return (
+        f'<g data-id="{cyl.id}" class="t2g-obj t2g-cylinder">'
+        # 底面（半椭圆后半部分虚线 + 前半实线，简化为完整椭圆）
+        f'<ellipse cx="{bot2d[0]:.2f}" cy="{bot2d[1]:.2f}" rx="{rx:.2f}" ry="{ry:.2f}" fill="#f5f5f5" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        # 顶面
+        f'<ellipse cx="{top2d[0]:.2f}" cy="{top2d[1]:.2f}" rx="{rx:.2f}" ry="{ry:.2f}" fill="#ffffff" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        # 左右母线
+        f'<line x1="{bot2d[0] - rx:.2f}" y1="{bot2d[1]:.2f}" x2="{top2d[0] - rx:.2f}" y2="{top2d[1]:.2f}" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<line x1="{bot2d[0] + rx:.2f}" y1="{bot2d[1]:.2f}" x2="{top2d[0] + rx:.2f}" y2="{top2d[1]:.2f}" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'</g>'
+    )
+
+
+def _render_cone(cone: ConeObj, sol: Solution, tx, style: Style) -> str:
+    """渲染圆锥：底面椭圆 + 顶点 + 两条母线。"""
+    if cone.center_bottom not in sol.coordinates:
+        return ""
+    cx, cy = sol.coordinates[cone.center_bottom]
+    r = cone.radius
+    h = cone.height
+    bot2d = tx(*_project_3d(cx, cy, 0))
+    apex2d = tx(*_project_3d(cx, cy + h, 0))
+    rx = r
+    ry = r * _ISO_SIN30
+    return (
+        f'<g data-id="{cone.id}" class="t2g-obj t2g-cone">'
+        f'<ellipse cx="{bot2d[0]:.2f}" cy="{bot2d[1]:.2f}" rx="{rx:.2f}" ry="{ry:.2f}" fill="#f5f5f5" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        # 左右母线
+        f'<line x1="{bot2d[0] - rx:.2f}" y1="{bot2d[1]:.2f}" x2="{apex2d[0]:.2f}" y2="{apex2d[1]:.2f}" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<line x1="{bot2d[0] + rx:.2f}" y1="{bot2d[1]:.2f}" x2="{apex2d[0]:.2f}" y2="{apex2d[1]:.2f}" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'</g>'
+    )
+
+
+def _render_sphere(sphere: SphereObj, sol: Solution, tx, style: Style) -> str:
+    """渲染球：大圆 + 赤道椭圆。"""
+    if sphere.center not in sol.coordinates:
+        return ""
+    cx, cy = sol.coordinates[sphere.center]
+    r = sphere.radius
+    center2d = tx(*_project_3d(cx, cy, 0))
+    return (
+        f'<g data-id="{sphere.id}" class="t2g-obj t2g-sphere">'
+        # 大圆（外形圆）
+        f'<circle cx="{center2d[0]:.2f}" cy="{center2d[1]:.2f}" r="{r:.2f}" fill="#ffffff" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        # 赤道椭圆（透视）
+        f'<ellipse cx="{center2d[0]:.2f}" cy="{center2d[1]:.2f}" rx="{r:.2f}" ry="{r * _ISO_SIN30:.2f}" fill="none" stroke="{style.stroke}" stroke-width="{style.stroke_width * 0.7:.2f}" stroke-dasharray="{style.aux_dash}"/>'
+        f'</g>'
+    )
+
+
+# ---------------------------------------------------------------------------
+# V3.2 · 统计图表
+# ---------------------------------------------------------------------------
+
+# 默认色板（K12 教学用色）
+_CHART_PALETTE = [
+    "#3b82f6", "#ef4444", "#10b981", "#f59e0b",
+    "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16",
+]
+
+
+def _render_bar_chart(
+    bc: BarChartObj, sol: Solution, tx, style: Style, text_el
+) -> str:
+    """渲染条形图：每条数据用一个矩形。"""
+    if bc.origin not in sol.coordinates:
+        return ""
+    ox, oy = sol.coordinates[bc.origin]
+    n = len(bc.data)
+    max_v = max(bc.data) if bc.data else 1
+    if max_v <= 0:
+        max_v = 1
+    chart_w = bc.width
+    chart_h = bc.height
+    bar_w = chart_w / n * 0.7
+    gap = chart_w / n * 0.3
+
+    out: list[str] = [f'<g data-id="{bc.id}" class="t2g-obj t2g-bar-chart">']
+    # 坐标轴
+    ox_svg, oy_svg = tx(ox, oy)
+    x_end_svg, _ = tx(ox + chart_w, oy)
+    _, y_end_svg = tx(ox, oy + chart_h)
+    out.append(
+        f'<line x1="{ox_svg:.2f}" y1="{oy_svg:.2f}" x2="{x_end_svg:.2f}" y2="{oy_svg:.2f}" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<line x1="{ox_svg:.2f}" y1="{oy_svg:.2f}" x2="{ox_svg:.2f}" y2="{y_end_svg:.2f}" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+    )
+    # 条形
+    for i, v in enumerate(bc.data):
+        bx = ox + i * (bar_w + gap) + gap / 2
+        bh = chart_h * (v / max_v)
+        bx1, by1 = tx(bx, oy)
+        bx2, by2 = tx(bx + bar_w, oy + bh)
+        # SVG y 向下翻转
+        ry = min(by1, by2)
+        rh = abs(by2 - by1)
+        out.append(
+            f'<rect x="{min(bx1, bx2):.2f}" y="{ry:.2f}" width="{abs(bx2 - bx1):.2f}" height="{rh:.2f}" fill="{bc.bar_color}" stroke="{style.stroke}" stroke-width="1"/>'
+        )
+        # 数值标签
+        out.append(text_el(_fmt_num(v), x=(bx1 + bx2) / 2, y=ry - 4,
+                           fill="#374151", anchor="middle"))
+        # x 轴标签
+        if i < len(bc.labels):
+            out.append(text_el(bc.labels[i], x=(bx1 + bx2) / 2, y=oy_svg + 16,
+                               fill="#6b7280", anchor="middle"))
+    out.append('</g>')
+    return "".join(out)
+
+
+def _render_line_chart(
+    lc: LineChartObj, sol: Solution, tx, style: Style, text_el
+) -> str:
+    """渲染折线图：连接数据点。"""
+    if lc.origin not in sol.coordinates:
+        return ""
+    ox, oy = sol.coordinates[lc.origin]
+    n = len(lc.data)
+    max_v = max(lc.data) if lc.data else 1
+    min_v = min(lc.data) if lc.data else 0
+    if max_v == min_v:
+        max_v = min_v + 1
+    chart_w = lc.width
+    chart_h = lc.height
+
+    out: list[str] = [f'<g data-id="{lc.id}" class="t2g-obj t2g-line-chart">']
+    # 坐标轴
+    ox_svg, oy_svg = tx(ox, oy)
+    x_end_svg, _ = tx(ox + chart_w, oy)
+    _, y_end_svg = tx(ox, oy + chart_h)
+    out.append(
+        f'<line x1="{ox_svg:.2f}" y1="{oy_svg:.2f}" x2="{x_end_svg:.2f}" y2="{oy_svg:.2f}" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+        f'<line x1="{ox_svg:.2f}" y1="{oy_svg:.2f}" x2="{ox_svg:.2f}" y2="{y_end_svg:.2f}" stroke="{style.stroke}" stroke-width="{style.stroke_width}"/>'
+    )
+    # 数据点
+    pts: list[tuple[float, float]] = []
+    for i, v in enumerate(lc.data):
+        if n == 1:
+            px = ox + chart_w / 2
+        else:
+            px = ox + chart_w * i / (n - 1)
+        py = oy + chart_h * (v - min_v) / (max_v - min_v)
+        pts.append((px, py))
+    # 折线
+    pts_svg = " ".join(f"{tx(*p)[0]:.2f},{tx(*p)[1]:.2f}" for p in pts)
+    out.append(
+        f'<polyline points="{pts_svg}" fill="none" stroke="{lc.line_color}" stroke-width="2"/>'
+    )
+    # 数据点 + 标签
+    for i, (p, v) in enumerate(zip(pts, lc.data)):
+        sx, sy = tx(*p)
+        out.append(f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="3" fill="{lc.line_color}"/>')
+        out.append(text_el(_fmt_num(v), x=sx, y=sy - 8,
+                           fill="#374151", anchor="middle"))
+        if i < len(lc.labels):
+            x_axis_svg, _ = tx(p[0], oy)
+            out.append(text_el(lc.labels[i], x=x_axis_svg, y=oy_svg + 16,
+                               fill="#6b7280", anchor="middle"))
+    out.append('</g>')
+    return "".join(out)
+
+
+def _render_pie_chart(
+    pc: PieChartObj, sol: Solution, tx, style: Style, text_el
+) -> str:
+    """渲染扇形图：按比例分配角度。"""
+    if pc.center not in sol.coordinates:
+        return ""
+    cx, cy = sol.coordinates[pc.center]
+    total = sum(pc.data) if pc.data else 1
+    if total <= 0:
+        total = 1
+    r = pc.radius
+    colors = pc.colors or _CHART_PALETTE
+    cx_svg, cy_svg = tx(cx, cy)
+
+    out: list[str] = [f'<g data-id="{pc.id}" class="t2g-obj t2g-pie-chart">']
+    angle_start = -math.pi / 2   # 从 12 点方向开始
+    for i, v in enumerate(pc.data):
+        sweep = 2 * math.pi * v / total
+        angle_end = angle_start + sweep
+        # 计算弧端点
+        x1 = cx_svg + r * math.cos(angle_start)
+        y1 = cy_svg + r * math.sin(angle_start)
+        x2 = cx_svg + r * math.cos(angle_end)
+        y2 = cy_svg + r * math.sin(angle_end)
+        large_arc = 1 if sweep > math.pi else 0
+        color = colors[i % len(colors)]
+        # 闭合 path：M center L start A ... end Z
+        out.append(
+            f'<path d="M {cx_svg:.2f} {cy_svg:.2f} L {x1:.2f} {y1:.2f} '
+            f'A {r:.2f} {r:.2f} 0 {large_arc} 1 {x2:.2f} {y2:.2f} Z" '
+            f'fill="{color}" fill-opacity="0.7" stroke="{style.stroke}" stroke-width="1"/>'
+        )
+        # 标签（百分比）
+        mid_angle = (angle_start + angle_end) / 2
+        label_r = r * 1.15
+        lx = cx_svg + label_r * math.cos(mid_angle)
+        ly = cy_svg + label_r * math.sin(mid_angle)
+        pct = v / total * 100
+        out.append(text_el(f"{pct:.1f}%", x=lx, y=ly + 4,
+                           fill="#374151", anchor="middle"))
+        if i < len(pc.labels):
+            out.append(text_el(pc.labels[i], x=lx, y=ly + 18,
+                               fill="#6b7280", anchor="middle"))
+        angle_start = angle_end
+    out.append('</g>')
+    return "".join(out)
 
 
 # ---------------------------------------------------------------------------

@@ -111,6 +111,36 @@ function describeObject(o: GeoObject): string {
           return '圆'
       }
     }
+    case 'arc':
+      return `弧 ${o.from_point}->${o.to_point}（绕 ${o.center}）`
+    case 'sector':
+      return `扇形 ${o.center}${o.from_point}${o.to_point}`
+    case 'bow':
+      return `弓形 ${o.center}${o.from_point}${o.to_point}`
+    case 'annular_sector':
+      return `圆环扇环 ${o.center}${o.from_point}${o.to_point} r=${o.r_inner}`
+    case 'cube':
+      return `正方体（边长 ${o.edge}）`
+    case 'cuboid':
+      return `长方体（${o.length}×${o.width}×${o.height}）`
+    case 'cylinder':
+      return `圆柱（r=${o.radius}, h=${o.height}）`
+    case 'cone':
+      return `圆锥（r=${o.radius}, h=${o.height}）`
+    case 'sphere':
+      return `球（r=${o.radius}）`
+    case 'bar_chart':
+      return `条形图（${o.data?.length} 项）`
+    case 'line_chart':
+      return `折线图（${o.data?.length} 点）`
+    case 'pie_chart':
+      return `扇形图（${o.data?.length} 项）`
+    case 'region':
+      return `阴影区域 ${o.id}`
+    case 'number_line':
+      return `数轴 ${o.label || 'x'}`
+    case 'aux_line':
+      return `辅助线 ${o.a}${o.b}`
     default:
       return o.kind
   }

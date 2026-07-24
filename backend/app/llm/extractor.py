@@ -89,7 +89,7 @@ def build_messages(
     nl: str,
     *,
     current_dsl: DSL | None = None,
-    fewshot_limit: int = 21,
+    fewshot_limit: int = 39,
 ) -> list[ChatMessage]:
     msgs: list[ChatMessage] = [ChatMessage("system", _load_system_prompt())]
     for ex in _load_fewshots(fewshot_limit):
