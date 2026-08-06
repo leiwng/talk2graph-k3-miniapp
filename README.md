@@ -1,3 +1,10 @@
+# 话图 T2G 微信小程序版（已归档）
+
+> **⚠️ 本仓库已合并入 [talk2graph-glm](https://github.com/leiwng/talk2graph-glm)（monorepo：backend + frontend + miniapp），不再单独维护。**
+> 小程序代码现位于主仓库的 `miniapp/` 目录。本仓库保留仅作历史查阅（归档于 2026-08-06，对应 V1.2 合并）。
+
+---
+
 # 话图 T2G (talk2graph-glm)
 
 用自然语言画数学图形。跟 AI 说「画一个内切圆半径为 3 的等腰三角形」，它就画出来。持续修改，精确控制。
