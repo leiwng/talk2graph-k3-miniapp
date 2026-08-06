@@ -1,0 +1,74 @@
+.sessions-page {
+  padding: 24rpx;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20rpx;
+}
+
+.new-btn {
+  padding: 0 32rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+}
+
+.session-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  border: 2rpx solid transparent;
+}
+
+.session-card.active {
+  border-color: #2563eb;
+}
+
+.session-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-sub {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-top: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-meta {
+  font-size: 22rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+}
+
+.session-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-left: 20rpx;
+}
+
+.action {
+  font-size: 24rpx;
+  color: #2563eb;
+  padding: 8rpx 16rpx;
+}
+
+.action.danger {
+  color: #dc2626;
+}

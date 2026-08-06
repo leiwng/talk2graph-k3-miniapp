@@ -1,0 +1,20 @@
+<view class="sessions-page">
+  <view class="top-bar">
+    <button class="btn-primary new-btn" size="mini" bindtap="onNewSession">＋ 新建会话</button>
+  </view>
+
+  <view wx:if="{{sessions.length === 0}}" class="empty-hint">还没有会话，点上方「新建会话」开始</view>
+
+  <view wx:for="{{sessions}}" wx:key="id" class="session-card {{item.id === currentId ? 'active' : ''}}"
+    bindtap="onSwitch" data-id="{{item.id}}">
+    <view class="session-main">
+      <view class="session-title">{{item.title || '未命名会话'}}</view>
+      <view class="session-sub" wx:if="{{item.last_user_nl}}">{{item.last_user_nl}}</view>
+      <view class="session-meta">{{item.message_count}} 条消息 · {{item.updated_text}}</view>
+    </view>
+    <view class="session-actions">
+      <view class="action" catchtap="onRename" data-id="{{item.id}}" data-title="{{item.title}}">改名</view>
+      <view class="action danger" catchtap="onDelete" data-id="{{item.id}}">删除</view>
+    </view>
+  </view>
+</view>

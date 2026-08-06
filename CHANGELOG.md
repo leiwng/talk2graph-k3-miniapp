@@ -6,6 +6,88 @@
 
 ---
 
+## V1.1-miniapp - 百炼 Provider + fallback 不限个数 + provider:model 格式（2026-08-05）
+
+**测试状态**：353/353 通过（V1.0 346 + 百炼/fallback 7）
+
+**目标**：按小程序实际用的 5 家模型配置后端：DeepSeek / 阿里百炼 / 火山方舟 / Kimi-Code / MiniMax。
+
+### 新增
+
+- `backend/app/llm/bailian.py`：阿里云百炼（DashScope OpenAI 兼容）Provider，env `BAILIAN_API_KEY` / `BAILIAN_BASE_URL`（默认 dashscope 兼容端点）/ `BAILIAN_MODEL`
+- `backend/tests/test_bailian_fallback.py`：7 个测试（百炼默认值/启用、5 条目全链、缺 model 报错、未知 provider 报错、model 空报错、未配置自动回退）
+
+### 变更
+
+**`T2G_FALLBACK_PROVIDERS` 格式改为 `provider:model`（破坏性）**
+- 旧格式（纯 provider 名，如 `volcengine,deepseek`）启动即报 ValueError，提示正确格式
+- **取消 3 个上限**：配多少个用多少个
+- 每条目按 `provider:model` 注册独立实例（name 即 `provider:model`），model 精确到条目，不再依赖各 provider 的默认 model env
+- 启动校验：缺 model / 未知 provider（列出可选 6 家：zhipu/volcengine/deepseek/minimax/kimi/bailian）/ model 为空 → ValueError
+- 未配置时行为不变：自动取全部 enabled（default 排第一，也不设上限）
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+无变更。
+
+### 配置（本机 .env 已按此落地）
+
+- `T2G_FALLBACK_PROVIDERS=deepseek:deepseek-v4-flash,bailian:qwen3.8-max,volcengine:glm-5.2,kimi:k3,minimax:MiniMax-M3`
+- 百炼用 Token Plan 专属端点（`BAILIAN_BASE_URL` 指向 token-plan.cn-beijing.maas.aliyuncs.com）
+- 邮件/支付宝/PC 扫码等 Web 端配置不配 = 自动停用（邮件落 console）
+- 注意：shell profile 里 `export DEEPSEEK_API_KEY` 会覆盖 `.env`（`load_dotenv(override=False)`）
+
+---
+
+## V1.0-miniapp - 微信小程序版 P0+P1（2026-07-24）
+
+**测试状态**：346/346 通过（V3.5.1 342 + 小程序登录 4；前端 `npm run build` 无变更）
+
+**目标**：把话图 T2G 搬到微信小程序（原生框架），老师手机上也能用。
+
+### 新增
+
+**后端（唯一改动：小程序登录端点）**
+- `POST /api/auth/wechat/miniapp`：`wx.login` code -> jscode2session 换 openid -> 按 openid 找/建用户（复用扫码登录的 `user_repo.create_wechat_user`，建号即 email_verified，chat 闸门不挡）-> 颁 JWT，返回 `AuthResp{token, user}`
+- `backend/app/auth/wechat_miniapp.py`：jscode2session 封装（复用 WechatError）
+- 新 env：`WECHAT_MINIAPP_APP_ID` / `WECHAT_MINIAPP_APP_SECRET`（小程序 AppID，与开放平台网站应用是两个不同应用）
+- `backend/tests/test_wechat_miniapp.py`：4 个测试（建号/复登/微信报错 502/未配置 503；注意 patch 的是 `app.api.auth.settings` 实例，test_v2f_auth 会 reload config 模块）
+
+**miniapp/（原生小程序，从零搭建，约 25 个文件）**
+- 骨架：`project.config.json`（urlCheck=false）/ `app.json`（tabBar：工作台/会话/我的）/ `config.js`（API_BASE，dev 127.0.0.1:8000）
+- `utils/request.js`：wx.request Promise 化 + Bearer + 401 清 token 重登 + friendly error 归一（对齐 Web `client.ts`）
+- `utils/sse.js`：`enableChunked` SSE 流式（手写增量 UTF-8 解码跨 chunk 不断字 + `\n\n` 分帧；事件 stage/token/object_seen/done/error，对齐 Web `chatStream`）
+- `utils/store.js` + `utils/api.js`：轻量全局状态 + 动作层（对齐 Web Zustand `store/index.ts`：乐观双气泡、`__thinking__`/`__stream__` 协议、stage 中文文案、结束后拉权威 messages）
+- `pages/login`：微信一键登录
+- `pages/index`（工作台）：chat 气泡（错误分级 refuse 黄 / solve|patch 紫 / network 红）+ 画板（`GET /api/export/{sid}.png` + movable-view 双指缩放 + 保存相册 + undo/redo）
+- `pages/sessions`：列表 / 新建 / 切换 / 重命名（showModal editable）/ 删除
+- `pages/account`：今日配额（`GET /api/payment/subscription`，失败静默）+ 退出登录
+
+### 变更
+
+- 无既有代码逻辑变更；后端只加端点，Web 前端未动
+
+### 修复
+
+- 无
+
+### DB Schema 升级
+
+无变更。
+
+### 下一步候选
+
+- 小程序真机联调：合法域名 + HTTPS 生产配置（deploy/ 已有 Caddy）
+- P3：对象属性面板 / 首页提示示例 / 👍👎 反馈 / Canvas 2D 重绘（拖点交互）/ 暗色模式
+- 微信支付 `wx.requestPayment`（需后端加微信支付 Provider）
+- 本仓库的 `/api/auth/wechat/miniapp` 端点同步回父项目
+
+---
+
 ## V3.5.1 - 文档与代码同步（2026-07-23）
 
 **测试状态**：342/342 通过（无新代码测试；前端 `npm run build` 无变更）

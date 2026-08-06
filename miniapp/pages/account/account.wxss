@@ -1,0 +1,93 @@
+.account-page {
+  padding: 24rpx;
+}
+
+.user-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx 24rpx;
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 24rpx;
+}
+
+.nickname {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.email {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 6rpx;
+}
+
+.quota-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx 24rpx;
+  margin-top: 24rpx;
+}
+
+.quota-title {
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.quota-row {
+  display: flex;
+  align-items: baseline;
+  margin-top: 12rpx;
+}
+
+.quota-num {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.quota-limit {
+  font-size: 28rpx;
+  color: #9ca3af;
+  margin-left: 8rpx;
+}
+
+.quota-plan {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-top: 12rpx;
+}
+
+.menu-list {
+  margin-top: 24rpx;
+}
+
+.menu-item {
+  background: #fff;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  padding: 8rpx 0;
+}
+
+.menu-item.logout {
+  color: #dc2626;
+}
+
+.version {
+  text-align: center;
+  color: #c0c4cc;
+  font-size: 22rpx;
+  margin-top: 60rpx;
+}

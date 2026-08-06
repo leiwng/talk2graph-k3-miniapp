@@ -1,0 +1,24 @@
+<view class="account-page">
+  <view class="user-card">
+    <view class="avatar">{{avatarText}}</view>
+    <view class="user-info">
+      <view class="nickname">{{nickname}}</view>
+      <view class="email" wx:if="{{email}}">{{email}}</view>
+    </view>
+  </view>
+
+  <view class="quota-card" wx:if="{{quota}}">
+    <view class="quota-title">今日用量</view>
+    <view class="quota-row">
+      <view class="quota-num">{{quota.used_today}}</view>
+      <view class="quota-limit">/ {{quota.daily_limit === 0 ? '不限' : quota.daily_limit}}</view>
+    </view>
+    <view class="quota-plan">{{quota.plan_name}} · {{quota.remaining === -1 ? '不限量' : '今日剩余 ' + quota.remaining}}</view>
+  </view>
+
+  <view class="menu-list">
+    <button class="menu-item logout" bindtap="onLogout">退出登录</button>
+  </view>
+
+  <view class="version">话图 T2G 小程序版 V1.0</view>
+</view>

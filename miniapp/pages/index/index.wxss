@@ -1,0 +1,147 @@
+.workbench {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+/* 画板 */
+.canvas-area {
+  height: 520rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #e5e7eb;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-movable {
+  flex: 1;
+  width: 100%;
+  height: 400rpx;
+}
+
+.canvas-view {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas-img {
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-toolbar {
+  display: flex;
+  gap: 16rpx;
+  padding: 12rpx 24rpx;
+  border-top: 1rpx solid #f0f1f3;
+  background: #fafbfc;
+}
+
+/* 消息列表 */
+.msg-list {
+  flex: 1;
+  padding: 20rpx 24rpx;
+  box-sizing: border-box;
+}
+
+.msg-row {
+  display: flex;
+  margin-bottom: 20rpx;
+}
+
+.msg-row.user {
+  justify-content: flex-end;
+}
+
+.bubble {
+  max-width: 78%;
+  padding: 18rpx 24rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.msg-row.user .bubble {
+  background: #2563eb;
+  color: #fff;
+  border-bottom-right-radius: 4rpx;
+}
+
+.msg-row.assistant .bubble {
+  background: #fff;
+  color: #1f2329;
+  border-bottom-left-radius: 4rpx;
+  box-shadow: 0 2rpx 8rpx rgba(31, 35, 41, 0.05);
+}
+
+/* 错误分级（对齐 Web 版 error_kind 分色） */
+.bubble.err-refuse {
+  background: #fefce8;
+  border: 1rpx solid #fde047;
+}
+
+.bubble.err-solve,
+.bubble.err-patch {
+  background: #faf5ff;
+  border: 1rpx solid #d8b4fe;
+}
+
+.bubble.err-network {
+  background: #fef2f2;
+  border: 1rpx solid #fca5a5;
+}
+
+.stage-line {
+  color: #6b7280;
+  font-size: 26rpx;
+}
+
+.waiting-line {
+  color: #9ca3af;
+  font-size: 24rpx;
+  margin-top: 8rpx;
+}
+
+.obj-line {
+  color: #2563eb;
+  font-size: 24rpx;
+  margin-top: 8rpx;
+}
+
+.fallback-line {
+  color: #9ca3af;
+  font-size: 22rpx;
+  margin-top: 8rpx;
+}
+
+/* 输入栏 */
+.input-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1rpx solid #e5e7eb;
+}
+
+.input {
+  flex: 1;
+  background: #f3f4f6;
+  border-radius: 32rpx;
+  padding: 16rpx 28rpx;
+  font-size: 28rpx;
+}
+
+.send-btn {
+  border-radius: 32rpx;
+  padding: 0 36rpx;
+  height: 68rpx;
+  line-height: 68rpx;
+}

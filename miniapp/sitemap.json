@@ -1,0 +1,4 @@
+{
+  "desc": "话图 T2G 小程序页面配置",
+  "rules": [{ "action": "allow", "page": "*" }]
+}

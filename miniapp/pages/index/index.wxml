@@ -1,0 +1,53 @@
+<view class="workbench">
+  <view wx:if="{{errorBanner}}" class="error-banner" bindtap="onDismissError">{{errorBanner}} ✕</view>
+
+  <!-- 画板 -->
+  <view class="canvas-area">
+    <movable-area class="canvas-movable" wx:if="{{imgPath}}">
+      <movable-view class="canvas-view" direction="all" scale scale-min="0.5" scale-max="4" scale-value="1">
+        <image src="{{imgPath}}" mode="aspectFit" class="canvas-img" />
+      </movable-view>
+    </movable-area>
+    <view wx:elif="{{canvasLoading}}" class="empty-hint">正在渲染图形…</view>
+    <view wx:else class="empty-hint">在下方输入一句话开始作图，例如：
+「画一个边长为 3 的正方形」
+「画 y = x² 的函数图像」
+「画一个半径为 2 的圆及其内接正三角形」</view>
+    <view class="canvas-toolbar">
+      <button size="mini" bindtap="onNewSession" disabled="{{busy}}">新建会话</button>
+      <button size="mini" bindtap="onUndo" disabled="{{busy || !imgPath}}">撤销</button>
+      <button size="mini" bindtap="onRedo" disabled="{{busy || !imgPath}}">重做</button>
+      <button size="mini" type="primary" bindtap="onSaveImage" disabled="{{!imgPath}}">保存图片</button>
+    </view>
+  </view>
+
+  <!-- 消息列表 -->
+  <scroll-view class="msg-list" scroll-y scroll-into-view="{{scrollInto}}" scroll-with-animation>
+    <view wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}" class="msg-row {{item.role}}">
+      <view class="bubble {{item.cls}}">
+        <block wx:if="{{item.kind === 'stream'}}">
+          <view class="stage-line">{{item.stageText}}</view>
+          <view wx:if="{{item.waiting}}" class="waiting-line">AI 正在准备输出...</view>
+          <view wx:if="{{item.objectsText}}" class="obj-line">已识别：{{item.objectsText}}</view>
+        </block>
+        <block wx:elif="{{item.kind === 'thinking'}}">
+          <view class="stage-line">正在思考…</view>
+        </block>
+        <block wx:else>
+          <text user-select>{{item.text}}</text>
+          <view wx:if="{{item.fallback}}" class="fallback-line">已重新理解为重画</view>
+        </block>
+      </view>
+    </view>
+    <view wx:if="{{messages.length === 0}}" class="empty-hint">一句话描述你要画的图，AI 帮你生成</view>
+  </scroll-view>
+
+  <!-- 输入栏 -->
+  <view class="input-bar">
+    <input class="input" value="{{inputValue}}" placeholder="描述要画的图形…"
+      confirm-type="send" bindinput="onInput" bindconfirm="onSend" disabled="{{busy}}" />
+    <button class="send-btn" size="mini" type="primary" bindtap="onSend" disabled="{{busy || !inputValue}}">
+      {{busy ? '…' : '发送'}}
+    </button>
+  </view>
+</view>

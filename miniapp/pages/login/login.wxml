@@ -1,0 +1,18 @@
+<view class="login-page">
+  <view class="brand">
+    <view class="brand-title">话图 T2G</view>
+    <view class="brand-sub">用一句话，画出几何图形</view>
+    <view class="brand-desc">帮 K12 数学老师用自然语言画课件图</view>
+  </view>
+
+  <view class="features">
+    <view class="feature">✓ 自然语言作图（点 / 线 / 圆 / 多边形 / 函数曲线）</view>
+    <view class="feature">✓ 几何约束求解（精度达机器精度）</view>
+    <view class="feature">✓ 一键导出图片（PPT 友好）</view>
+  </view>
+
+  <button class="btn-primary login-btn" loading="{{loading}}" disabled="{{loading}}" bindtap="onWxLogin">
+    {{loading ? '登录中…' : '微信一键登录'}}
+  </button>
+  <view wx:if="{{error}}" class="login-error">{{error}}</view>
+</view>

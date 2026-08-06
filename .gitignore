@@ -248,3 +248,5 @@ secrets/
 
 # V2-F.2：防御性 -- 防止含明文 Key 的配置文件再次被提交
 backend/model_config*.md
+# 小程序配置参考文档（含密钥，从 iCloud 拷贝，勿提交）
+/T2G话图小程序*.md

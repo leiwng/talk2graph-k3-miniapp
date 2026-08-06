@@ -79,6 +79,24 @@ npm run dev   # http://localhost:5173
 
 详细见 `frontend/README.md`。**先启后端再启前端**；Vite 已配 `/api` 代理。
 
+## 小程序快速上手（miniapp/）
+
+```bash
+# 1. 先启后端（本机 macOS 用这个脚本：注入 Homebrew cairo 库路径，PNG 导出才工作；
+#    --reload 改代码自动重载，但改 .env 后仍需手动重启）
+backend/scripts/dev-local.sh    # 默认 8080 端口
+
+# 2. 后端 .env 配置小程序 AppID（登录用）
+WECHAT_MINIAPP_APP_ID=...
+WECHAT_MINIAPP_APP_SECRET=...
+```
+
+3. 微信开发者工具「导入项目」选择 `miniapp/` 目录
+4. 详情 → 本地设置 → 勾选「不校验合法域名…」（开发期直连 `http://127.0.0.1:8000`，见 `miniapp/config.js`）
+5. 编译后点「微信一键登录」即可使用
+
+生产期：`miniapp/config.js` 的 `API_BASE` 改为 HTTPS 域名，并在小程序后台配置 request / downloadFile 合法域名。
+
 ## LLM Provider 配置
 
 后端通过 `.env` 读取 Key、Base URL、模型名，全部支持环境变量覆盖：

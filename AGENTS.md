@@ -15,11 +15,11 @@
 按顺序做这 3 件事，**用户不必每次重新说**：
 
 1. **读 `CHANGELOG.md` 顶部块**——拿到父项目最新里程碑、测试数、最近变更、DB schema 状态
-   - 当前后端是最新版本，小程序端从零开始
+   - 当前后端是最新版本；小程序端 V1.0（P0+P1：登录/会话/Chat SSE/画板 PNG/导出）已完成
 2. **读父项目 `docs/onboarding.md`**——拿到编码约定、常见坑、架构原则
-3. **验证后端环境健康**：`cd backend && .venv/bin/pytest -q`，与 CHANGELOG 顶部记录的测试数对齐（当前 342/342）
+3. **验证后端环境健康**：`cd backend && .venv/bin/pytest -q`，与 CHANGELOG 顶部记录的测试数对齐（当前 353/353）
 
-完成后告诉用户「当前后端在 V3.5、测试 342/342 通过；小程序端从零开始」，再等指示。
+完成后告诉用户「当前后端在 V3.5、测试 353/353 通过；小程序端 V1.1（登录/会话/Chat SSE/画板 PNG/导出 + 5 家 LLM fallback）已完成」，再等指示。
 
 ## 架构原则（从父项目继承，不要破坏）
 
@@ -34,7 +34,7 @@
 
 | 项目 | Web 版 | 小程序版 |
 |---|---|---|
-| 前端框架 | React + Vite + Zustand | 原生小程序 / Taro / uniapp（待定） |
+| 前端框架 | React + Vite + Zustand | 原生小程序（已定，miniapp/） |
 | 路由 | react-router-dom | 小程序 page 注册 |
 | 状态管理 | Zustand | 小程序 globalData / mobx-miniprogram / Taro store |
 | 样式 | CSS | WXSS（语法兼容 CSS，单位 rpx） |
@@ -96,6 +96,8 @@
 |---|---|
 | 后端报 LLM 网络错误 | uvicorn 没重启；`--reload` 不重读 `.env` -> 让用户重启 |
 | 火山 LLM 返回 400 `response_format.type` | coding/v3 不支持 json_object -> VolcengineProvider.supports_json_mode=False（已处理） |
+| `T2G_FALLBACK_PROVIDERS` 启动报 ValueError | V1.1 起格式为 `provider:model` 逗号分隔（如 `deepseek:deepseek-v4-flash`），纯 provider 名不再合法；可选 6 家：zhipu/volcengine/deepseek/minimax/kimi/bailian |
+| `.env` 的 Key 不生效 | shell profile 里 export 了同名变量（如 DEEPSEEK_API_KEY）；`load_dotenv(override=False)` 不覆盖进程 env -> 删掉 shell 里的 export |
 | 测试 `default_provider` 失败 | env 影响；测试只断言在三家之一，别硬编码 |
 | 改 .env 后不生效 | docker compose up -d backend 重建容器 |
 | 配额超限 422 | free 5/天 / pro 30/天；改 DB 立即生效 |
@@ -125,9 +127,13 @@ git checkout -- .
 | `docs/teacher-guide.md` | 老师使用手册（小程序版可据此改） |
 | `docs/email-wechat-setup.md` | 邮件 / 微信 OAuth 配置指南 |
 | `backend/app/main.py` | FastAPI 入口、路由注册 |
-| `backend/app/api/auth.py` | 登录/注册/微信 OAuth/邮箱验证 |
+| `backend/app/api/auth.py` | 登录/注册/微信 OAuth（PC 扫码 + 小程序 wx.login）/邮箱验证 |
+| `backend/app/auth/wechat_miniapp.py` | 小程序 jscode2session（code -> openid） |
 | `backend/app/api/chat_stream.py` | SSE 流式 chat 端点 |
 | `backend/app/dsl/schema.py` | 几何 DSL schema |
 | `backend/app/solver/engine.py` | scipy.least_squares 求解器 |
 | `backend/app/render/svg.py` | SVG 渲染管线 |
 | `backend/.env.example` | 完整配置示例 |
+| `miniapp/config.js` | 小程序 API_BASE（dev 127.0.0.1:8000 / 生产 HTTPS 域名） |
+| `miniapp/utils/request.js` / `sse.js` | 小程序 API client + SSE 流式（对齐 Web client.ts） |
+| `miniapp/utils/api.js` | 小程序动作层（对齐 Web store/index.ts 的 sendChat 流程） |
