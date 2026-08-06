@@ -2,10 +2,10 @@
 
 - 注册全部 Provider；按 name 查找
 - `default` 取 env DEFAULT_PROVIDER，缺省 "zhipu"
-- `fallback_chain`：调用失败时顺序降级（最多 3 个）
-  - 由 `T2G_FALLBACK_PROVIDERS` env 配置（逗号分隔）
-  - 未配置时自动取前 3 个 enabled provider
-  - 第一个总是 default
+- `fallback_chain`：调用失败时顺序降级（不设个数上限，配多少用多少）
+  - 由 `T2G_FALLBACK_PROVIDERS` env 配置，格式 `provider:model,provider:model,...`
+  - 启动即校验：条目缺 model / provider 未知 / model 为空都会 ValueError
+  - 未配置时自动取全部 enabled provider（default 排第一）
 - `is_retryable(err)`：判断错误是否触发 fallback
 
 W13-B 起：同一 Provider 类可注册多个实例（不同 model），用 name 区分。
@@ -14,12 +14,23 @@ from __future__ import annotations
 
 import os
 
+from .bailian import BailianProvider
 from .base import LLMError, LLMProvider
 from .deepseek import DeepSeekProvider
 from .kimi import KimiProvider
 from .minimax import MiniMaxProvider
 from .volcengine import VolcengineProvider
 from .zhipu import ZhipuProvider
+
+# T2G_FALLBACK_PROVIDERS 中可用的 provider 类型
+_PROVIDER_CLASSES = {
+    "zhipu": ZhipuProvider,
+    "volcengine": VolcengineProvider,
+    "deepseek": DeepSeekProvider,
+    "minimax": MiniMaxProvider,
+    "kimi": KimiProvider,
+    "bailian": BailianProvider,
+}
 
 
 def is_retryable(err: Exception) -> bool:
@@ -52,6 +63,7 @@ class LLMRouter:
             "volcengine": VolcengineProvider(),
             "deepseek": DeepSeekProvider(),
             "minimax": MiniMaxProvider(),
+            "bailian": BailianProvider(),
         }
 
         # ----- 多 model 注册（同一 Provider 类不同实例） -----
@@ -92,31 +104,56 @@ class LLMRouter:
         self.fallback_chain = self._build_fallback_chain()
 
     def _build_fallback_chain(self) -> list[str]:
-        """构造 fallback chain：最多 3 个 enabled provider，default 排第一。
+        """构造 fallback chain：不设个数上限，default 排第一。
 
         来源：
-        1. env T2G_FALLBACK_PROVIDERS（逗号分隔）
-        2. 未配置时：取 default + 其他 enabled，前 3 个
+        1. env T2G_FALLBACK_PROVIDERS（格式 provider:model，逗号分隔，启动校验）
+        2. 未配置时：取 default + 其他全部 enabled
         """
         raw = os.getenv("T2G_FALLBACK_PROVIDERS", "").strip()
-        chain: list[str] = []
         if raw:
-            chain = [n.strip() for n in raw.split(",") if n.strip()]
-        else:
-            enabled = [
-                name for name, p in self._providers.items()
-                if getattr(p, "enabled", False)
-            ]
-            # default 排第一（若 enabled）
-            if self.default in enabled:
-                chain.append(self.default)
-                for n in enabled:
-                    if n != self.default:
-                        chain.append(n)
-            else:
-                chain = enabled
-        # 最多 3 个
-        return chain[:3]
+            return self._build_chain_from_spec(raw)
+        enabled = [
+            name for name, p in self._providers.items()
+            if getattr(p, "enabled", False)
+        ]
+        # default 排第一（若 enabled）
+        if self.default in enabled:
+            return [self.default] + [n for n in enabled if n != self.default]
+        return enabled
+
+    def _build_chain_from_spec(self, raw: str) -> list[str]:
+        """解析 `provider:model,...` 配置，逐项校验并按需注册 provider:model 实例。"""
+        names: list[str] = []
+        for item in raw.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            if ":" not in item:
+                raise ValueError(
+                    f"T2G_FALLBACK_PROVIDERS 条目 {item!r} 缺少 model，"
+                    "格式应为 provider:model"
+                )
+            prov, _, model = item.partition(":")
+            prov, model = prov.strip(), model.strip()
+            if prov not in _PROVIDER_CLASSES:
+                raise ValueError(
+                    f"T2G_FALLBACK_PROVIDERS 未知 provider {prov!r}，"
+                    f"可选：{sorted(_PROVIDER_CLASSES)}"
+                )
+            if not model:
+                raise ValueError(
+                    f"T2G_FALLBACK_PROVIDERS 条目 {item!r} 的 model 为空"
+                )
+            name = f"{prov}:{model}"
+            if name not in self._providers:
+                p = _PROVIDER_CLASSES[prov](model=model)
+                p.name = name
+                self._providers[name] = p
+            names.append(name)
+        if not names:
+            raise ValueError("T2G_FALLBACK_PROVIDERS 已设置但解析后为空")
+        return names
 
     def register(self, p: LLMProvider) -> None:
         self._providers[p.name] = p

@@ -62,7 +62,7 @@ class Settings:
     cors_origins: list[str] = field(default_factory=_cors_origins)
     # 生产/调试 UI 切换：false 时前端隐藏 Provider 切换、对象面板等
     debug_ui: bool = field(default_factory=_debug_ui)
-    # LLM fallback chain（最多 3 个），None = 自动从 enabled 选前 3
+    # LLM fallback chain（provider:model 列表，不设上限），None = 自动选全部 enabled
     fallback_providers: list[str] | None = field(default_factory=_fallback_providers)
     # V2-F.1：JWT 配置
     jwt_secret: str = field(default_factory=_jwt_secret)
@@ -133,6 +133,13 @@ class Settings:
             "WECHAT_FRONTEND_REDIRECT_URL",
             "https://t2g.yinhour.com/wechat/callback",
         )
+    )
+    # 微信小程序登录（小程序 AppID，与开放平台网站应用不同）
+    wechat_miniapp_app_id: str = field(
+        default_factory=lambda: os.getenv("WECHAT_MINIAPP_APP_ID", "")
+    )
+    wechat_miniapp_app_secret: str = field(
+        default_factory=lambda: os.getenv("WECHAT_MINIAPP_APP_SECRET", "")
     )
 
     def ensure_dirs(self) -> None:

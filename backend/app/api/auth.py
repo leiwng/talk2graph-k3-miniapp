@@ -35,6 +35,7 @@ from ..auth.wechat import (
     exchange_code_for_user,
     gen_state,
 )
+from ..auth.wechat_miniapp import jscode2session
 from ..config import settings
 from ..db.models import User
 from ..email.provider import EmailMessage, get_email_provider
@@ -484,3 +485,40 @@ async def wechat_callback(code: str, state: str = "", db: AsyncSession = Depends
     sep = "&" if "?" in settings.wechat_frontend_redirect_url else "?"
     redirect = f"{settings.wechat_frontend_redirect_url}{sep}token={token}"
     return RedirectResponse(redirect, status_code=302)
+
+
+class WechatMiniappLoginReq(BaseModel):
+    code: str = Field(min_length=1)
+
+
+@router.post("/wechat/miniapp", response_model=AuthResp)
+async def wechat_miniapp_login(
+    req: WechatMiniappLoginReq, db: AsyncSession = Depends(db_dep)
+):
+    """微信小程序登录：wx.login 的 code -> openid -> 找/建用户 -> 颁 JWT。
+
+    与扫码回调同策略：未绑定 openid 时直接创建新账号。
+    小程序无法获取昵称/头像（2022 后微信回收接口），昵称用占位。
+    """
+    if not settings.wechat_miniapp_app_id:
+        raise HTTPException(status_code=503, detail="微信小程序登录未配置")
+
+    try:
+        session = await jscode2session(req.code)
+    except WechatError as e:
+        log.warning("[auth] wechat miniapp login failed: %s", e)
+        raise HTTPException(status_code=502, detail=f"微信登录失败：{e.message}") from None
+
+    user = await user_repo.get_user_by_wechat_openid(db, session.openid)
+    if user is None:
+        user = await user_repo.create_wechat_user(
+            db,
+            openid=session.openid,
+            unionid=session.unionid,
+            nickname=f"微信用户_{session.openid[:6]}",
+        )
+
+    await user_repo.update_last_login(db, user)
+
+    token = jwt_token.create_access_token(user)
+    return AuthResp(token=token, user=_to_user_out(user))
